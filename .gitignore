@@ -1,0 +1,26 @@
+# 大二进制 / 可从 ckpt 或录像再生成的产物
+*.ckpt
+*.ply
+*.mp4
+*.avi
+*.jsonl
+
+# COLMAP Windows 发行版（去官网下，不进库）
+tools/COLMAP/
+
+# 原始数据集（照片体积大，源头在手机/Windows 机另有备份）
+phone_camera_calibration_imgs/
+world_camera_calibration_imgs/
+test_scene/
+test_scene_processed/
+lab_scene_splat_result/
+
+# 每段录像的批量标注帧（process_recording.sh 一条命令可再生成）
+lab_result/rec*_wfix/
+lab_result/rec*_fixations/
+
+# 杂项
+__pycache__/
+*.pyc
+__MACOSX/
+.DS_Store
