@@ -19,6 +19,12 @@ lab_scene_splat_result/
 lab_result/rec*_wfix/
 lab_result/rec*_fixations/
 
+# SAM 分割的可再生成可视化与日志（~45MB；正品是 points.npz + instances.json）
+lab_result/segmentation_sam/thumbs/
+lab_result/segmentation_sam/preview/
+lab_result/segmentation_sam/run.log
+lab_result/segmentation_sam/run.err
+
 # 杂项
 __pycache__/
 *.pyc

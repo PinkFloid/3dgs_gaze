@@ -73,9 +73,20 @@ ns-train splatfacto `
 #    - 渲染的 raw-depth 数值即为米，和卷尺量一两个距离对一下
 #    - （dataparser_transforms.json 的 transform 含 applied_transform 复合，
 #       非单位阵是正常的；scale 必须是 1.0）
+
+# 8. 物体实例分割（SAM mask 提升到高斯 + 跨视角共识聚类；2026-07-07 起替代
+#    segment_splat 的物体层）。vit_h 权重在 E:\Grasp\tools\，~35s/视角
+powershell -File tools\run_lift_sam.ps1 --every 3 --points-per-batch 32 `
+  --crop-points-downscale 2 --previews 12
+#    →  lab_result\segmentation_sam\{points.npz, instances.json, names.json,
+#       preview\, thumbs\, render_check.jpg}
+#    ✔ render_check.jpg 三联图必须严丝合缝（重影物体=建图后被挪动，正常）
+#    命名：翻 preview\（id 标在照片上）填 names.json；给多个 id 填同一个名字
+#    即为手动合并（SAM 按颜色拆开的机器人部件、桌子分段都这样并）
 ```
 
-**拷回 Linux 机的三样**：训练输出目录（含 ckpt）、`tags_world.json`、`transforms_aligned.json`。
+**拷回 Linux 机的四样**：训练输出目录（含 ckpt）、`tags_world.json`、
+`transforms_aligned.json`、`lab_result\segmentation_sam\`。
 
 ---
 
@@ -111,11 +122,13 @@ python tools/export_splat_from_ckpt.py \
   --ckpt lab_result/splatfacto/<run>/nerfstudio_models/step-000029999.ckpt
 #   打印的 extent 应是米制实验室尺寸（~7x9x3m）
 
-# 2. 物体分割 + 命名（几何聚类，无模型依赖）
-python tools/segment_splat.py
-#   → lab_result/segmentation/{points.npz, instances.json, names.json, thumbs/}
-#   人工翻 thumbs/ 的高亮缩略图，把 names.json 里要用的实例名字填上（一次性）
+# 2. 物体分割 + 命名。首选：直接用 Windows 侧第 8 步拷来的 segmentation_sam\
+#    （SAM 跨视角共识，能分开贴着的物体：桌上水杯、紧挨的家具）。
+#    gaze_object/gaze_video 加 --seg-dir lab_result/segmentation_sam
+#    兜底（无 SAM 产物时）：python tools/segment_splat.py  → lab_result/segmentation/
+#    （几何连通域，贴着的物体会粘成一个实例）
 #   ⚠ 只有命名过的实例会出现在视频包围盒里；未命名的照样参与投票（显示为 object#N）
+#   ⚠ names.json 同名 = 合并：gaze_object 按名字并票（SAM 拆开的部件靠这个归整）
 
 # 3. 单帧交叉校验（可选但建议，验证地图/标定/定位三方一致）
 python tools/verify_pose_render.py --recording <任一段录像>
@@ -167,7 +180,8 @@ python tools/pupil_localizer.py --tags world_size/tags_world.json --print [--ema
 |---|---|---|
 | `pupil_localizer.py` | tag→位姿（实时/离线） | PnP 用 ITERATIVE（tag 共面，SQPNP 崩）；三道门限：出界(tag范围+3m, z∉[0.15,2.8])、mean_reproj_norm>0.006、0.25s 内跳变>1m（连拒 5 次重置） |
 | `gaze_to_world.py --continuous` | gaze→世界 3D 点→注视聚类 | 30Hz 采样、15cm 半径、≥0.25s；位姿空窗 ≤1s 插值（平移 lerp+旋转 slerp）；深度=沿射线渲 33×33 小块中心中位数，α<0.5 判打空；**世界系聚类能抓到"边走边盯"**（VOR 下图像动、世界落点静止，Pupil 自带检测器抓不到） |
-| `gaze_object.py` | 注视点→物体 | 0.2m 邻域 1/d 加权投票，输出 top-3 票型（= 将来 Bayes 后验的占位） |
+| `gaze_object.py` | 注视点→物体 | 0.2m 邻域 1/d 加权投票，**同名实例并票（命名即合并）**，输出 top-3 票型（= 将来 Bayes 后验的占位） |
+| `lift_sam_instances.py` | 高斯→实例 v2（建图侧跑） | SAM 自动 mask 经渲染深度反投影成"高斯 ID 集合"→ 集合 IoU 建图聚类 → 部件-整体包含合并 → per-gaussian 投票；无 query 无 CLIP；Windows 上用 `run_lift_sam.ps1` 包环境 |
 | `gaze_video.py` | 还原注视视频 | `--objects` 加判定横幅；`--poses` 加已命名实例 3D 包围盒（鱼眼投影） |
 | `segment_splat.py` | 高斯→实例 | 5cm 体素连通域；地板/天花板/墙用高度和房间边界规则 |
 | `verify_pose_render.py` | 单帧交叉校验 | 去畸变真实帧 vs 同位姿 3DGS 渲染 + blend；虚拟针孔 K 手动构造（fisheye 焦距×0.7、主点居中；estimateNewCameraMatrixForUndistortRectify 返回退化 K 不能用） |
@@ -201,8 +215,9 @@ python tools/pupil_localizer.py --tags world_size/tags_world.json --print [--ema
    直接抬升定位覆盖率（当前瓶颈）和单 tag 位姿质量
 2. **Bayes 物体后验**：沿视线锥（gaze 1.5° 角误差）对各实例高斯密度积分 → p(物体|观测)。
    解决两类已知案例：薄目标与地板分票（趴姿狗 51-82%→期望 90%+）、"看杯子打到桌子"边缘脱靶
-3. **分割细化**：桌链巨实例（id10/19）切分——SAM 渲染视图投票回高斯，或聚类时切竖直平面；
-   房间边界改用 x/y 直方图峰找墙（当前门洞外高斯会撑大边界）
+3. ~~分割细化：桌链巨实例切分~~ **已完成**（lift_sam_instances.py，2026-07-07 全量验收：
+   295 实例/104 视角/77min，桌面小物可分）。遗留小项：房间边界改用 x/y 直方图峰找墙
+   （当前门洞外高斯撑大边界 → 墙标签偏松）；SAM 按颜色拆的机器人部件靠同名合并
 4. **定位空窗填补**：IMU 不可用（Core 没有），可选 hloc 视觉重定位兜底或更长插值窗
 
 ---
@@ -247,6 +262,11 @@ E:\Grasp\                        （Windows / 4090：建图+训练）
   即为错误尺度的旧文件，勿用
 - Windows 训练出的 config.yml 序列化了 WindowsPath，Linux 上任何 ns-* 命令加载
   都会崩 → 用 tools/export_splat_from_ckpt.py 直接从 ckpt 抽 splat.ply
+- Windows 上 gsplat 是 JIT 编译的：裸跑报 "No CUDA toolkit found"。需要
+  TORCH_EXTENSIONS_DIR=E:\Grasp\torch_extensions + CUDA_HOME=conda env +
+  MSVC 14.38 上 PATH（版本必须和缓存 build.ninja 一致）→ 统一走 run_lift_sam.ps1
+- SAM 自动模式的 GPU 后处理按批 × 全分辨率：vit_h + 2048 长边时 points_per_batch
+  64 会 OOM（24G 卡），32 峰值 ~14G 安全
 
 **标定侧**
 - 07-03 的旧标定 k3=-3.61 过拟合，已被 07-04 的 FIX_K3 重标定取代；标相机永远用

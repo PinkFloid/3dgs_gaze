@@ -76,16 +76,25 @@ def main() -> int:
         for lab, wi in zip(label[idx], w):
             votes[int(lab)] = votes.get(int(lab), 0.0) + float(wi)
         total = sum(votes.values())
-        ranked = sorted(votes.items(), key=lambda kv: -kv[1])
-        best, share = ranked[0][0], ranked[0][1] / total
-        second = f"{name_of(ranked[1][0])} {ranked[1][1]/total:.0%}" if len(ranked) > 1 else "-"
-        entry.update(object_label=best, object=name_of(best), vote_share=round(share, 3),
+        # pool by resolved name: ids hand-merged in names.json (same name on several
+        # instances, e.g. a robot SAM splits along color boundaries) vote as one object
+        pooled: dict[str, dict] = {}
+        for lab, v in votes.items():
+            p = pooled.setdefault(name_of(lab), {"v": 0.0, "labels": []})
+            p["v"] += v
+            p["labels"].append(lab)
+        ranked = sorted(pooled.items(), key=lambda kv: -kv[1]["v"])
+        best_name, bp = ranked[0]
+        share = bp["v"] / total
+        best = max(bp["labels"], key=lambda l: votes[l])
+        second = f"{ranked[1][0]} {ranked[1][1]['v']/total:.0%}" if len(ranked) > 1 else "-"
+        entry.update(object_label=best, object=best_name, vote_share=round(share, 3),
                      # gaze hit point (surface, varies) vs canonical object position (fixed):
                      object_centroid_world=centroids.get(best),
-                     candidates=[{"label": l, "name": name_of(l), "share": round(v / total, 3)}
-                                 for l, v in ranked[:3]])
+                     candidates=[{"name": n, "share": round(p["v"] / total, 3),
+                                  "labels": sorted(p["labels"])} for n, p in ranked[:3]])
         results.append(entry)
-        print(f"{k:>3} {t:>7.1f} {str(np.round(pt,2)):<26} {name_of(best):<22} {share:>5.0%}  {second}")
+        print(f"{k:>3} {t:>7.1f} {str(np.round(pt,2)):<26} {best_name:<22} {share:>5.0%}  {second}")
 
     out = Path(args.out) if args.out else Path(args.fixations).expanduser().with_name(
         Path(args.fixations).stem + "_objects.json")
