@@ -17,6 +17,15 @@ instances' masks yields the final labels: association lives in 3D on the
 gaussians themselves -- the 2D bbox + CLIP matching that broke the old Grasp
 build_object_map.py is gone entirely.
 
+Over-merge gates (v2.1, after rec002 found dogs welded into 2-5m furniture
+blobs): masks whose lifted gaussians span > --max-mask-extent are line-of-sight
+unions of several objects and are dropped at the source; IoU edges only link
+masks from *different* frames (same-frame part/whole ladders chained distinct
+objects); the containment merge only lets compact well-observed components
+absorb parts (--max-attractor-extent / --attractor-min-views); and a final
+3D-connectivity pass splits any instance whose gaussians form blobs further
+than --split-voxel apart.
+
 Runs on the mapping machine (4090: photos + ckpt + segment-anything needed).
 Output contract identical to segment_splat.py, into --out-dir
 (default lab_result/segmentation_sam; point gaze_object.py --seg-dir at it):
@@ -70,8 +79,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--stability", type=float, default=0.9)
     p.add_argument("--min-mask-area", type=int, default=300, help="px at working resolution.")
     p.add_argument("--max-mask-frac", type=float, default=0.8,
-                   help="Larger masks dropped. Keep high: close-up whole-desk masks are legit "
-                        "instances (bg-frac already kills floor/wall spans).")
+                   help="Larger masks dropped (2D px gate; the real multi-object filter is "
+                        "--max-mask-extent in 3D).")
     # lifting
     p.add_argument("--max-px-samples", type=int, default=4000, help="Mask pixels sampled for unprojection.")
     p.add_argument("--match-eps", type=float, default=0.04,
@@ -79,13 +88,29 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--depth-max", type=float, default=12.0)
     p.add_argument("--bg-frac", type=float, default=0.6,
                    help="Drop mask if more than this fraction of hits land on floor/wall/ceiling gaussians.")
+    p.add_argument("--max-mask-extent", type=float, default=2.0,
+                   help="Drop mask if its lifted gaussians span more than this (m, robust bbox "
+                        "diagonal): a 'cluttered zone' region mask minus its stripped background "
+                        "is a multi-object union that welds neighbours together. Trade-off: "
+                        "objects bigger than this lose their whole-object masks and come out "
+                        "as part instances (a 1.6m desk has a ~1.9m diagonal -- hence 2.0).")
     # clustering / voting
     p.add_argument("--edge-iou", type=float, default=0.3,
-                   help="Gaussian-set IoU linking two masks. Same-object masks from different "
-                        "viewpoints hit different surfaces, so cross-view IoU runs low.")
-    p.add_argument("--merge-containment", type=float, default=0.7,
+                   help="Gaussian-set IoU linking two masks FROM DIFFERENT FRAMES. Same-object "
+                        "masks from different viewpoints hit different surfaces, so cross-view "
+                        "IoU runs low. Same-frame pairs never link: SAM's part/whole granularity "
+                        "ladder (dog -> dog+desk) would chain distinct objects transitively.")
+    p.add_argument("--merge-containment", type=float, default=0.85,
                    help="Merge a component into a bigger well-supported one covering this "
                         "fraction of its gaussians (reassembles SAM part masks: legs->dog).")
+    p.add_argument("--attractor-min-views", type=int, default=6,
+                   help="Distinct views a component needs before it may absorb parts.")
+    p.add_argument("--max-attractor-extent", type=float, default=2.2,
+                   help="Components spanning more than this (m) never absorb parts: stops "
+                        "region-strip components from snowballing across the room.")
+    p.add_argument("--split-voxel", type=float, default=0.10,
+                   help="Final 3D-connectivity check: an instance whose gaussians split into "
+                        "blobs not linkable at this voxel size is a weld -> one instance per blob.")
     p.add_argument("--min-views", type=int, default=3, help="Distinct views required per instance.")
     p.add_argument("--min-votes", type=int, default=2, help="Masks required to claim a gaussian.")
     p.add_argument("--min-gaussians", type=int, default=80)
@@ -163,7 +188,7 @@ def main() -> int:
     import cv2
     import torch
     from PIL import Image
-    from scipy import sparse
+    from scipy import ndimage, sparse
     from scipy.sparse.csgraph import connected_components
     from scipy.spatial import cKDTree
     from gsplat import rasterization
@@ -238,6 +263,7 @@ def main() -> int:
     # ---- per view: masks -> gaussian ID sets ----
     mask_frame: list[int] = []
     mask_gids: list[np.ndarray] = []
+    n_extent_drop = 0
     rng = np.random.default_rng(0)
     for i, frame in enumerate(frames):
         stem = Path(frame["file_path"]).stem
@@ -290,6 +316,11 @@ def main() -> int:
             gids = np.unique(gids[label[gids] == -1])
             if len(gids) < 30:
                 continue
+            span = xyz_k[gids]
+            if np.linalg.norm(np.percentile(span, 98, axis=0)
+                              - np.percentile(span, 2, axis=0)) > args.max_mask_extent:
+                n_extent_drop += 1  # multi-object union (region mask minus its background)
+                continue
             mask_frame.append(i)
             mask_gids.append(gids)
             lifted += 1
@@ -298,11 +329,13 @@ def main() -> int:
 
     del sam, mask_gen
     torch.cuda.empty_cache()
+    print(f"{n_extent_drop} masks dropped as > {args.max_mask_extent}m multi-object unions")
     if not mask_gids:
         raise SystemExit("No masks lifted -- check render_check.jpg for pose/undistort mismatch.")
 
-    # ---- mask graph: edge = gaussian-set IoU, components = instances ----
+    # ---- mask graph: edge = cross-frame gaussian-set IoU, components = instances ----
     n_masks = len(mask_gids)
+    frame_ids = np.array(mask_frame)
     rows = np.concatenate([np.full(len(gi), j, np.int64) for j, gi in enumerate(mask_gids)])
     cols = np.concatenate(mask_gids)
     M = sparse.csr_matrix((np.ones(len(rows), np.float32), (rows, cols)),
@@ -310,20 +343,19 @@ def main() -> int:
     sizes = np.asarray(M.sum(axis=1)).ravel()
     inter = (M @ M.T).tocoo()
     iou = inter.data / (sizes[inter.row] + sizes[inter.col] - inter.data)
-    e = (iou >= args.edge_iou) & (inter.row != inter.col)
+    e = (iou >= args.edge_iou) & (frame_ids[inter.row] != frame_ids[inter.col])
     adj = sparse.csr_matrix((np.ones(e.sum(), np.int8), (inter.row[e], inter.col[e])),
                             shape=(n_masks, n_masks))
     n_comp, comp = connected_components(adj, directed=False)
-    frame_ids = np.array(mask_frame)
-    print(f"{n_masks} masks -> {n_comp} components at IoU >= {args.edge_iou}")
+    print(f"{n_masks} masks -> {n_comp} components at cross-frame IoU >= {args.edge_iou}")
 
     # part -> whole merge. IoU edges only join same-granularity masks, so SAM's
     # part/whole ambiguity (dog legs vs whole dog, desk corners vs desk) leaves
     # parts as separate components. A component whose covered gaussians lie
     # mostly inside the coverage of a bigger component is a part of it. The
-    # attractor must itself be seen in >= min-views views: a one-off union-blob
-    # mask (desk+cup in one frame) never gets that support, so it cannot swallow
-    # real objects.
+    # attractor must be well-observed (>= attractor-min-views) AND compact
+    # (<= max-attractor-extent): view count alone is no guard -- rec002's
+    # furniture-strip components had 60-80 views and swallowed two robot dogs.
     for _ in range(5):
         cids = np.unique(comp)
         covs, views_n = [], []
@@ -333,13 +365,17 @@ def main() -> int:
             covs.append(np.flatnonzero(hits >= min(2, len(mrows))))
             views_n.append(len(set(frame_ids[mrows])))
         sizes_c = np.array([len(cv) for cv in covs])
+        ext_c = np.array([np.linalg.norm(np.percentile(xyz_k[cv], 98, axis=0)
+                                         - np.percentile(xyz_k[cv], 2, axis=0))
+                          if len(cv) else 0.0 for cv in covs])
         crow = np.concatenate([np.full(len(cv), k, np.int64) for k, cv in enumerate(covs)])
         Cov = sparse.csr_matrix((np.ones(len(crow), np.float32), (crow, np.concatenate(covs))),
                                 shape=(len(cids), len(xyz_k)))
         inter_c = (Cov @ Cov.T).tocoo()
         target: dict[int, tuple[float, int]] = {}
         for a, b, v in zip(inter_c.row, inter_c.col, inter_c.data):
-            if a == b or views_n[b] < args.min_views or sizes_c[b] <= sizes_c[a]:
+            if a == b or views_n[b] < args.attractor_min_views or sizes_c[b] <= sizes_c[a] \
+                    or ext_c[b] > args.max_attractor_extent:
                 continue
             cont = v / max(sizes_c[a], 1)
             if cont >= args.merge_containment and cont > target.get(a, (0.0, -1))[0]:
@@ -361,6 +397,9 @@ def main() -> int:
     comp_views = {c: len(set(frame_ids[comp == c])) for c in np.unique(comp)}
     good = [c for c in comp_views if comp_views[c] >= args.min_views]
     print(f"{len(comp_views)} components after part-merge, {len(good)} with >= {args.min_views} views")
+    if not good:
+        raise SystemExit("No component reached --min-views (too few frames? --limit debug run?) "
+                         "-- lower --min-views or feed more views.")
 
     # ---- per-gaussian vote ----
     rank = {c: r for r, c in enumerate(good)}
@@ -373,23 +412,40 @@ def main() -> int:
     maxv = np.asarray(counts.max(axis=0).todense()).ravel()
     voted = np.where((maxv >= args.min_votes) & (label == -1), best, -1)
 
-    # ---- instances: filter, renumber by size, write ----
+    # ---- instances: split welds by 3D connectivity, filter, renumber by size ----
+    # A voted component can still be a union of far-apart blobs (masks weld what
+    # views suggested). Anything not linkable at --split-voxel becomes its own
+    # instance; sub-min fragments fall to the existing size filters.
+    parts: list[tuple[np.ndarray, int]] = []
+    n_welds = 0
+    for r in range(len(good)):
+        idx = np.flatnonzero(voted == r)
+        if len(idx) < args.min_gaussians:
+            continue
+        p = xyz_k[idx]
+        ijk = np.floor((p - (p.min(axis=0) - 1e-4)) / args.split_voxel).astype(np.int64)
+        grid = np.zeros(ijk.max(axis=0) + 1, bool)
+        grid[tuple(ijk.T)] = True
+        blobs, n_blobs = ndimage.label(grid, structure=np.ones((3, 3, 3)))
+        blob_of = blobs[tuple(ijk.T)]
+        kept = [idx[blob_of == b] for b in range(1, n_blobs + 1)]
+        kept = [s for s in kept if len(s) >= args.min_gaussians]
+        n_welds += len(kept) > 1
+        parts.extend((s, good[r]) for s in kept)
+    if n_welds:
+        print(f"3D split: {n_welds} voted components were disconnected welds "
+              f"(gaps > {args.split_voxel * 100:.0f}cm)")
+
     instances = []
     next_id = OBJ0
-    order = sorted(range(len(good)), key=lambda r: -(voted == r).sum())
-    for r in order:
-        sel = voted == r
-        n = int(sel.sum())
-        if n < args.min_gaussians:
-            continue
-        p = xyz_k[sel]
+    for sub, c in sorted(parts, key=lambda t: -len(t[0])):
+        p = xyz_k[sub]
         bb_lo, bb_hi = np.percentile(p, 2, axis=0), np.percentile(p, 98, axis=0)
         if np.linalg.norm(bb_hi - bb_lo) < args.min_size:
             continue
-        label[sel] = next_id
-        c = good[r]
+        label[sub] = next_id
         instances.append({
-            "id": next_id, "n_gaussians": n,
+            "id": next_id, "n_gaussians": len(sub),
             "n_views": comp_views[c], "n_masks": int((comp == c).sum()),
             "centroid": p.mean(axis=0).round(3).tolist(),
             "bbox_min": bb_lo.round(3).tolist(), "bbox_max": bb_hi.round(3).tolist(),
@@ -404,6 +460,9 @@ def main() -> int:
         "ckpt": str(ckpt), "method": "sam-lift-consensus",
         "sam": sam_path.name, "every": args.every, "long_side": args.long_side,
         "edge_iou": args.edge_iou, "min_views": args.min_views,
+        "max_mask_extent": args.max_mask_extent, "merge_containment": args.merge_containment,
+        "attractor_min_views": args.attractor_min_views,
+        "max_attractor_extent": args.max_attractor_extent, "split_voxel": args.split_voxel,
         "background": BG_NAMES, "instances": instances}, indent=2), encoding="utf-8")
     names_path = out_dir / "names.json"
     names = json.loads(names_path.read_text(encoding="utf-8")) if names_path.exists() else {}
