@@ -30,3 +30,6 @@ __pycache__/
 *.pyc
 __MACOSX/
 .DS_Store
+
+# 本机测试用的 Pupil 录像副本(原始数据,不进库)
+002/
