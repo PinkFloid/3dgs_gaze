@@ -145,8 +145,9 @@ python tools/verify_pose_render.py --recording <任一段录像>
 1. 戴上眼动仪 → **立刻在 Capture 里做 gaze 标定**（屏幕 marker）。
    ⚠ 摘下再戴必须重标：rec001 教训——未重标导致 gaze 整体漂 7-18°，整段注视报废
    （几何链无恙，但救不回来）
-2. 按 R 开始录制 → **先盯墙上 tag 纸 2-3 秒**（片头精度戳，tag 位置毫米级已知，
-   离线自动算出本段 gaze 真实精度，不达标当场重录）
+2. 按 R 开始录制 → **先盯墙上 tag 纸 2-3 秒**（片头精度戳，tag 位置毫米级已知；
+   `gaze_precision.py` 自动测出本段偏置/σ/漂移写入 gaze_precision.json，
+   下游自动做偏置修正并用 σ 定锥宽，不达标当场重录）
 3. 正常实验内容：注视目标各 2-3 秒，视线偶尔扫过 tag 保持定位覆盖
 4. 结束前**再盯一次 tag 纸**（片尾戳，检测录制中的缓慢滑移）→ 按 R 停
 
@@ -161,8 +162,9 @@ tools/process_recording.sh ~/recordings/<日期>/<编号> [--skip-video]
 | 文件 | 内容 |
 |---|---|
 | `poses.jsonl` | 每个定位帧的 T_world_cam（含 n_tags、重投影残差） |
-| `world_fixations.json` | 世界系注视事件（连续 gaze 聚类） |
-| `world_fixations_objects.json` | 每个注视的物体判定 + top-3 票型 |
+| `gaze_precision.json` | 本段 gaze 偏置/σ/片头片尾漂移（tag 精度戳自动计算） |
+| `world_fixations.json` | 世界系注视事件（连续 gaze 聚类，偏置已修正，含 origin_world） |
+| `world_fixations_objects.json` | 每个注视的物体后验（锥积分）+ top-3 + p_none |
 | `wfix/` | 每个注视一张标注帧（gaze 圈 + 坐标） |
 | `gaze_objects_overlay.mp4` | 注视十字 + 已命名物体 3D 包围盒 + 判定横幅 |
 
@@ -179,8 +181,9 @@ python tools/pupil_localizer.py --tags world_size/tags_world.json --print [--ema
 | 工具 | 作用 | 要点 |
 |---|---|---|
 | `pupil_localizer.py` | tag→位姿（实时/离线） | PnP 用 ITERATIVE（tag 共面，SQPNP 崩）；三道门限：出界(tag范围+3m, z∉[0.15,2.8])、mean_reproj_norm>0.006、0.25s 内跳变>1m（连拒 5 次重置） |
-| `gaze_to_world.py --continuous` | gaze→世界 3D 点→注视聚类 | 30Hz 采样、15cm 半径、≥0.25s；位姿空窗 ≤1s 插值（平移 lerp+旋转 slerp）；深度=沿射线渲 33×33 小块中心中位数，α<0.5 判打空；**世界系聚类能抓到"边走边盯"**（VOR 下图像动、世界落点静止，Pupil 自带检测器抓不到） |
-| `gaze_object.py` | 注视点→物体 | 0.2m 邻域 1/d 加权投票，**同名实例并票（命名即合并）**，输出 top-3 票型（= 将来 Bayes 后验的占位） |
+| `gaze_to_world.py --continuous` | gaze→世界 3D 点→注视聚类 | 30Hz 采样、15cm 半径、≥0.25s；位姿空窗 ≤1s 插值（平移 lerp+旋转 slerp）；深度=沿射线渲 33×33 小块中心中位数，α<0.5 判打空；自动读 gaze_precision.json 做偏置修正（--no-bias 关）；注视事件带 origin_world/distance_m 供锥模式用；**世界系聚类能抓到"边走边盯"**（VOR 下图像动、世界落点静止，Pupil 自带检测器抓不到） |
+| `gaze_precision.py` | tag 精度戳→偏置/σ/漂移 | 片头/片尾各搜一个"盯 tag"窗口（离最近 tag <4°、≥20 样本），偏置=中位差（系统性、可修正），σ=去偏置残差（**注视内不随样本数收窄的诚实不确定度**），片头尾漂移>1.5° 判 rec001 式滑移 |
+| `gaze_object.py --cone` | 注视→物体后验（推荐） | 沿注视平均射线渲 33×33 深度块（半角 2.5σ），逐像素角度高斯加权 × α × 反投影→最近命名高斯（≤5cm），**只统计锥内可见表面**——狗身下的地板不再抢票、"看杯子打到桌子"边缘脱靶被锥兜住；同名并票；输出 p_none；不带 --cone 退回 0.2m 球投票基线 |
 | `lift_sam_instances.py` | 高斯→实例 v2（建图侧跑） | SAM 自动 mask 经渲染深度反投影成"高斯 ID 集合"→ 集合 IoU 建图聚类 → 部件-整体包含合并 → per-gaussian 投票；无 query 无 CLIP；Windows 上用 `run_lift_sam.ps1` 包环境 |
 | `gaze_video.py` | 还原注视视频 | `--objects` 加判定横幅；`--poses` 加已命名实例 3D 包围盒（鱼眼投影） |
 | `segment_splat.py` | 高斯→实例 | 5cm 体素连通域；地板/天花板/墙用高度和房间边界规则 |
@@ -213,8 +216,9 @@ python tools/pupil_localizer.py --tags world_size/tags_world.json --print [--ema
 
 1. **墙面大 tag + 整体重建**（计划中）：20-30cm 单 tag、视线高度、间隔 2m+ ——
    直接抬升定位覆盖率（当前瓶颈）和单 tag 位姿质量
-2. **Bayes 物体后验**：沿视线锥（gaze 1.5° 角误差）对各实例高斯密度积分 → p(物体|观测)。
-   解决两类已知案例：薄目标与地板分票（趴姿狗 51-82%→期望 90%+）、"看杯子打到桌子"边缘脱靶
+2. ~~Bayes 物体后验：沿视线锥积分~~ **已实现**（gaze_object --cone + gaze_precision.py，
+   2026-07-07；σ 取自每段 tag 精度戳而非拍脑袋的 1.5°）——**待 rec002 回放验收**：
+   趴姿狗 51-82% → 期望 90%+、"看杯子打到桌子"应被锥兜住
 3. ~~分割细化：桌链巨实例切分~~ **已完成**（lift_sam_instances.py，2026-07-07 全量验收：
    295 实例/104 视角/77min，桌面小物可分）。遗留小项：房间边界改用 x/y 直方图峰找墙
    （当前门洞外高斯撑大边界 → 墙标签偏松）；SAM 按颜色拆的机器人部件靠同名合并

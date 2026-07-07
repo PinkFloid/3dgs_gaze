@@ -3,7 +3,9 @@
 戴 Pupil Core 眼动仪在实验室内走动，实时回答"我在看哪个物体"：
 
 手机拍摄 → COLMAP → ChArUco 板对齐（米制世界系）→ 3DGS（splatfacto）→
-ArUco tag 定位眼动仪 → gaze 射线 × 3DGS 深度求交 → 世界系注视点 → 物体判定。
+SAM 实例分割（mask 提升到高斯 + 跨视角共识，手标命名，命名即合并）→
+ArUco tag 定位眼动仪 → tag 精度戳测每段 gaze 偏置/σ → 世界系注视聚类 →
+**视线锥后验**（角度高斯 × 可见表面积分）→ p(物体|注视)。
 
 **全部流程、命令、精度指标、已知坑见 [PIPELINE.md](PIPELINE.md)。**
 

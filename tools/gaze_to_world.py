@@ -29,7 +29,6 @@ import json
 from pathlib import Path
 
 import cv2
-import msgpack
 import numpy as np
 
 
@@ -55,12 +54,17 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--cluster-radius", type=float, default=0.15,
                    help="Continuous mode: max distance (m) from cluster centroid.")
     p.add_argument("--min-fix-dur", type=float, default=0.25, help="Continuous mode: min fixation duration (s).")
+    p.add_argument("--bias-deg", default=None,
+                   help="Gaze bias correction 'dx,dy' in deg (gaze minus target). Default: read "
+                        "<recording>/gaze_precision.json (written by gaze_precision.py) if present.")
+    p.add_argument("--no-bias", action="store_true", help="Disable bias correction.")
     return p.parse_args()
 
 
 # ------------------------------------------------------------ recording I/O
 
 def load_pldata(path: Path):
+    import msgpack
     out = []
     with open(path, "rb") as f:
         for _topic, payload in msgpack.Unpacker(f, use_list=False, strict_map_key=False):
@@ -156,9 +160,50 @@ class SplatDepth:
             return None
         return float(np.median(patch_d))
 
+    def patch_along_ray(self, origin: np.ndarray, direction: np.ndarray,
+                        half_angle: float, S: int = 33):
+        """Full depth/alpha patch for a cone of half-angle (rad) around the ray.
+
+        Returns (depth SxS z-depth, alpha SxS, dirs SxSx3 unit world ray dirs,
+        tmul SxS) with ray length t = depth * tmul (depth is z-depth, not range).
+        gaze_object --cone integrates the object posterior over this patch.
+        """
+        z = direction / np.linalg.norm(direction)
+        up = np.array([0.0, 0.0, 1.0]) if abs(z[2]) < 0.95 else np.array([0.0, 1.0, 0.0])
+        x = np.cross(z, up); x /= np.linalg.norm(x)
+        y = np.cross(z, x)
+        w2c = np.eye(4)
+        w2c[:3, :3] = np.stack([x, y, z])
+        w2c[:3, 3] = -w2c[:3, :3] @ origin
+        f = (S / 2) / np.tan(half_angle)
+        K = np.array([[f, 0, S / 2], [0, f, S / 2], [0, 0, 1]])
+        out, alpha = self._render(w2c, K, S, S)
+        n = (np.arange(S) + 0.5 - S / 2) / f
+        nx, ny = np.meshgrid(n, n)                    # [row=v, col=u]
+        dirs_cam = np.stack([nx, ny, np.ones_like(nx)], axis=-1)
+        tmul = np.linalg.norm(dirs_cam, axis=-1)      # z-depth -> ray length
+        dirs = (dirs_cam / tmul[..., None]) @ np.stack([x, y, z])
+        return out[..., 3], alpha[..., 0], dirs, tmul
+
     def render_view(self, T_world_cam: np.ndarray, K: np.ndarray, w: int, h: int):
         rgb, _ = self._render(np.linalg.inv(T_world_cam), K, w, h)
         return (np.clip(rgb[..., :3], 0, 1) * 255).astype(np.uint8)
+
+
+def resolve_bias(args, rec: Path) -> np.ndarray:
+    """Gaze bias in undistorted-normalized units (~rad), gaze-minus-target convention."""
+    if args.no_bias:
+        return np.zeros(2)
+    if args.bias_deg:
+        b = np.array([float(v) for v in args.bias_deg.split(",")])
+        print(f"bias correction (cli): ({b[0]:+.2f},{b[1]:+.2f}) deg")
+    else:
+        pj = rec / "gaze_precision.json"
+        if not pj.exists():
+            return np.zeros(2)
+        b = np.array(json.loads(pj.read_text(encoding="utf-8"))["bias_deg"], float)
+        print(f"bias correction ({pj.name}): ({b[0]:+.2f},{b[1]:+.2f}) deg")
+    return np.tan(np.radians(b))
 
 
 # ------------------------------------------------------------ continuous mode
@@ -201,7 +246,7 @@ def cluster_world_fixations(times, points, radius: float, min_dur: float):
     return out
 
 
-def run_continuous(args, rec, poses, splat, K_img, D_fish, W, H, world_ts, cap):
+def run_continuous(args, rec, poses, splat, K_img, D_fish, W, H, world_ts, cap, bias):
     gaze = load_gaze(rec, args.min_confidence)
     step = max(1, int(round(len(gaze) / ((gaze[-1]["timestamp"] - gaze[0]["timestamp"]) * args.sample_hz))))
     gaze = gaze[::step]
@@ -217,6 +262,7 @@ def run_continuous(args, rec, poses, splat, K_img, D_fish, W, H, world_ts, cap):
         u = g["norm_pos"][0] * W
         v = (1.0 - g["norm_pos"][1]) * H
         pn = cv2.fisheye.undistortPoints(np.array([[[u, v]]], np.float64), K_img, D_fish).reshape(2)
+        pn = pn - bias
         ray = np.array([pn[0], pn[1], 1.0])
         ray /= np.linalg.norm(ray)
         depth = splat.depth_along_ray(T[:3, 3], T[:3, :3] @ ray)
@@ -230,6 +276,16 @@ def run_continuous(args, rec, poses, splat, K_img, D_fish, W, H, world_ts, cap):
     print(f"mapped {len(points)} points ({n_nopose} no-pose, {n_nosurf} no-surface)")
 
     fixes = cluster_world_fixations(times, points, args.cluster_radius, args.min_fix_dur)
+    # camera origin at the mid sample: gaze_object --cone re-renders the gaze
+    # cone from here, and distance turns cluster spread into angular spread
+    for fx in fixes:
+        T = poses.query(float(times[fx["mid_index"]]))
+        if T is not None:
+            o = T[:3, 3]
+            d = float(np.linalg.norm(np.array(fx["centroid_world"]) - o))
+            fx["origin_world"] = o.tolist()
+            fx["distance_m"] = round(d, 3)
+            fx["ang_spread_deg"] = round(float(np.degrees(np.arctan2(fx["spread_m"], d))), 2)
     t0 = world_ts[0]
     print(f"\n{len(fixes)} world-space fixations "
           f"(radius {args.cluster_radius}m, min {args.min_fix_dur}s):")
@@ -295,9 +351,10 @@ def main() -> int:
     K_img[1] *= H / 1080.0
 
     splat = SplatDepth(ckpt)
+    bias = resolve_bias(args, rec)
 
     if args.continuous:
-        run_continuous(args, rec, poses, splat, K_img, D_fish, W, H, world_ts, cap)
+        run_continuous(args, rec, poses, splat, K_img, D_fish, W, H, world_ts, cap, bias)
         return 0
 
     annotate_dir = Path(args.annotate_dir) if args.annotate_dir else None
@@ -319,6 +376,7 @@ def main() -> int:
             v = (1.0 - fx["norm_pos"][1]) * H   # pupil norm_pos: origin bottom-left
             pn = cv2.fisheye.undistortPoints(
                 np.array([[[u, v]]], np.float64), K_img, D_fish).reshape(2)
+            pn = pn - bias
             ray_cam = np.array([pn[0], pn[1], 1.0])
             ray_cam /= np.linalg.norm(ray_cam)
             origin = T[:3, 3]
