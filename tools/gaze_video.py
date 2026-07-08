@@ -35,9 +35,12 @@ def parse_args() -> argparse.Namespace:
                    help="world_fixations_objects.json -- overlay object verdicts during fixations.")
     p.add_argument("--poses", default=None,
                    help="Localizer --log JSONL; needed for any 3D box drawing.")
-    p.add_argument("--boxes", choices=["target", "named", "both", "off"], default="target",
+    p.add_argument("--boxes", choices=["target", "named", "both", "all", "off"], default="target",
                    help="target: box the instance the current fixation was assigned to (works "
-                        "unnamed); named: every named instance every frame; both; off.")
+                        "unnamed); named: every named instance every frame; both: named+target; "
+                        "all: EVERY instance every frame (thin) + thick gaze target; off.")
+    p.add_argument("--box-min-diag", type=float, default=0.15,
+                   help="'all' mode: skip instances with bbox diagonal below this (m) -- declutter.")
     p.add_argument("--seg-dir", default=None,
                    help="Default: lab_result/segmentation_sam if present, else lab_result/segmentation.")
     p.add_argument("--calib", default=str(Path(__file__).resolve().parent.parent / "Calibration_result/world_camera_calibration.npz"))
@@ -62,25 +65,34 @@ def load_instances(seg_dir: Path) -> dict[int, dict]:
         rng = np.random.default_rng(inst["id"])
         color = tuple(int(c) for c in rng.integers(80, 255, 3))
         out[inst["id"]] = {"name": names.get(str(inst["id"]), ""),
-                           "corners": corners, "color": color}
+                           "corners": corners, "color": color,
+                           "diag": float(np.linalg.norm(hi - lo))}
     return out
 
 
 def draw_instances(frame, T_world_cam, instances, K, D, thick=2):
+    """Project + draw the 3D bboxes of instances (one batched fisheye projection)."""
+    if not instances:
+        return
     w2c = np.linalg.inv(T_world_cam)
+    corners = np.stack([i["corners"] for i in instances])          # (N,8,3)
+    cam = corners @ w2c[:3, :3].T + w2c[:3, 3]
+    ok = (cam[:, :, 2] > 0.15).all(axis=1)   # partially behind camera: fisheye proj degenerates
+    sel = np.flatnonzero(ok)
+    if not len(sel):
+        return
     rvec, _ = cv2.Rodrigues(np.ascontiguousarray(w2c[:3, :3]))
     tvec = np.ascontiguousarray(w2c[:3, 3]).reshape(3, 1)
-    for inst in instances:
-        cam_pts = (w2c[:3, :3] @ inst["corners"].T).T + w2c[:3, 3]
-        if (cam_pts[:, 2] < 0.15).any():   # partially behind camera: skip, fisheye proj degenerates
+    px, _ = cv2.fisheye.projectPoints(
+        corners[sel].reshape(-1, 1, 3).astype(np.float64), rvec, tvec, K, D)
+    px = px.reshape(len(sel), 8, 2)
+    H, W = frame.shape[:2]
+    for j, k in enumerate(sel):
+        p = px[j]
+        if not ((p[:, 0] > -W) & (p[:, 0] < 2 * W) & (p[:, 1] > -H) & (p[:, 1] < 2 * H)).all():
             continue
-        px, _ = cv2.fisheye.projectPoints(
-            inst["corners"].reshape(-1, 1, 3).astype(np.float64), rvec, tvec, K, D)
-        px = px.reshape(-1, 2)
-        H, W = frame.shape[:2]
-        if not ((px[:, 0] > -W) & (px[:, 0] < 2 * W) & (px[:, 1] > -H) & (px[:, 1] < 2 * H)).all():
-            continue
-        pts = np.int32(px)
+        pts = np.int32(p)
+        inst = instances[k]
         for a, b in BOX_EDGES:
             cv2.line(frame, tuple(pts[a]), tuple(pts[b]), inst["color"], thick)
         if inst["name"]:
@@ -119,6 +131,7 @@ def main() -> int:
     poses = K_fish = D_fish = None
     inst_by_id: dict[int, dict] = {}
     named_instances: list[dict] = []
+    all_boxes: list[dict] = []
     if args.poses and args.boxes != "off":
         import sys
         sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -130,6 +143,7 @@ def main() -> int:
             else root / "lab_result/segmentation")
         inst_by_id = load_instances(seg)
         named_instances = [v for v in inst_by_id.values() if v["name"]]
+        all_boxes = [v for v in inst_by_id.values() if v["diag"] >= args.box_min_diag]
         z = np.load(args.calib, allow_pickle=True)
         K_fish = np.asarray(z["camera_matrix"], np.float64)
         D_fish = np.asarray(z["dist_coeffs"], np.float64).reshape(-1, 1)[:4]
@@ -164,7 +178,9 @@ def main() -> int:
             break
 
         T = poses.query(t) if poses is not None else None
-        if T is not None and args.boxes in ("named", "both") and named_instances:
+        if T is not None and args.boxes == "all":
+            draw_instances(frame, T, all_boxes, K_img, D_fish, thick=1)
+        elif T is not None and args.boxes in ("named", "both") and named_instances:
             draw_instances(frame, T, named_instances, K_img, D_fish)
 
         # trail: gaze samples in the last args.trail seconds
@@ -194,7 +210,7 @@ def main() -> int:
         for fx in fixations:
             if fx["t_start"] <= t <= fx["t_end"] + 0.15:
                 lab = fx.get("object_label")
-                if T is not None and args.boxes in ("target", "both") and isinstance(lab, int):
+                if T is not None and args.boxes in ("target", "both", "all") and isinstance(lab, int):
                     labs = [lab]
                     cands = fx.get("candidates")
                     if cands and isinstance(cands[0], dict) and cands[0].get("labels"):
