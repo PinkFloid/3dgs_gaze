@@ -34,8 +34,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--objects", default=None,
                    help="world_fixations_objects.json -- overlay object verdicts during fixations.")
     p.add_argument("--poses", default=None,
-                   help="Localizer --log JSONL. With --seg-dir, draws named instances' 3D bboxes per frame.")
-    p.add_argument("--seg-dir", default=str(Path(__file__).resolve().parent.parent / "lab_result/segmentation"))
+                   help="Localizer --log JSONL; needed for any 3D box drawing.")
+    p.add_argument("--boxes", choices=["target", "named", "both", "off"], default="target",
+                   help="target: box the instance the current fixation was assigned to (works "
+                        "unnamed); named: every named instance every frame; both; off.")
+    p.add_argument("--seg-dir", default=None,
+                   help="Default: lab_result/segmentation_sam if present, else lab_result/segmentation.")
     p.add_argument("--calib", default=str(Path(__file__).resolve().parent.parent / "Calibration_result/world_camera_calibration.npz"))
     p.add_argument("--start", type=float, default=0.0, help="Start offset (s).")
     p.add_argument("--duration", type=float, default=None, help="Clip length (s), default all.")
@@ -46,23 +50,23 @@ BOX_EDGES = [(0, 1), (1, 3), (3, 2), (2, 0), (4, 5), (5, 7), (7, 6), (6, 4),
              (0, 4), (1, 5), (2, 6), (3, 7)]
 
 
-def load_named_instances(seg_dir: Path):
+def load_instances(seg_dir: Path) -> dict[int, dict]:
+    """All instances (named or not) as {id: {name, corners, color}}."""
     meta = json.loads((seg_dir / "instances.json").read_text(encoding="utf-8"))
-    names = json.loads((seg_dir / "names.json").read_text(encoding="utf-8"))
-    out = []
+    names_p = seg_dir / "names.json"
+    names = json.loads(names_p.read_text(encoding="utf-8")) if names_p.exists() else {}
+    out = {}
     for inst in meta["instances"]:
-        name = names.get(str(inst["id"]), "")
-        if not name:
-            continue
         lo, hi = np.array(inst["bbox_min"]), np.array(inst["bbox_max"])
         corners = np.array([[x, y, z] for x in (lo[0], hi[0]) for y in (lo[1], hi[1]) for z in (lo[2], hi[2])])
         rng = np.random.default_rng(inst["id"])
         color = tuple(int(c) for c in rng.integers(80, 255, 3))
-        out.append({"name": name, "corners": corners, "color": color})
+        out[inst["id"]] = {"name": names.get(str(inst["id"]), ""),
+                           "corners": corners, "color": color}
     return out
 
 
-def draw_instances(frame, T_world_cam, instances, K, D):
+def draw_instances(frame, T_world_cam, instances, K, D, thick=2):
     w2c = np.linalg.inv(T_world_cam)
     rvec, _ = cv2.Rodrigues(np.ascontiguousarray(w2c[:3, :3]))
     tvec = np.ascontiguousarray(w2c[:3, 3]).reshape(3, 1)
@@ -78,10 +82,11 @@ def draw_instances(frame, T_world_cam, instances, K, D):
             continue
         pts = np.int32(px)
         for a, b in BOX_EDGES:
-            cv2.line(frame, tuple(pts[a]), tuple(pts[b]), inst["color"], 2)
-        top = pts[pts[:, 1].argmin()]
-        cv2.putText(frame, inst["name"], (top[0] - 20, max(top[1] - 10, 20)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, inst["color"], 2)
+            cv2.line(frame, tuple(pts[a]), tuple(pts[b]), inst["color"], thick)
+        if inst["name"]:
+            top = pts[pts[:, 1].argmin()]
+            cv2.putText(frame, inst["name"], (top[0] - 20, max(top[1] - 10, 20)),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, inst["color"], 2)
 
 
 def load_gaze(rec: Path):
@@ -111,17 +116,25 @@ def main() -> int:
         fixations = [f for f in doc["fixations"] if f.get("object")]
         print(f"{len(fixations)} object-labeled fixations to overlay")
 
-    poses = instances = K_fish = D_fish = None
-    if args.poses:
+    poses = K_fish = D_fish = None
+    inst_by_id: dict[int, dict] = {}
+    named_instances: list[dict] = []
+    if args.poses and args.boxes != "off":
         import sys
         sys.path.insert(0, str(Path(__file__).resolve().parent))
         from gaze_to_world import PoseTrack
         poses = PoseTrack(Path(args.poses), max_gap=1.0)
-        instances = load_named_instances(Path(args.seg_dir))
+        root = Path(__file__).resolve().parent.parent
+        seg = Path(args.seg_dir) if args.seg_dir else (
+            root / "lab_result/segmentation_sam" if (root / "lab_result/segmentation_sam").exists()
+            else root / "lab_result/segmentation")
+        inst_by_id = load_instances(seg)
+        named_instances = [v for v in inst_by_id.values() if v["name"]]
         z = np.load(args.calib, allow_pickle=True)
         K_fish = np.asarray(z["camera_matrix"], np.float64)
         D_fish = np.asarray(z["dist_coeffs"], np.float64).reshape(-1, 1)[:4]
-        print(f"drawing {len(instances)} named instances (from names.json)")
+        print(f"{len(inst_by_id)} instances from {seg.name} ({len(named_instances)} named), "
+              f"box mode: {args.boxes}")
 
     cap = cv2.VideoCapture(str(rec / "world.mp4"))
     W = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -130,6 +143,11 @@ def main() -> int:
     writer = cv2.VideoWriter(str(out_path), cv2.VideoWriter_fourcc(*"mp4v"), fps, (W, H))
     if not writer.isOpened():
         raise SystemExit("cannot open VideoWriter (mp4v)")
+    K_img = None
+    if K_fish is not None:
+        K_img = K_fish.copy()
+        K_img[0] *= W / 1920.0
+        K_img[1] *= H / 1080.0
 
     t0 = world_ts[0]
     fi = 0
@@ -145,13 +163,9 @@ def main() -> int:
         if args.duration and t - t0 > args.start + args.duration:
             break
 
-        if poses is not None and instances:
-            T = poses.query(t)
-            if T is not None:
-                K_img = K_fish.copy()
-                K_img[0] *= W / 1920.0
-                K_img[1] *= H / 1080.0
-                draw_instances(frame, T, instances, K_img, D_fish)
+        T = poses.query(t) if poses is not None else None
+        if T is not None and args.boxes in ("named", "both") and named_instances:
+            draw_instances(frame, T, named_instances, K_img, D_fish)
 
         # trail: gaze samples in the last args.trail seconds
         if args.trail > 0:
@@ -176,9 +190,22 @@ def main() -> int:
             cv2.putText(frame, f"{g_conf[k]:.2f}", (u + 34, v - 34),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
 
-        # object verdict overlay during labeled fixations
+        # object verdict overlay during labeled fixations (+ box around the target)
         for fx in fixations:
             if fx["t_start"] <= t <= fx["t_end"] + 0.15:
+                lab = fx.get("object_label")
+                if T is not None and args.boxes in ("target", "both") and isinstance(lab, int):
+                    labs = [lab]
+                    cands = fx.get("candidates")
+                    if cands and isinstance(cands[0], dict) and cands[0].get("labels"):
+                        labs = cands[0]["labels"]  # all ids pooled under the winning name
+                    members = [inst_by_id[l] for l in labs
+                               if isinstance(l, int) and l >= 10 and l in inst_by_id]
+                    if members:
+                        col = members[0]["color"]  # one color for the whole named object
+                        extra = [dict(m, color=col, name="") for m in members[1:]]
+                        draw_instances(frame, T, extra, K_img, D_fish, thick=2)
+                        draw_instances(frame, T, [members[0]], K_img, D_fish, thick=3)
                 c = fx["centroid_world"]
                 share = fx.get("vote_share", 0)
                 cv2.putText(frame, f"-> {fx['object']} ({share:.0%})  [{c[0]:+.2f},{c[1]:+.2f},{c[2]:+.2f}]m",
