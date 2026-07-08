@@ -30,41 +30,52 @@
 #    拍摄注意: 板 + 所有 ArUco tag 必须同场入镜（每个 tag ≥3 张清晰照片）
 
 # 1. 照片转正 + 剔除分辨率不符的照片（EXIF 旋转烘进像素）
-python E:\Grasp\tools\make_upright.py
-#    data\lab  →  data\lab_upright
+python E:\Grasp\tools\make_upright.py <原始照片目录> E:\Grasp\data\<数据集>_upright
+#    不带参数默认 data\lab → data\lab_upright
 
 # 2. COLMAP，锁定标定的焦距/主点，畸变由 COLMAP 精化
-powershell -File E:\Grasp\tools\run_colmap_fixed_intrinsics.ps1
-#    →  data\lab_colmap_v2\colmap\sparse\0
-#    结束会打印 model_analyzer：确认 registered images ≈ 313、误差 < 1px
+powershell -File E:\Grasp\tools\run_colmap_fixed_intrinsics.ps1 `
+  -Images E:\Grasp\data\<数据集>_upright -Out E:\Grasp\data\<数据集>
+#    →  <数据集>\colmap\sparse\0
+#    结束会打印 model_analyzer：registered images 应=全部、误差 ~1px
+#    （基准：lab_colmap 313张 <1px；lab_colmap_v2 396张 1.48px）
+#    ⚠ 重跑前必须整目录删除：旧 database.db 上重跑 feature_extractor 会多出相机
 
 # 3. nerfstudio 转换（不再跑 COLMAP，但仍需 --colmap-cmd 通过它的存在性检查）
+#    ⚠ 先 $env:PYTHONUTF8='1'：nerfstudio 爱打 emoji，GBK 控制台/重定向当场崩
 ns-process-data images `
-  --data E:\Grasp\data\lab_upright `
-  --output-dir E:\Grasp\data\lab_colmap_v2 `
+  --data E:\Grasp\data\<数据集>_upright `
+  --output-dir E:\Grasp\data\<数据集> `
   --skip-colmap `
   --colmap-cmd C:\tmp\colmap_nerfstudio_compat.bat
-#    →  data\lab_colmap_v2\transforms.json   （坐标仍是任意的！）
+#    →  <数据集>\transforms.json   （坐标仍是任意的！）
 #    ✔ 输出不能有 "More than one camera" 警告；transforms.json 顶层必须有 fl_x
 #      （多相机时先跑 tools\merge_colmap_cameras.py + bundle_adjuster，
 #       并加 --colmap-model-path colmap/sparse/0_merged，见"已知坑"）
 
 # 4. 对齐到板坐标系（米）。格 32mm、码 24mm，其余为脚本默认
 python E:\Grasp\tools\align_to_charuco.py `
-  --dataset E:\Grasp\data\lab_colmap_v2 `
+  --dataset E:\Grasp\data\<数据集> `
   --square-size 0.032 --marker-size 0.024
-#    →  data\lab_colmap_v2\transforms_aligned.json
-#    检查："1 colmap-unit = X m" 合理、相机高度(camera Z)与实际拍摄高度一致
+#    →  transforms_aligned.json
+#    检查："1 colmap-unit = X m" 合理、板拟合残差毫米级、相机高度=实际拍摄高度
+#    （lab_colmap_v2 基准：scale 0.768、RMS 0.48mm、相机 Z 0.93-2.03m）
 
-# 5. ArUco tag 测绘（在线定位锚点）。先按默认 0.10m 跑，
-#    看输出量得的边长是否等于实际打印尺寸，不符则用 --tag-size 实际值重跑
+# 5. ArUco tag 测绘（在线定位锚点）。混合尺寸用 --tag-sizes 分段给预期边长；
+#    角点三角化与尺寸无关，尺寸只影响拟合模板和体检数字。范围放宽自动收新 tag
+#    （30-73 是板的 ID 段，勿包含）
 python E:\Grasp\tools\survey_aruco_tags.py `
-  --dataset E:\Grasp\data\lab_colmap_v2
-#    →  data\lab_colmap_v2\tags_world.json （在线眼动仪定位用）
+  --dataset E:\Grasp\data\<数据集> `
+  --tag-ids "0-29,74-249" --tag-sizes "0-29:0.099,74-249:0.24"
+#    →  tags_world.json；检查每 tag fit_rms 毫米级、实测≈预期、视角数≥3
+#    （旧 6 合 1 纸实测 99mm；新 A3 单 tag 240mm 实测 ±0.4%，打印无缩放）
 
 # 6. 训练。三个 flag 缺一不可，否则 nerfstudio 会把对齐好的坐标再打乱
+#    ⚠ Windows 上 ns-train 同样需要 gsplat JIT 环境变量（TORCH_EXTENSIONS_DIR/
+#      CUDA_HOME/MSVC 上 PATH，抄 run_lift_sam.ps1 前几行；缺了训练第一步就崩：
+#      "No CUDA toolkit found" → CameraModelType AttributeError）
 ns-train splatfacto `
-  --data E:\Grasp\data\lab_colmap_v2\transforms_aligned.json `
+  --data E:\Grasp\data\<数据集>\transforms_aligned.json `
   --output-dir E:\Grasp\outputs `
   nerfstudio-data --orientation-method none --center-method none --auto-scale-poses False
 
@@ -192,7 +203,15 @@ python tools/pupil_localizer.py --tags world_size/tags_world.json --print [--ema
 
 ---
 
-# 第五部分：当前精度与验收状态（2026-07-05）
+# 第五部分：当前精度与验收状态（2026-07-09 更新）
+
+**当前地图：`lab_colmap_v2`**（2026-07-08 拍摄 396 张，含 7 张 240mm 墙面大 tag）。
+ckpt：`E:\Grasp\outputs\lab_colmap_v2\splatfacto\2026-07-09_002452`。
+v2 地图验收：396/396 注册（1.48px）、板拟合 RMS 0.48mm、36 tag 入库（fit_rms 全部
+≤1.6mm）、训练 scale=1.0、render_check 相位相关偏移 0.2px、SAM 分割 506 实例
+（>2.2m 巨型框仅 1 个、桌面高度小物 94 个）。
+⚠ 遗留：tag 76/77/78 未入镜（不在地图中，在线定位自动无视）；17/80 角点不全被剔。
+定位覆盖率收益（大 tag 的核心目的）**待评测录像验证**。
 
 | 环节 | 指标 | 出处 |
 |---|---|---|

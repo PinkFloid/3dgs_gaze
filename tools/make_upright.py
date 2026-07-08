@@ -6,11 +6,12 @@ don't match phone_camera_calibration.npz.
 """
 
 import os
+import sys
 
 from PIL import Image, ImageOps
 
-SRC = r"E:\Grasp\data\lab"
-DST = r"E:\Grasp\data\lab_upright"
+SRC = sys.argv[1] if len(sys.argv) > 1 else r"E:\Grasp\data\lab"
+DST = sys.argv[2] if len(sys.argv) > 2 else r"E:\Grasp\data\lab_upright"
 EXPECTED_RAW_SIZE = (5712, 4284)
 
 os.makedirs(DST, exist_ok=True)

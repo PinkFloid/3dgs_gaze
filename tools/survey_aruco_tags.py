@@ -34,6 +34,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dictionary", default="DICT_6X6_250", help="OpenCV ArUco dictionary name.")
     parser.add_argument("--tag-ids", default="0-29", help="Tag id range 'a-b' or comma list. Ids outside are ignored.")
     parser.add_argument("--tag-size", type=float, default=0.10, help="Tag side length in meters (black border).")
+    parser.add_argument("--tag-sizes", default=None,
+                        help="Per-range sizes 'a-b:size,c-d:size' (m), overriding --tag-size for those "
+                             "ids. Mixed deployments: e.g. '0-29:0.099,74-249:0.24' for the old 6-up "
+                             "sheets plus the new A3 singles. Corner triangulation is size-free; this "
+                             "only affects the rigid-fit template and the metric sanity check.")
     parser.add_argument("--min-views", type=int, default=3, help="Min views per corner to triangulate.")
     parser.add_argument("--max-reproj-px", type=float, default=4.0, help="Reprojection outlier threshold (pixels).")
     parser.add_argument("--out", default="tags_world.json", help="Output json (relative to dataset).")
@@ -51,6 +56,22 @@ def parse_ids(spec: str) -> set[int]:
         elif part:
             ids.add(int(part))
     return ids
+
+
+def make_size_of(spec: str | None, default: float):
+    """Resolve per-tag expected size from 'a-b:size,c:size' spec, else default."""
+    ranges: list[tuple[set[int], float]] = []
+    if spec:
+        for part in spec.split(","):
+            ids_part, s = part.rsplit(":", 1)
+            ranges.append((parse_ids(ids_part), float(s)))
+
+    def size_of(mid: int) -> float:
+        for ids, s in ranges:
+            if mid in ids:
+                return s
+        return default
+    return size_of
 
 
 def load_transforms(dataset: Path, name: str):
@@ -172,14 +193,16 @@ def main() -> int:
         if len(obs) >= args.min_views:
             corners_world.setdefault(mid, {})[ci] = X
 
-    obj = tag_object_corners(args.tag_size)
+    size_of = make_size_of(args.tag_sizes, args.tag_size)
     result = {}
-    print(f"\n{'tag':>4} {'views':>5} {'side_meas(m)':>13} {'fit_rms(mm)':>12}  status")
+    print(f"\n{'tag':>4} {'views':>5} {'side_meas(m)':>13} {'expected':>9} {'fit_rms(mm)':>12}  status")
     for mid in sorted(corners_world):
         cw = corners_world[mid]
         if len(cw) < 4:
-            print(f"{mid:>4} {frames_with_tag.get(mid, 0):>5} {'-':>13} {'-':>12}  only {len(cw)}/4 corners triangulated")
+            print(f"{mid:>4} {frames_with_tag.get(mid, 0):>5} {'-':>13} {'-':>9} {'-':>12}  only {len(cw)}/4 corners triangulated")
             continue
+        expected = size_of(mid)
+        obj = tag_object_corners(expected)
         pts = np.stack([cw[ci] for ci in range(4)])
         sides = [np.linalg.norm(pts[i] - pts[(i + 1) % 4]) for i in range(4)]
         R, t = kabsch(obj, pts)
@@ -190,25 +213,28 @@ def main() -> int:
             "T_world_tag": T.tolist(),
             "corners_world": pts.tolist(),
             "side_lengths_m": [float(s) for s in sides],
+            "expected_size_m": expected,
             "fit_rms_m": float(np.sqrt((resid ** 2).mean())),
             "n_views": frames_with_tag.get(mid, 0),
         }
-        print(f"{mid:>4} {frames_with_tag.get(mid, 0):>5} {np.mean(sides):>13.4f} {np.sqrt((resid**2).mean())*1000:>12.2f}  ok")
+        print(f"{mid:>4} {frames_with_tag.get(mid, 0):>5} {np.mean(sides):>13.4f} {expected:>9.3f} "
+              f"{np.sqrt((resid**2).mean())*1000:>12.2f}  ok")
 
     if not result:
         raise SystemExit("No tag could be surveyed -- check dictionary/ids and that tags are visible in the capture.")
 
-    side_all = np.array([np.mean(v["side_lengths_m"]) for v in result.values()])
-    print(f"\nMean measured side over {len(result)} tags: {side_all.mean():.4f} m "
-          f"(expected {args.tag_size}) -> world scale factor {side_all.mean()/args.tag_size:.4f}")
-    if abs(side_all.mean() / args.tag_size - 1) > 0.05:
-        print("WARNING: >5% off -- world frame is probably not metric. "
-              "Re-run align_to_charuco.py with --square-size in meters.")
+    ratios = np.array([np.mean(v["side_lengths_m"]) / v["expected_size_m"] for v in result.values()])
+    print(f"\nMeasured/expected side ratio over {len(result)} tags: {ratios.mean():.4f} "
+          f"(per-tag range [{ratios.min():.4f}, {ratios.max():.4f}])")
+    if abs(ratios.mean() - 1) > 0.05:
+        print("WARNING: >5% off -- world frame is probably not metric (re-run align_to_charuco "
+              "with --square-size in meters), or the per-range --tag-sizes are wrong.")
 
     out = dataset / args.out
     out.write_text(json.dumps({
         "world_frame": f"{args.transforms} (ChArUco board frame)",
         "tag_size_m": args.tag_size,
+        "tag_sizes_spec": args.tag_sizes,
         "dictionary": args.dictionary,
         "tag_frame": "origin at tag center, X right, Y up, Z out of tag face; corners TL,TR,BR,BL",
         "tags": result,

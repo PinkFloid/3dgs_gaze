@@ -8,11 +8,15 @@
 # Focal length and principal point are locked; distortion starts at the
 # calibrated values and the mapper may refine it (set ba_refine_extra_params
 # to 0 to lock distortion too).
+param(
+    [string]$Images = "E:\Grasp\data\lab_upright",
+    [string]$Out    = "E:\Grasp\data\lab_colmap"
+)
 $ErrorActionPreference = "Stop"
 
 $colmap = "E:\Grasp\tools\COLMAP\COLMAP.bat"
-$images = "E:\Grasp\data\lab_upright"
-$out    = "E:\Grasp\data\lab_colmap"
+$images = $Images
+$out    = $Out
 $db     = "$out\colmap\database.db"
 
 New-Item -ItemType Directory -Force "$out\colmap\sparse" | Out-Null
