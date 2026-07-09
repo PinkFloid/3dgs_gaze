@@ -5,3 +5,6 @@ world_camera_calibration_imgs/
 __pycache__/
 *.pyc
 .DS_Store
+
+# 给导师看的演示材料(视频/图,较大,不进库)
+demo/
