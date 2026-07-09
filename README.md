@@ -22,9 +22,10 @@
 
 ```bash
 # 实时(Pupil Capture 开着 Frame Publisher、gaze 已标定)
-python tools/gaze_live.py                      # 弹窗 UI,q 退出
-python tools/gaze_live.py --publish 5581       # 同时对外发 gaze.intent 事件
-python tools/gaze_live.py --replay ~/recordings/<日期>/<编号>   # 无硬件回放
+# 用 .sh 包装:任意 shell/conda 环境直接跑(内置 nerfstudio env + gsplat 环境变量)
+tools/gaze_live.sh                      # 弹窗 UI,q 退出
+tools/gaze_live.sh --publish 5581       # 同时对外发 gaze.intent 事件
+tools/gaze_live.sh --replay ~/recordings/<日期>/<编号>   # 无硬件回放
 
 # 离线处理一段录像(产物全落录像目录)
 tools/process_recording.sh ~/recordings/<日期>/<编号> [--skip-video]
