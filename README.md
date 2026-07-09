@@ -10,7 +10,7 @@
 
 | 工具 | 作用 |
 |---|---|
-| `gaze_live.py` | **实时模式**:单进程跑完 定位→gaze→世界→注视聚类→锥判定,cv2 窗口实时叠加(视线十字/物体框/判定+世界坐标);视线扫过 tag 自动重估 bias/σ;`--publish` 发 ZMQ `gaze.intent` 事件;`--replay <录像>` 无硬件回放调试 |
+| `gaze_live.py` | **实时模式**:单进程跑完 定位→gaze→世界→注视聚类→锥判定,cv2 窗口实时叠加(绿十字=原始视线、蓝点=修正后射线、物体框、判定+世界坐标);盯 tag 自动重估 bias/σ 且按戳龄衰减;注视 0.3s 出暂定判定(黄'~')、移开定案(红'->');`--publish` 发 ZMQ `gaze.intent`(带 provisional 标志);`--replay <录像>` 无硬件回放;`--dump-video` 导出演示视频 |
 | `process_recording.sh` | **离线入口**:一条命令跑完 定位→精度戳→注视聚类→物体判定→叠加视频 |
 | `pupil_localizer.py` | tag→T_world_cam(实时流/离线录像),鱼眼 PnP + 三道门限 |
 | `gaze_precision.py` | 片头/片尾盯 tag 精度戳 → 本段 gaze 偏置/σ/漂移 |
