@@ -210,7 +210,7 @@ verify_pose_render / process_recording.sh，默认路径均已锚定到 SceneReb
 | `gaze_object.py --cone` | 注视→物体后验（推荐） | 沿注视平均射线渲 33×33 深度块（半角 2.5σ），逐像素角度高斯加权 × α × 反投影→最近命名高斯（≤5cm），**只统计锥内可见表面**——狗身下的地板不再抢票、"看杯子打到桌子"边缘脱靶被锥兜住；同名并票；输出 p_none；不带 --cone 退回 0.2m 球投票基线 |
 | `lift_sam_instances.py` | 高斯→实例 v2（建图侧跑） | SAM 自动 mask 经渲染深度反投影成"高斯 ID 集合"→ 集合 IoU 建图聚类 → 部件-整体包含合并 → per-gaussian 投票；无 query 无 CLIP；Windows 上用 `run_lift_sam.ps1` 包环境 |
 | `gaze_video.py` | 还原注视视频 | `--objects` 加判定横幅；`--poses` 加已命名实例 3D 包围盒（鱼眼投影）；中文实例名经 PIL 渲染 |
-| `gaze_live.py` | 实时意图 + 叠加 UI | 单进程全链路（20Hz 求交 3ms、判定 4-6ms@TITAN X，快于实时）；盯 tag ≥0.3s 自动滚动精度戳；`--replay` 无硬件回放回归测试；rec2026_07_09/000 验证：在线戳修正后 5/5 目标全中（离线插值 4/5） |
+| `gaze_live.py` | 实时意图 + 叠加 UI | 单进程全链路（20Hz 求交 3ms、判定 4-6ms@TITAN X，快于实时）；盯 tag ≥0.3s 自动滚动精度戳，bias 按戳龄衰减（tau 45s，过期戳不再乱修）；注视 0.3s 即出暂定判定（黄'~'），移开视线定案（红'->'）；UI 绿十字=原始视线、蓝点=修正后实际映射的射线；`--replay` 无硬件回放、`--dump-video` 导出演示、`--publish` 发 gaze.intent（事件带 provisional 标志） |
 | `segment_splat.py` | 高斯→实例 | 5cm 体素连通域；地板/天花板/墙用高度和房间边界规则 |
 | `verify_pose_render.py` | 单帧交叉校验 | 去畸变真实帧 vs 同位姿 3DGS 渲染 + blend；虚拟针孔 K 手动构造（fisheye 焦距×0.7、主点居中；estimateNewCameraMatrixForUndistortRectify 返回退化 K 不能用） |
 | `export_splat_from_ckpt.py` | ckpt→splat.ply | 绕开 WindowsPath/数据集依赖 |
