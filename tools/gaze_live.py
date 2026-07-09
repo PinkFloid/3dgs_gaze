@@ -96,6 +96,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--on-tag-deg", type=float, default=4.0, help="Gaze-to-tag angle that counts as staring at it.")
     p.add_argument("--stamp-samples", type=int, default=25, help="Samples on one tag before a bias re-estimate.")
     p.add_argument("--stamp-cooldown", type=float, default=5.0)
+    p.add_argument("--bias-tau", type=float, default=45.0,
+                   help="Bias stamp decay constant (s): correction fades as the stamp ages, so a "
+                        "stale stamp cannot keep pushing gaze off target long after the drift moved "
+                        "on (0 = never decay). Fresh stamps (age << tau) apply near-fully.")
     p.add_argument("--display-scale", type=float, default=0.67)
     p.add_argument("--headless", action="store_true", help="No cv2 window (replay tests, remote shells).")
     p.add_argument("--dump-video", default=None, help="Write the UI frames to this mp4.")
@@ -254,17 +258,29 @@ class OnlineBias:
     direction so a large initial bias cannot push a genuine stare past the gate.
     """
 
-    def __init__(self, tag_centers, on_tag_rad, n_needed, cooldown, bias0, sigma0):
+    def __init__(self, tag_centers, on_tag_rad, n_needed, cooldown, bias0, sigma0, tau=15.0):
         self.ids = np.array(sorted(tag_centers))
         self.C = np.stack([tag_centers[i] for i in self.ids])  # (N,3) world
         self.on_tag = on_tag_rad
         self.n_needed = n_needed
         self.cooldown = cooldown
+        self.tau = tau
         self.bias = np.asarray(bias0, float)  # undistorted-normalized units, gaze minus target
         self.sigma_deg = sigma0
         self.buf = deque(maxlen=600)  # (t, tag_id, raw_gaze_norm, target_norm)
         self.last_stamp_t = -1e9
         self.last_stamp_tag = None
+
+    def effective(self, t):
+        """Age-decayed bias: 002 showed a stale head stamp pushing an accurate
+        gaze 3 deg off target -- drift makes old stamps wrong, so their
+        authority fades toward zero (raw gaze) between stamps."""
+        if self.last_stamp_tag is None or self.tau <= 0:
+            return self.bias
+        return self.bias * np.exp(-max(0.0, t - self.last_stamp_t) / self.tau)
+
+    def age(self, t):
+        return None if self.last_stamp_tag is None else max(0.0, t - self.last_stamp_t)
 
     def feed(self, t, raw_norm, T_world_cam):
         w2c = np.linalg.inv(T_world_cam)
@@ -272,11 +288,16 @@ class OnlineBias:
         front = pc[:, 2] > 0.3
         if not front.any():
             return None
-        corr = np.asarray(raw_norm, float) - self.bias
-        g = np.array([corr[0], corr[1], 1.0])
-        g /= np.linalg.norm(g)
+        # on-tag test against BOTH raw and corrected directions: a stale bias
+        # must not lock out the very stamp that would replace it (002 lesson)
+        corr = np.asarray(raw_norm, float) - self.effective(t)
+        g_c = np.array([corr[0], corr[1], 1.0])
+        g_c /= np.linalg.norm(g_c)
+        g_r = np.array([raw_norm[0], raw_norm[1], 1.0])
+        g_r /= np.linalg.norm(g_r)
         v = pc[front] / np.linalg.norm(pc[front], axis=1, keepdims=True)
-        ang = np.arccos(np.clip(v @ g, -1, 1))
+        ang = np.minimum(np.arccos(np.clip(v @ g_c, -1, 1)),
+                         np.arccos(np.clip(v @ g_r, -1, 1)))
         j = int(np.argmin(ang))
         if ang[j] > self.on_tag:
             return None
@@ -418,7 +439,7 @@ def main() -> int:
     sigma0 = sigma0 or 1.5
     bias_est = OnlineBias(tag_centers, np.radians(args.on_tag_deg),
                           args.stamp_samples, args.stamp_cooldown,
-                          bias0=(0.0, 0.0), sigma0=sigma0)
+                          bias0=(0.0, 0.0), sigma0=sigma0, tau=args.bias_tau)
     print(f"cone sigma start: {sigma0:.2f} deg (online re-estimation on tag stares)")
 
     loc = Localizer(args, tags)
@@ -448,7 +469,8 @@ def main() -> int:
     K = None
     W = H = None
     last_gaze_proc = 0.0
-    last_gaze_px = None       # (u, v, conf, t)
+    last_gaze_px = None       # (u, v, conf, t)  raw gaze
+    last_corr_px = None       # (u, v, t)        bias-corrected gaze actually mapped
     verdict = None            # last closed fixation verdict (+ _shown_at)
     n_frames = n_loc = 0
     isect_ms = deque(maxlen=60)
@@ -515,7 +537,9 @@ def main() -> int:
                 if t - last_gaze_proc < 1.0 / args.sample_hz:
                     continue                                 # intersection budget gate
                 last_gaze_proc = t
-                pn = pn - bias_est.bias                      # corrected ray for mapping
+                pn = pn - bias_est.effective(t)              # age-decayed correction
+                cpx = cv2.fisheye.distortPoints(pn.reshape(1, 1, 2), K, D).reshape(2)
+                last_corr_px = (float(cpx[0]), float(cpx[1]), t)
                 ray = np.array([pn[0], pn[1], 1.0])
                 ray /= np.linalg.norm(ray)
                 t0 = time.perf_counter()
@@ -557,6 +581,13 @@ def main() -> int:
                 cv2.circle(img, (int(u), int(v)), 28, color, 4)
                 cv2.line(img, (int(u) - 40, int(v)), (int(u) + 40, int(v)), color, 2)
                 cv2.line(img, (int(u), int(v) - 40), (int(u), int(v) + 40), color, 2)
+            # the ray actually mapped (after bias): filled dot + tether to raw
+            if last_corr_px is not None and t - last_corr_px[2] < 0.2:
+                cu, cv_ = int(last_corr_px[0]), int(last_corr_px[1])
+                cv2.circle(img, (cu, cv_), 10, (255, 200, 0), -1)
+                if last_gaze_px is not None:
+                    cv2.line(img, (int(last_gaze_px[0]), int(last_gaze_px[1])), (cu, cv_),
+                             (255, 200, 0), 1)
             run = cluster.running(t)
             if run is not None:
                 cjk.put(img, f"fixating... {run[0]:.2f}s ({run[1]})", (30, H - 120), 30, (0, 200, 255))
@@ -569,7 +600,10 @@ def main() -> int:
                       f"  tags {n_tags}  sigma {bias_est.sigma_deg:.1f}deg"
                       f"  isect {im:.0f}ms")
             if bias_est.last_stamp_tag is not None:
-                status += f"  bias@tag{bias_est.last_stamp_tag} ({np.degrees(np.arctan(bias_est.bias[0])):+.1f},{np.degrees(np.arctan(bias_est.bias[1])):+.1f})deg"
+                eff = bias_est.effective(t)
+                status += (f"  bias@tag{bias_est.last_stamp_tag}"
+                           f" ({np.degrees(np.arctan(eff[0])):+.1f},{np.degrees(np.arctan(eff[1])):+.1f})deg"
+                           f" age {bias_est.age(t):.0f}s")
             pose_ok = T_ui is not None
             cv2.putText(img, status, (30, 46), cv2.FONT_HERSHEY_SIMPLEX, 0.9,
                         (0, 255, 255) if pose_ok else (0, 0, 255), 2)
