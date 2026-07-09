@@ -182,7 +182,7 @@ def solve_pose(obj_world: np.ndarray, pts_norm: np.ndarray, thresh: float):
                 obj, pts, np.eye(3), None,
                 reprojectionError=thresh, iterationsCount=200, flags=cv2.SOLVEPNP_ITERATIVE)
         if not ok or inliers is None or len(inliers) < 4:
-            return None, 0
+            return None, 0, None
         rvec, tvec = cv2.solvePnPRefineLM(obj[inliers.flatten()], pts[inliers.flatten()],
                                           np.eye(3), None, rvec, tvec)
     except cv2.error:
