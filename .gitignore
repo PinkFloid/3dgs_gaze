@@ -9,15 +9,18 @@
 tools/COLMAP/
 
 # 原始数据集（照片体积大，源头在手机/Windows 机另有备份）
+# 眼动仪世界相机标定照片已挪到 ~/Project/Eye_Tracker/world_camera_calibration_imgs/
 phone_camera_calibration_imgs/
-world_camera_calibration_imgs/
 test_scene/
 test_scene_processed/
 lab_scene_splat_result/
 
-# 每段录像的批量标注帧（process_recording.sh 一条命令可再生成）
-lab_result/rec*_wfix/
-lab_result/rec*_fixations/
+# 每段录像的批量标注帧（process_recording.sh 一条命令可再生成；含 archive 里的旧帧）
+rec*_wfix/
+rec*_fixations/
+
+# 新地图预览帧（可从 ckpt 再渲染）
+lab_result/preview/
 
 # SAM 分割的可再生成可视化与日志（~45MB；正品是 points.npz + instances.json）
 lab_result/segmentation_sam/thumbs/

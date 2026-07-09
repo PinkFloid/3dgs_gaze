@@ -137,7 +137,8 @@ python tools/export_splat_from_ckpt.py \
 #    （SAM 跨视角共识，能分开贴着的物体：桌上水杯、紧挨的家具）。
 #    gaze_object/gaze_video 加 --seg-dir lab_result/segmentation_sam
 #    兜底（无 SAM 产物时）：python tools/segment_splat.py  → lab_result/segmentation/
-#    （几何连通域，贴着的物体会粘成一个实例）
+#    （几何连通域，贴着的物体会粘成一个实例；v1 地图的旧结果已归档
+#     lab_result/archive_map_v1/segmentation/，重跑会自动重建）
 #   ⚠ 只有命名过的实例会出现在视频包围盒里；未命名的照样参与投票（显示为 object#N）
 #   ⚠ names.json 同名 = 合并：gaze_object 按名字并票（SAM 拆开的部件靠这个归整）
 
@@ -260,12 +261,18 @@ E:\Grasp\                        （Windows / 4090：建图+训练）
 ├── tools\                   所有脚本 + COLMAP
 └── archive\                 废弃实验（教程数据、旧 run）
 
-~/Project/SceneRebuild/          （Linux / TITAN X：在线运行+评测）
+~/Project/SceneRebuild/          （Linux / TITAN X：在线运行+评测，git 与 Windows 同步）
 ├── PIPELINE.md              本文档（与 Windows 侧手动同步）
-├── Calibration_result/      手机 + 眼动仪世界相机标定
-├── world_size/              tags_world.json、transforms_aligned.json（从 Windows 拷来）
-├── lab_result/              训练产物（ckpt→splat.ply）、segmentation/、验证图
+├── Calibration_result/      手机 + 眼动仪世界相机标定 npz（被 5 个工具默认路径引用，勿挪）
+├── world_size/              tags_world.json、transforms_aligned.json（lab_colmap_v2 版）
+├── lab_result/
+│   ├── splatfacto/<run>/        当前地图（ckpt 从 4090 拷来；config 进库）
+│   ├── segmentation_sam/        当前 SAM 分割（git 同步）
+│   ├── preview/                 当前地图预览帧（可再渲染，不进库）
+│   └── archive_map_v1/          v1 地图（2026-07-04）全部产物：旧 ckpt+splat.ply、
+│                                旧 segmentation/、pose_verify/、rec00x 轨迹图与标注帧、out.jsonl
 └── tools/                   两侧共享脚本（Linux 专用：pupil_localizer / gaze_* / segment_* / process_recording.sh）
+~/Project/Eye_Tracker/           眼动仪资产（不进库）：world_camera_calibration_imgs/ 标定原始照片
 ~/recordings/<日期>/<编号>/      Pupil 录像 + process_recording.sh 的全部产物
 ```
 
