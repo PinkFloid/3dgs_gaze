@@ -143,7 +143,7 @@ python tools/export_splat_from_ckpt.py \
 #   ⚠ names.json 同名 = 合并：gaze_object 按名字并票（SAM 拆开的部件靠这个归整）
 
 # 3. 单帧交叉校验（可选但建议，验证地图/标定/定位三方一致）
-python tools/verify_pose_render.py --recording <任一段录像>
+python ~/Project/Eye_Tracker/tools/verify_pose_render.py --recording <任一段录像>
 #   blend 图应像一张清晰照片；rec000 基准：0.93px / 0.095° / tag 处 4.6mm
 #   blend 里重影的物体 = 建图后被挪动过（免费的变化检测）
 ```
@@ -166,7 +166,7 @@ python tools/verify_pose_render.py --recording <任一段录像>
 ### 处理：一条命令
 
 ```bash
-tools/process_recording.sh ~/recordings/<日期>/<编号> [--skip-video]
+~/Project/Eye_Tracker/tools/process_recording.sh ~/recordings/<日期>/<编号> [--skip-video]
 ```
 
 产物全部落在录像目录内：
@@ -183,12 +183,17 @@ tools/process_recording.sh ~/recordings/<日期>/<编号> [--skip-video]
 ### 实时模式（不录制，直接出位姿流）
 
 ```bash
-python tools/pupil_localizer.py --tags world_size/tags_world.json --print [--ema 0.7] [--publish 5580]
+python ~/Project/Eye_Tracker/tools/pupil_localizer.py --print [--ema 0.7] [--publish 5580]
+#   --tags 默认已指向 SceneRebuild/world_size/tags_world.json
 ```
 
 ---
 
 # 第四部分：工具箱（单独使用与原理要点）
+
+视线追踪工具在 `~/Project/Eye_Tracker/tools/`（pupil_localizer / gaze_* / grasp_intent /
+verify_pose_render / process_recording.sh，默认路径均已锚定到 SceneRebuild 的标定与地图）；
+建图侧工具在 `SceneRebuild/tools/`（git 与 Windows 同步）。
 
 | 工具 | 作用 | 要点 |
 |---|---|---|
@@ -271,8 +276,13 @@ E:\Grasp\                        （Windows / 4090：建图+训练）
 │   ├── preview/                 当前地图预览帧（可再渲染，不进库）
 │   └── archive_map_v1/          v1 地图（2026-07-04）全部产物：旧 ckpt+splat.ply、
 │                                旧 segmentation/、pose_verify/、rec00x 轨迹图与标注帧、out.jsonl
-└── tools/                   两侧共享脚本（Linux 专用：pupil_localizer / gaze_* / segment_* / process_recording.sh）
-~/Project/Eye_Tracker/           眼动仪资产（不进库）：world_camera_calibration_imgs/ 标定原始照片
+└── tools/                   建图侧脚本（COLMAP/标定/对齐/导出/SAM lift，git 与 Windows 同步）
+~/Project/Eye_Tracker/           视线追踪侧（Linux 本机 git 仓库，不与 Windows 同步）
+├── tools/                   pupil_localizer / gaze_to_world / gaze_precision / gaze_object /
+│                            gaze_video / grasp_intent / verify_pose_render / process_recording.sh
+│                            （默认路径锚定 ../SceneRebuild 的标定、tag 测绘与地图）
+├── world_camera_calibration_imgs/   世界相机标定原始照片（不进库）
+└── README.md
 ~/recordings/<日期>/<编号>/      Pupil 录像 + process_recording.sh 的全部产物
 ```
 
