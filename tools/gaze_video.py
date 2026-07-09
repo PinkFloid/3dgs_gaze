@@ -70,7 +70,39 @@ def load_instances(seg_dir: Path) -> dict[int, dict]:
     return out
 
 
-def draw_instances(frame, T_world_cam, instances, K, D, thick=2):
+class CjkText:
+    """cv2.putText renders CJK as '?'; draw such labels through PIL instead."""
+
+    FONTS = ["/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+             "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf"]
+
+    def __init__(self):
+        self.font_path = next((f for f in self.FONTS if Path(f).exists()), None)
+        self._cache = {}
+
+    def put_many(self, frame, items, px=26, thick=2):
+        """items: [(text, (x, y), bgr)]; one PIL round-trip for all CJK labels."""
+        ascii_items = [it for it in items if it[0].isascii() or self.font_path is None]
+        cjk_items = [it for it in items if not (it[0].isascii() or self.font_path is None)]
+        for text, org, color in ascii_items:
+            cv2.putText(frame, text, org, cv2.FONT_HERSHEY_SIMPLEX, px / 28.0, color, thick)
+        if not cjk_items:
+            return
+        from PIL import Image, ImageDraw, ImageFont
+        font = self._cache.get(px)
+        if font is None:
+            font = self._cache[px] = ImageFont.truetype(self.font_path, px)
+        img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        draw = ImageDraw.Draw(img)
+        for text, org, color in cjk_items:
+            draw.text((org[0], org[1] - px), text, font=font, fill=(color[2], color[1], color[0]))
+        frame[:] = cv2.cvtColor(np.asarray(img), cv2.COLOR_RGB2BGR)
+
+    def put(self, frame, text, org, px, color, thick=2):
+        self.put_many(frame, [(text, org, color)], px=px, thick=thick)
+
+
+def draw_instances(frame, T_world_cam, instances, K, D, thick=2, cjk=None):
     """Project + draw the 3D bboxes of instances (one batched fisheye projection)."""
     if not instances:
         return
@@ -87,6 +119,7 @@ def draw_instances(frame, T_world_cam, instances, K, D, thick=2):
         corners[sel].reshape(-1, 1, 3).astype(np.float64), rvec, tvec, K, D)
     px = px.reshape(len(sel), 8, 2)
     H, W = frame.shape[:2]
+    labels = []
     for j, k in enumerate(sel):
         p = px[j]
         if not ((p[:, 0] > -W) & (p[:, 0] < 2 * W) & (p[:, 1] > -H) & (p[:, 1] < 2 * H)).all():
@@ -97,8 +130,14 @@ def draw_instances(frame, T_world_cam, instances, K, D, thick=2):
             cv2.line(frame, tuple(pts[a]), tuple(pts[b]), inst["color"], thick)
         if inst["name"]:
             top = pts[pts[:, 1].argmin()]
-            cv2.putText(frame, inst["name"], (top[0] - 20, max(top[1] - 10, 20)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, inst["color"], 2)
+            labels.append((inst["name"], (int(top[0]) - 20, max(int(top[1]) - 10, 20)), inst["color"]))
+    if not labels:
+        return
+    if cjk is None:
+        for text, org, color in labels:
+            cv2.putText(frame, text, org, cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
+    else:
+        cjk.put_many(frame, labels, px=28)
 
 
 def load_gaze(rec: Path):
@@ -166,6 +205,7 @@ def main() -> int:
     t0 = world_ts[0]
     fi = 0
     n_written = 0
+    cjk = CjkText()
     while True:
         ok, frame = cap.read()
         if not ok or fi >= len(world_ts):
@@ -179,9 +219,9 @@ def main() -> int:
 
         T = poses.query(t) if poses is not None else None
         if T is not None and args.boxes == "all":
-            draw_instances(frame, T, all_boxes, K_img, D_fish, thick=1)
+            draw_instances(frame, T, all_boxes, K_img, D_fish, thick=1, cjk=cjk)
         elif T is not None and args.boxes in ("named", "both") and named_instances:
-            draw_instances(frame, T, named_instances, K_img, D_fish)
+            draw_instances(frame, T, named_instances, K_img, D_fish, cjk=cjk)
 
         # trail: gaze samples in the last args.trail seconds
         if args.trail > 0:
@@ -220,12 +260,12 @@ def main() -> int:
                     if members:
                         col = members[0]["color"]  # one color for the whole named object
                         extra = [dict(m, color=col, name="") for m in members[1:]]
-                        draw_instances(frame, T, extra, K_img, D_fish, thick=2)
-                        draw_instances(frame, T, [members[0]], K_img, D_fish, thick=3)
+                        draw_instances(frame, T, extra, K_img, D_fish, thick=2, cjk=cjk)
+                        draw_instances(frame, T, [members[0]], K_img, D_fish, thick=3, cjk=cjk)
                 c = fx["centroid_world"]
                 share = fx.get("vote_share", 0)
-                cv2.putText(frame, f"-> {fx['object']} ({share:.0%})  [{c[0]:+.2f},{c[1]:+.2f},{c[2]:+.2f}]m",
-                            (30, H - 70), cv2.FONT_HERSHEY_SIMPLEX, 1.1, (0, 0, 255), 3)
+                cjk.put(frame, f"-> {fx['object']} ({share:.0%})  [{c[0]:+.2f},{c[1]:+.2f},{c[2]:+.2f}]m",
+                        (30, H - 70), 40, (0, 0, 255), 3)
                 break
 
         cv2.putText(frame, f"t={t - t0:6.2f}s", (30, 46), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 255), 2)

@@ -10,7 +10,8 @@
 
 | 工具 | 作用 |
 |---|---|
-| `process_recording.sh` | **日常唯一入口**:一条命令跑完 定位→精度戳→注视聚类→物体判定→叠加视频 |
+| `gaze_live.py` | **实时模式**:单进程跑完 定位→gaze→世界→注视聚类→锥判定,cv2 窗口实时叠加(视线十字/物体框/判定+世界坐标);视线扫过 tag 自动重估 bias/σ;`--publish` 发 ZMQ `gaze.intent` 事件;`--replay <录像>` 无硬件回放调试 |
+| `process_recording.sh` | **离线入口**:一条命令跑完 定位→精度戳→注视聚类→物体判定→叠加视频 |
 | `pupil_localizer.py` | tag→T_world_cam(实时流/离线录像),鱼眼 PnP + 三道门限 |
 | `gaze_precision.py` | 片头/片尾盯 tag 精度戳 → 本段 gaze 偏置/σ/漂移 |
 | `gaze_to_world.py` | gaze→世界 3D 落点→注视聚类(--continuous),bias(t) 插值修正 |
@@ -20,10 +21,15 @@
 | `verify_pose_render.py` | 单帧交叉校验:真实帧 vs 同位姿 3DGS 渲染(验证地图/标定/定位一致) |
 
 ```bash
-# 处理一段录像(产物全落录像目录)
+# 实时(Pupil Capture 开着 Frame Publisher、gaze 已标定)
+python tools/gaze_live.py                      # 弹窗 UI,q 退出
+python tools/gaze_live.py --publish 5581       # 同时对外发 gaze.intent 事件
+python tools/gaze_live.py --replay ~/recordings/<日期>/<编号>   # 无硬件回放
+
+# 离线处理一段录像(产物全落录像目录)
 tools/process_recording.sh ~/recordings/<日期>/<编号> [--skip-video]
 
-# 实时位姿流
+# 仅实时位姿流
 python tools/pupil_localizer.py --print [--ema 0.7] [--publish 5580]
 ```
 
