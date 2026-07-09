@@ -190,20 +190,37 @@ class SplatDepth:
         return (np.clip(rgb[..., :3], 0, 1) * 255).astype(np.uint8)
 
 
-def resolve_bias(args, rec: Path) -> np.ndarray:
-    """Gaze bias in undistorted-normalized units (~rad), gaze-minus-target convention."""
+def resolve_bias(args, rec: Path):
+    """Bias(t) as (timestamps, biases) in undistorted-normalized units, gaze-minus-target.
+
+    gaze_precision.json stamps (head/tail tag stares) are lerped over time:
+    rec002 measured 2.6 deg of slow drift head->tail -- a constant correction
+    leaves late fixations off by more than a 13cm target at 4m.
+    """
     if args.no_bias:
-        return np.zeros(2)
+        return np.array([0.0]), np.zeros((1, 2))
     if args.bias_deg:
         b = np.array([float(v) for v in args.bias_deg.split(",")])
-        print(f"bias correction (cli): ({b[0]:+.2f},{b[1]:+.2f}) deg")
-    else:
-        pj = rec / "gaze_precision.json"
-        if not pj.exists():
-            return np.zeros(2)
-        b = np.array(json.loads(pj.read_text(encoding="utf-8"))["bias_deg"], float)
-        print(f"bias correction ({pj.name}): ({b[0]:+.2f},{b[1]:+.2f}) deg")
-    return np.tan(np.radians(b))
+        print(f"bias correction (cli, constant): ({b[0]:+.2f},{b[1]:+.2f}) deg")
+        return np.array([0.0]), np.tan(np.radians(b))[None]
+    pj = rec / "gaze_precision.json"
+    if not pj.exists():
+        return np.array([0.0]), np.zeros((1, 2))
+    d = json.loads(pj.read_text(encoding="utf-8"))
+    stamps = d.get("stamps") or [{"t": 0.0, "bias_deg": d["bias_deg"]}]
+    ts = np.array([s["t"] for s in stamps], float)
+    bs = np.tan(np.radians(np.array([s["bias_deg"] for s in stamps], float)))
+    desc = ", ".join(f"({s['bias_deg'][0]:+.2f},{s['bias_deg'][1]:+.2f})deg" for s in stamps)
+    print(f"bias correction ({pj.name}): {len(stamps)} stamp(s) {desc}"
+          + (", lerped over time" if len(stamps) > 1 else ""))
+    return ts, bs
+
+
+def bias_at(bias, t: float) -> np.ndarray:
+    ts, bs = bias
+    if len(ts) == 1:
+        return bs[0]
+    return np.array([np.interp(t, ts, bs[:, 0]), np.interp(t, ts, bs[:, 1])])
 
 
 # ------------------------------------------------------------ continuous mode
@@ -262,7 +279,7 @@ def run_continuous(args, rec, poses, splat, K_img, D_fish, W, H, world_ts, cap, 
         u = g["norm_pos"][0] * W
         v = (1.0 - g["norm_pos"][1]) * H
         pn = cv2.fisheye.undistortPoints(np.array([[[u, v]]], np.float64), K_img, D_fish).reshape(2)
-        pn = pn - bias
+        pn = pn - bias_at(bias, g["timestamp"])
         ray = np.array([pn[0], pn[1], 1.0])
         ray /= np.linalg.norm(ray)
         depth = splat.depth_along_ray(T[:3, 3], T[:3, :3] @ ray)
@@ -376,7 +393,7 @@ def main() -> int:
             v = (1.0 - fx["norm_pos"][1]) * H   # pupil norm_pos: origin bottom-left
             pn = cv2.fisheye.undistortPoints(
                 np.array([[[u, v]]], np.float64), K_img, D_fish).reshape(2)
-            pn = pn - bias
+            pn = pn - bias_at(bias, t)
             ray_cam = np.array([pn[0], pn[1], 1.0])
             ray_cam /= np.linalg.norm(ray_cam)
             origin = T[:3, 3]

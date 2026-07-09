@@ -38,8 +38,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--poses", default=None, help="Default: <recording>/poses.jsonl")
     p.add_argument("--tags", default=str(root / "world_size/tags_world.json"))
     p.add_argument("--calib", default=str(root / "Calibration_result/world_camera_calibration.npz"))
-    p.add_argument("--head-window", type=float, default=12.0, help="Search the first N s (0 = skip).")
-    p.add_argument("--tail-window", type=float, default=12.0, help="Search the last N s (0 = skip).")
+    p.add_argument("--head-window", type=float, default=15.0, help="Search the first N s (0 = skip).")
+    p.add_argument("--tail-window", type=float, default=30.0,
+                   help="Search the last N s (0 = skip). Generous: rec002's tail stare sat "
+                        "12-30 s before the end and a 12 s window missed it.")
     p.add_argument("--on-tag-deg", type=float, default=4.0,
                    help="Samples within this angle of a tag count as staring at it.")
     p.add_argument("--min-confidence", type=float, default=0.6)
@@ -67,25 +69,26 @@ def window_stats(gaze, poses, tag_centers, K_img, D_fish, W, H, t_lo, t_hi, on_t
             x = R.T @ (c - cam)
             if x[2] < 0.3:
                 continue
-            per_tag[tid].append(pn - x[:2] / x[2])   # gaze minus target
+            per_tag[tid].append((t, pn - x[:2] / x[2]))   # gaze minus target
     best = None
-    for tid, offs in per_tag.items():
-        if len(offs) < min_samples:
+    for tid, rows in per_tag.items():
+        if len(rows) < min_samples:
             continue
-        offs = np.array(offs)
-        on = offs[np.linalg.norm(offs, axis=1) < on_tag_rad]
-        if len(on) < min_samples:
+        ts = np.array([r[0] for r in rows])
+        offs = np.array([r[1] for r in rows])
+        on = np.linalg.norm(offs, axis=1) < on_tag_rad
+        if on.sum() < min_samples:
             continue
-        med = np.linalg.norm(np.median(on, axis=0))
+        med = np.linalg.norm(np.median(offs[on], axis=0))
         if best is None or med < best[0]:
-            best = (med, tid, on)
+            best = (med, tid, ts[on], offs[on])
     if best is None:
         return None
-    _, tid, on = best
+    _, tid, ts, on = best
     bias = np.median(on, axis=0)
     resid = on - bias
     sigma = float(np.sqrt(np.mean(resid ** 2)))      # pooled per-axis, 1D-equivalent
-    return {"tag": tid, "n": int(len(on)),
+    return {"tag": tid, "n": int(len(on)), "t": round(float(np.median(ts)), 3),
             "bias_deg": [round(float(np.degrees(b)), 3) for b in bias],
             "sigma_deg": round(float(np.degrees(sigma)), 3)}
 
@@ -137,21 +140,28 @@ def main() -> int:
     if "head" in found and "tail" in found:
         drift = round(float(np.linalg.norm(
             np.array(found["head"]["bias_deg"]) - np.array(found["tail"]["bias_deg"]))), 3)
-        sigma = round(float(np.hypot(sigma, drift / 2)), 3)  # slow drift inflates the honest sigma
+        # downstream interpolates bias(t) between the stamps, so only the
+        # nonlinear remainder of the drift stays in sigma (~drift/4), not drift/2
+        sigma = round(float(np.hypot(sigma, drift / 4)), 3)
 
     verdict = "ok"
     if sigma > 2.5:
         verdict = "poor-sigma: gaze layer noisy, consider re-calibration"
-    if drift is not None and drift > 1.5:
-        verdict = f"drifting {drift:.1f} deg head->tail: re-seat + re-calibrate (rec001 failure mode)"
+    if drift is not None and drift > 4.0:
+        verdict = f"drifting {drift:.1f} deg head->tail: too much for linear correction, re-record"
+    elif drift is not None and drift > 1.5:
+        verdict = f"drift {drift:.1f} deg head->tail: linear bias(t) correction applied downstream"
     print(f"combined: bias ({bias[0]:+.2f},{bias[1]:+.2f}) deg, sigma {sigma:.2f} deg, "
           f"drift {drift if drift is not None else '-'} deg -> {verdict}")
 
+    stamps = sorted((w for w in found.values()), key=lambda w: w["t"])
     out = Path(args.out) if args.out else rec / "gaze_precision.json"
     out.write_text(json.dumps({
         "recording": str(rec), "convention": "bias = gaze minus target, undistorted camera frame",
         "bias_deg": [round(float(b), 3) for b in bias], "sigma_deg": round(sigma, 3),
-        "drift_deg": drift, "verdict": verdict, "windows": windows,
+        "drift_deg": drift, "verdict": verdict,
+        "stamps": stamps,  # gaze_to_world lerps bias(t) through these
+        "windows": windows,
     }, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {out}")
     return 0
