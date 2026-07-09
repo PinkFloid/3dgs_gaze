@@ -85,6 +85,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--min-fix-dur", type=float, default=0.25)
     p.add_argument("--idle-close", type=float, default=0.4,
                    help="Close the running cluster after this many s without a mappable gaze sample.")
+    p.add_argument("--provisional-every", type=float, default=0.4,
+                   help="While a fixation is still running, emit a provisional verdict every N s "
+                        "(0 = only judge on close; closing waits for gaze to LEAVE the target, "
+                        "so long stares would otherwise feel unresponsive).")
     p.add_argument("--sigma-deg", type=float, default=None,
                    help="Cone sigma until the first online stamp (default: gaze_precision.json of --replay, else 1.5).")
     p.add_argument("--span-sigmas", type=float, default=2.5)
@@ -210,24 +214,29 @@ class StreamCluster:
         self.ts, self.pts, self.origins = [], [], []
         self.centroid = None
 
+    def _fx(self):
+        if not (self.ts and self.ts[-1] - self.ts[0] >= self.min_dur and len(self.ts) >= 4):
+            return None
+        pts = np.array(self.pts)
+        c = pts.mean(axis=0)
+        o = self.origins[len(self.ts) // 2]
+        d = float(np.linalg.norm(c - o))
+        spread = float(np.linalg.norm(pts - c, axis=1).mean())
+        return {"t_start": float(self.ts[0]), "t_end": float(self.ts[-1]),
+                "duration_s": float(self.ts[-1] - self.ts[0]),
+                "centroid_world": c.tolist(), "spread_m": spread,
+                "n_samples": len(self.ts),
+                "origin_world": o.tolist(), "distance_m": round(d, 3),
+                "ang_spread_deg": round(float(np.degrees(np.arctan2(spread, d))), 2)}
+
     def _close(self):
-        fx = None
-        if self.ts and self.ts[-1] - self.ts[0] >= self.min_dur and len(self.ts) >= 4:
-            pts = np.array(self.pts)
-            c = pts.mean(axis=0)
-            mid = len(self.ts) // 2
-            o = self.origins[mid]
-            d = float(np.linalg.norm(c - o))
-            fx = {"t_start": float(self.ts[0]), "t_end": float(self.ts[-1]),
-                  "duration_s": float(self.ts[-1] - self.ts[0]),
-                  "centroid_world": c.tolist(),
-                  "spread_m": float(np.linalg.norm(pts - c, axis=1).mean()),
-                  "n_samples": len(self.ts),
-                  "origin_world": o.tolist(), "distance_m": round(d, 3),
-                  "ang_spread_deg": round(float(np.degrees(np.arctan2(
-                      float(np.linalg.norm(pts - c, axis=1).mean()), d))), 2)}
+        fx = self._fx()
         self.reset()
         return fx
+
+    def snapshot(self):
+        """Provisional fixation from the still-open cluster (nothing is closed)."""
+        return self._fx()
 
     def push(self, t, p, origin):
         closed = None
@@ -476,9 +485,12 @@ def main() -> int:
     isect_ms = deque(maxlen=60)
     t_stream0 = wall0 = None
     t_now = 0.0
+    last_prov = 0.0
 
-    def close_and_judge(fx):
-        nonlocal verdict
+    prov_name = None
+
+    def close_and_judge(fx, provisional=False):
+        nonlocal verdict, prov_name
         if fx is None:
             return
         t0 = time.perf_counter()
@@ -491,17 +503,25 @@ def main() -> int:
         if rank is None:
             return
         fx.update(rank, p_none=round(p_none, 3), sigma_deg=round(bias_est.sigma_deg, 2),
-                  mode="cone", judge_ms=round((time.perf_counter() - t0) * 1e3, 1))
+                  mode="cone", provisional=provisional,
+                  judge_ms=round((time.perf_counter() - t0) * 1e3, 1))
         verdict = dict(fx, _shown_at=t_now)
         c = fx["centroid_world"]
-        print(f"[{fx['t_start'] - (t_stream0 or 0):7.1f}s] {fx['object']:<18} "
-              f"{fx['vote_share']:>4.0%}  ({c[0]:+.2f},{c[1]:+.2f},{c[2]:+.2f})m "
-              f"dur {fx['duration_s']:.2f}s  none {p_none:.0%}  [{fx['judge_ms']:.0f}ms]")
+        if provisional:
+            if fx["object"] != prov_name:  # only log changes, not every refresh
+                prov_name = fx["object"]
+                print(f"[{fx['t_start'] - (t_stream0 or 0):7.1f}s] ~ {fx['object']:<16} "
+                      f"{fx['vote_share']:>4.0%}  (fixating {fx['duration_s']:.1f}s...)")
+        else:
+            prov_name = None
+            print(f"[{fx['t_start'] - (t_stream0 or 0):7.1f}s] {fx['object']:<18} "
+                  f"{fx['vote_share']:>4.0%}  ({c[0]:+.2f},{c[1]:+.2f},{c[2]:+.2f})m "
+                  f"dur {fx['duration_s']:.2f}s  none {p_none:.0%}  [{fx['judge_ms']:.0f}ms]")
         payload = {k: v for k, v in fx.items() if not k.startswith("_")}
         payload["topic"] = "gaze.intent"
-        if pub:
+        if pub:  # downstream consumers filter on payload["provisional"]
             pub.send_multipart([b"gaze.intent", msgpack.packb(payload)])
-        if log_f:
+        if log_f and not provisional:
             log_f.write(json.dumps(payload, ensure_ascii=False) + "\n")
             log_f.flush()
 
@@ -564,6 +584,15 @@ def main() -> int:
                 n_loc += 1
                 poses.push(t, pose)
             close_and_judge(cluster.poll(t))
+            # judge the still-running fixation early: closing waits for gaze
+            # to leave the target, which reads as lag on long stares
+            if args.provisional_every > 0:
+                run_now = cluster.running(t)
+                if run_now and t - last_prov > args.provisional_every:
+                    fx_p = cluster.snapshot()
+                    if fx_p is not None:
+                        last_prov = t
+                        close_and_judge(fx_p, provisional=True)
 
             if not win and writer is None and not args.dump_video:
                 continue  # headless without dump: no UI work at all
@@ -593,8 +622,10 @@ def main() -> int:
                 cjk.put(img, f"fixating... {run[0]:.2f}s ({run[1]})", (30, H - 120), 30, (0, 200, 255))
             if verdict is not None and t - verdict["_shown_at"] < 4.0:
                 c = verdict["centroid_world"]
-                cjk.put(img, f"-> {verdict['object']}  {verdict['vote_share']:.0%}"
-                             f"  [{c[0]:+.2f},{c[1]:+.2f},{c[2]:+.2f}]m", (30, H - 60), 40, (0, 0, 255), 3)
+                prov = verdict.get("provisional")
+                cjk.put(img, f"{'~' if prov else '->'} {verdict['object']}  {verdict['vote_share']:.0%}"
+                             f"  [{c[0]:+.2f},{c[1]:+.2f},{c[2]:+.2f}]m", (30, H - 60), 40,
+                        (0, 200, 255) if prov else (0, 0, 255), 3)
             im = np.mean(isect_ms) if isect_ms else 0.0
             status = (f"t={t - t_stream0:6.1f}s  loc {n_loc}/{n_frames}"
                       f"  tags {n_tags}  sigma {bias_est.sigma_deg:.1f}deg"
