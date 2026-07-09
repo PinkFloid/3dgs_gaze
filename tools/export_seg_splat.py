@@ -33,6 +33,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--out", default=None, help="Default: <seg-dir>/splat_seg.ply")
     p.add_argument("--bead-step", type=float, default=0.025, help="BBox bead spacing (m).")
     p.add_argument("--dim", type=float, default=0.35, help="Brightness of unlabeled/background gaussians.")
+    p.add_argument("--boxes", choices=["named", "all", "none"], default="named",
+                   help="Bead frames: union bbox per named object (default), every instance, or none.")
+    p.add_argument("--box-min-diag", type=float, default=0.25,
+                   help="--boxes all: skip instances with a bbox diagonal below this (m).")
     p.add_argument("--preview", default=None, help="Also render top+oblique check views to this jpg.")
     p.add_argument("--preview-clip-z", type=float, default=2.6,
                    help="Drop gaussians above this height in the preview renders (ceiling/lamps).")
@@ -97,30 +101,52 @@ def main() -> int:
     for iid, nm in sorted(name_of.items()):
         group_color.setdefault(nm, stable_color(iid))
 
+    # every instance gets its own color (the vote-stealers must be visible,
+    # not just the named objects); named ones use the pooled group color
     rgb = np.full((n, 3), args.dim * 0.5, np.float32)      # unlabeled: dark gray
-    rgb[label >= 0] = args.dim                              # bg + unnamed instances: gray
+    rgb[(label >= 0) & (label < 10)] = args.dim             # floor/wall/ceiling: gray
     counts = {}
-    for iid, nm in name_of.items():
+    for iid in np.unique(label[label >= 10]):
         m = label == iid
-        rgb[m] = group_color[nm]
-        counts[nm] = counts.get(nm, 0) + int(m.sum())
+        nm = name_of.get(int(iid))
+        rgb[m] = group_color[nm] if nm else stable_color(int(iid)) * 0.8
+        if nm:
+            counts[nm] = counts.get(nm, 0) + int(m.sum())
 
-    # bead frames on named-object union bboxes
-    union = {}
-    for inst in meta["instances"]:
-        nm = names.get(str(inst["id"]), "")
-        if not nm:
-            continue
-        lo, hi = np.array(inst["bbox_min"]), np.array(inst["bbox_max"])
-        u = union.get(nm)
-        union[nm] = (lo, hi) if u is None else (np.minimum(u[0], lo), np.maximum(u[1], hi))
+    # bead frames
     beads_xyz, beads_rgb = [], []
-    for nm, (lo, hi) in union.items():
-        b = bead_frame(lo, hi, args.bead_step)
-        beads_xyz.append(b)
-        beads_rgb.append(np.tile(np.clip(group_color[nm] * 1.25, 0, 1), (len(b), 1)))
-    beads_xyz = np.concatenate(beads_xyz).astype(np.float32)
-    beads_rgb = np.concatenate(beads_rgb).astype(np.float32)
+    if args.boxes == "named":
+        union = {}
+        for inst in meta["instances"]:
+            nm = names.get(str(inst["id"]), "")
+            if not nm:
+                continue
+            lo, hi = np.array(inst["bbox_min"]), np.array(inst["bbox_max"])
+            u = union.get(nm)
+            union[nm] = (lo, hi) if u is None else (np.minimum(u[0], lo), np.maximum(u[1], hi))
+        for nm, (lo, hi) in union.items():
+            b = bead_frame(lo, hi, args.bead_step)
+            beads_xyz.append(b)
+            beads_rgb.append(np.tile(np.clip(group_color[nm] * 1.25, 0, 1), (len(b), 1)))
+    elif args.boxes == "all":
+        n_boxed = 0
+        for inst in meta["instances"]:
+            lo, hi = np.array(inst["bbox_min"]), np.array(inst["bbox_max"])
+            if np.linalg.norm(hi - lo) < args.box_min_diag:
+                continue
+            nm = names.get(str(inst["id"]), "")
+            col = group_color[nm] if nm else stable_color(inst["id"])
+            b = bead_frame(lo, hi, args.bead_step * 1.6)
+            beads_xyz.append(b)
+            beads_rgb.append(np.tile(np.clip(col * 1.25, 0, 1), (len(b), 1)))
+            n_boxed += 1
+        print(f"--boxes all: {n_boxed} instances framed (diag >= {args.box_min_diag}m)")
+    if beads_xyz:
+        beads_xyz = np.concatenate(beads_xyz).astype(np.float32)
+        beads_rgb = np.concatenate(beads_rgb).astype(np.float32)
+    else:
+        beads_xyz = np.zeros((0, 3), np.float32)
+        beads_rgb = np.zeros((0, 3), np.float32)
     nb = len(beads_xyz)
 
     all_xyz = np.concatenate([means, beads_xyz])
