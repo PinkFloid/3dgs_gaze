@@ -214,6 +214,7 @@ verify_pose_render / process_recording.sh，默认路径均已锚定到 SceneReb
 | `segment_splat.py` | 高斯→实例 | 5cm 体素连通域；地板/天花板/墙用高度和房间边界规则 |
 | `verify_pose_render.py` | 单帧交叉校验 | 去畸变真实帧 vs 同位姿 3DGS 渲染 + blend；虚拟针孔 K 手动构造（fisheye 焦距×0.7、主点居中；estimateNewCameraMatrixForUndistortRectify 返回退化 K 不能用） |
 | `export_splat_from_ckpt.py` | ckpt→splat.ply | 绕开 WindowsPath/数据集依赖 |
+| `export_seg_splat.py` | 分割审计 ply | 高斯按实例上色（同名同色=投票单位）+ 命名物体 union bbox 珠框 → segmentation_sam/splat_seg.ply，SuperSplat 直接开；`--preview x.jpg` 渲俯视+斜视两帧（裁天花板） |
 
 ---
 
