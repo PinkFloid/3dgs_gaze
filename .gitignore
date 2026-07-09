@@ -1,0 +1,7 @@
+# 标定原始照片(162MB,源头另有备份)
+world_camera_calibration_imgs/
+
+# 杂项
+__pycache__/
+*.pyc
+.DS_Store
