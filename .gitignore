@@ -1,10 +1,11 @@
 # 本机会话配置,不进库
 .claude/
 
-# 本机数据(重组前由旧根 .gitignore 保护,搬家后补回)
-002/
-imgs/
+# 本机数据(重组前由旧根 .gitignore 保护,搬家后补回;前导 / 锚定仓库根,
+# 否则 tools/ 会误伤 Eye_Tracker/tools 与 SceneRebuild/tools 里的新文件)
+/002/
+/imgs/
 # 重组遗留的旧位置副本(内容已复制到 SceneRebuild/lab_result/,确认后可手动删除)
-lab_result/
-tools/
+/lab_result/
+/tools/
 SceneRebuild/lab_result/segmentation_sam/preview.zip
