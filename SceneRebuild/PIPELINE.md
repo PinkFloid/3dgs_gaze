@@ -275,24 +275,31 @@ E:\Grasp\                        （Windows / 4090：建图+训练）
 ├── tools\                   所有脚本 + COLMAP
 └── archive\                 废弃实验（教程数据、旧 run）
 
-~/Project/SceneRebuild/          （Linux / TITAN X：在线运行+评测，git 与 Windows 同步）
-├── PIPELINE.md              本文档（与 Windows 侧手动同步）
-├── Calibration_result/      手机 + 眼动仪世界相机标定 npz（被 5 个工具默认路径引用，勿挪）
-├── world_size/              tags_world.json、transforms_aligned.json（lab_colmap_v2 版）
-├── lab_result/
-│   ├── splatfacto/<run>/        当前地图（ckpt 从 4090 拷来；config 进库）
-│   ├── segmentation_sam/        当前 SAM 分割（git 同步）
-│   ├── preview/                 当前地图预览帧（可再渲染，不进库）
-│   └── archive_map_v1/          v1 地图（2026-07-04）全部产物：旧 ckpt+splat.ply、
-│                                旧 segmentation/、pose_verify/、rec00x 轨迹图与标注帧、out.jsonl
-└── tools/                   建图侧脚本（COLMAP/标定/对齐/导出/SAM lift，git 与 Windows 同步）
-~/Project/Eye_Tracker/           视线追踪侧（Linux 本机 git 仓库，不与 Windows 同步）
-├── tools/                   pupil_localizer / gaze_to_world / gaze_precision / gaze_object /
-│                            gaze_video / grasp_intent / verify_pose_render / process_recording.sh
-│                            （默认路径锚定 ../SceneRebuild 的标定、tag 测绘与地图）
-├── world_camera_calibration_imgs/   世界相机标定原始照片（不进库）
-└── README.md
+~/Project/                       （Linux；**git 仓库根 = 远端 3dgs_gaze 的根**，两侧同一结构）
+├── SceneRebuild/            建图+场景资产
+│   ├── PIPELINE.md              本文档
+│   ├── Calibration_result/      手机 + 眼动仪世界相机标定 npz（被 5 个工具默认路径引用，勿挪）
+│   ├── world_size/              tags_world.json、transforms_aligned.json（lab_colmap_v2 版）
+│   ├── lab_result/
+│   │   ├── splatfacto/<run>/        当前地图（ckpt 从 4090 拷来；config 进库）
+│   │   ├── segmentation_sam/        当前 SAM 分割（含 splat_seg.ply 审计导出，ply 不进库）
+│   │   ├── preview/                 当前地图预览帧（可再渲染，不进库）
+│   │   └── archive_map_v1/          v1 地图（2026-07-04）全部产物
+│   └── tools/                   建图侧脚本（COLMAP/标定/对齐/导出/SAM lift）
+├── Eye_Tracker/             视线追踪侧（Linux 跑；随仓库同步）
+│   ├── tools/                   gaze_live / pupil_localizer / gaze_* / grasp_intent /
+│   │                            verify_pose_render / process_recording.sh
+│   │                            （默认路径锚定 ../SceneRebuild，两目录必须保持同级）
+│   ├── world_camera_calibration_imgs/   标定原始照片（不进库）
+│   └── demo/                    演示导出（不进库）
+└── .gitignore               根级：.claude/ 等本机杂项
 ~/recordings/<日期>/<编号>/      Pupil 录像 + process_recording.sh 的全部产物
+
+⚠ Windows 侧一次性迁移（仓库根从 SceneRebuild 提升到 Project 之后）：
+   1. `git pull` —— 跟踪文件会自动挪进 SceneRebuild\ 子目录、新增 Eye_Tracker\
+   2. 把留在仓库根的未跟踪目录手动挪进 SceneRebuild\：data\、outputs\、
+      calibration_results\、archive\、tools\COLMAP\（若还在根级）
+   3. 之后训练/COLMAP 命令的工作目录 = <仓库根>\SceneRebuild
 ```
 
 约定：一个数据集一个 `data\` 子目录，输出目录与数据集同名；废弃的挪进 `archive\` 而不是删。
