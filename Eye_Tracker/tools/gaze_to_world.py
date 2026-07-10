@@ -54,6 +54,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--cluster-radius", type=float, default=0.15,
                    help="Continuous mode: max distance (m) from cluster centroid.")
     p.add_argument("--min-fix-dur", type=float, default=0.25, help="Continuous mode: min fixation duration (s).")
+    p.add_argument("--omega-max", type=float, default=140.0,
+                   help="Continuous mode: angular speed (deg/s) above which a sample is a saccade "
+                        "and force-closes the cluster. Angular, not m/s: both gaze noise and "
+                        "saccades scale with viewing distance. Noise floor ~ sqrt(2)*sigma/dt "
+                        "(~43 deg/s at sigma=1deg, 30Hz); saccades 100-500 deg/s.")
     p.add_argument("--bias-deg", default=None,
                    help="Gaze bias correction 'dx,dy' in deg (gaze minus target). Default: read "
                         "<recording>/gaze_precision.json (written by gaze_precision.py) if present.")
@@ -230,23 +235,69 @@ def load_gaze(rec: Path, min_conf: float):
     return sorted(gz, key=lambda r: r["timestamp"])
 
 
-def cluster_world_fixations(times, points, radius: float, min_dur: float):
-    """Greedy sequential clustering of 3D gaze points -> world-space fixations."""
+def cluster_world_fixations(
+    times,
+    points,
+    origins,
+    radius: float,
+    min_dur: float,
+    omega_max_deg: float = 140.0,
+    max_time_gap: float = 0.25,
+    min_jump: float = 0.04,
+):
+    """Greedy sequential clustering of 3D gaze points -> world-space fixations.
+
+    Three boundary tests before the radius test:
+      time gap  -- dt > max_time_gap: don't bridge localization holes.
+      saccade   -- ANGULAR speed as seen from the camera > omega_max_deg.
+                   Angular because both signal and noise scale with viewing
+                   distance d: noise apparent speed ~ sqrt(2)*sigma*d/dt
+                   (2.2 m/s at sigma=1deg, d=3m, 30Hz -- any fixed m/s
+                   threshold tuned near is wrong far), saccades 100-500 deg/s.
+      min_jump  -- floor (m) below which a step is never a saccade, guards
+                   very close targets where omega blows up.
+    Membership then follows the running-centroid radius test; the cumulative
+    (non-forgetting) mean is deliberate: it anchors against slow-drift
+    chaining, and dwell-majority pulls the centroid to the true target.
+    """
     clusters = []
     cur_idx = []
     centroid = None
+    omega_max = np.radians(omega_max_deg)
+
     for i, (t, p) in enumerate(zip(times, points)):
+        boundary = False
+
+        if cur_idx:
+            last = cur_idx[-1]
+            dt = t - times[last]
+            jump = np.linalg.norm(p - points[last])
+
+            if dt <= 0 or dt > max_time_gap:
+                boundary = True
+            elif jump >= min_jump:
+                d_view = max(float(np.linalg.norm(points[last] - origins[i])), 0.3)
+                if jump / dt > omega_max * d_view:      # v_max = omega * distance
+                    boundary = True
+
+        if boundary:
+            clusters.append(cur_idx)
+            cur_idx = [i]
+            centroid = p
+            continue
+
         if centroid is not None and np.linalg.norm(p - centroid) <= radius:
             cur_idx.append(i)
-            pts = points[cur_idx]
-            centroid = pts.mean(axis=0)
+            centroid = points[cur_idx].mean(axis=0)
         else:
             if cur_idx:
                 clusters.append(cur_idx)
             cur_idx = [i]
             centroid = p
+
     if cur_idx:
         clusters.append(cur_idx)
+
     out = []
     for idx in clusters:
         t0, t1 = times[idx[0]], times[idx[-1]]
@@ -263,13 +314,14 @@ def cluster_world_fixations(times, points, radius: float, min_dur: float):
     return out
 
 
+
 def run_continuous(args, rec, poses, splat, K_img, D_fish, W, H, world_ts, cap, bias):
     gaze = load_gaze(rec, args.min_confidence)
     step = max(1, int(round(len(gaze) / ((gaze[-1]["timestamp"] - gaze[0]["timestamp"]) * args.sample_hz))))
     gaze = gaze[::step]
     print(f"continuous: {len(gaze)} gaze samples after subsampling to ~{args.sample_hz:.0f}Hz")
 
-    times, points, px_uv = [], [], []
+    times, points, origins, px_uv = [], [], [], []
     n_nopose = n_nosurf = 0
     for g in gaze:
         T = poses.query(g["timestamp"])
@@ -288,11 +340,13 @@ def run_continuous(args, rec, poses, splat, K_img, D_fish, W, H, world_ts, cap, 
             continue
         times.append(g["timestamp"])
         points.append(T[:3, 3] + depth * (T[:3, :3] @ ray))
+        origins.append(T[:3, 3])
         px_uv.append((u, v))
-    times, points = np.array(times), np.array(points)
+    times, points, origins = np.array(times), np.array(points), np.array(origins)
     print(f"mapped {len(points)} points ({n_nopose} no-pose, {n_nosurf} no-surface)")
 
-    fixes = cluster_world_fixations(times, points, args.cluster_radius, args.min_fix_dur)
+    fixes = cluster_world_fixations(times, points, origins, args.cluster_radius,
+                                    args.min_fix_dur, omega_max_deg=args.omega_max)
     # camera origin at the mid sample: gaze_object --cone re-renders the gaze
     # cone from here, and distance turns cluster spread into angular spread
     for fx in fixes:
