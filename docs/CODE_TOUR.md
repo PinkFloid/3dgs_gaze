@@ -1,8 +1,13 @@
 ﻿# CODE_TOUR:视线→物体管线代码导读
 
 > 写给管线的所有者。目标:能在组会上讲清每个设计决策,在审稿人面前答辩每个阈值,在机器人现场不靠任何人独立排障。
-> 建图侧以本仓库 `E:\3dgs_gaze\tools\` 当前版本为准;视线侧以 git `7b707a8`(2026-07-09 迁出版)为准。
-> 配套阅读:`PIPELINE.md`(操作步骤)、记忆笔记 `win-4090-mapping-env.md`(建图机环境配方)。
+> 配套阅读:`SceneRebuild/PIPELINE.md`(操作步骤)、记忆笔记 `win-4090-mapping-env.md`(建图机环境配方)。
+>
+> **路径注(2026-07-09 monorepo 重组)**:本文写于重组前——文中 `tools/` 一律读作
+> `SceneRebuild/tools/`;第 4 章视线侧工具现居本仓库 `Eye_Tracker/tools/`(行号以
+> `7b707a8` 迁出版为基准,与现版基本一致;差异:pupil_localizer 的 2 元组崩溃 bug
+> 已在现版修复,gaze_video 增到 283 行)。新的实时模式 `gaze_live.py`(672 行,
+> ZMQ 事件驱动 + 滚动精度戳 + intent 发布)晚于本文诞生,**尚无对应章节**。
 
 ---
 
