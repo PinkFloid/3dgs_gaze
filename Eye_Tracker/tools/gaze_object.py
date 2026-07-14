@@ -59,8 +59,16 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
-def cone_votes(splat, tree, label, origin, pt, sigma_rad, span, S, eps):
-    """Angular-Gaussian-weighted object masses over the visible surface in the cone."""
+def cone_votes(splat, tree, label, origin, pt, sigma_rad, span, S, eps,
+               depth_margin=0.5):
+    """Angular-Gaussian-weighted object masses over the visible surface in the cone.
+
+    depth_margin: surfaces farther than the fixation point by more than this
+    (along the ray) do not vote. Thin structures (robot arm links) let cone
+    pixels leak past the target onto whatever stands a meter behind it, and
+    the background then outvotes the sparse foreground. Nearer surfaces keep
+    voting -- an occluder in front of the fixation is usually the true target.
+    """
     d0 = pt - origin
     dist0 = float(np.linalg.norm(d0))
     if dist0 < 0.05:
@@ -69,6 +77,8 @@ def cone_votes(splat, tree, label, origin, pt, sigma_rad, span, S, eps):
     cosang = np.clip(dirs @ (d0 / dist0), -1.0, 1.0)
     w = np.exp(-np.arccos(cosang) ** 2 / (2 * sigma_rad ** 2))
     ok = (depth > 0.05) & (depth < 12.0)
+    if depth_margin > 0:
+        ok &= (depth * tmul) < dist0 + depth_margin
     X = origin + (depth * tmul)[..., None] * dirs
     dd, idx = tree.query(X[ok], k=1, distance_upper_bound=eps, workers=-1)
     hit = np.isfinite(dd)

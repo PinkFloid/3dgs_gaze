@@ -147,7 +147,15 @@ class SplatDepth:
         return out[0].cpu().numpy(), alpha[0].cpu().numpy()
 
     def depth_along_ray(self, origin: np.ndarray, direction: np.ndarray):
-        """Median depth of a 3x3 center patch of a 33x33 render looking down the ray."""
+        """Median depth of a 3x3 center patch of a 33x33 render looking down the ray.
+
+        Foreground-layer rescue: on thin structures (robot arm links) the center
+        median flips between the limb and the surface a meter behind it, which
+        shreds fixation clusters and lands stable stares BEHIND the target.
+        When the patch depth is clearly bilayered, and the near layer carries
+        enough center-weighted mass, intersect the near layer instead.
+        Continuous surfaces (floor/wall/desk) are untouched: no layering there.
+        """
         z = direction / np.linalg.norm(direction)
         up = np.array([0.0, 0.0, 1.0]) if abs(z[2]) < 0.95 else np.array([0.0, 1.0, 0.0])
         x = np.cross(z, up); x /= np.linalg.norm(x)
@@ -158,6 +166,19 @@ class SplatDepth:
         S = 33
         K = np.array([[256.0, 0, S / 2], [0, 256.0, S / 2], [0, 0, 1]])
         out, alpha = self._render(w2c, K, S, S)
+        d_all = out[..., 3]
+        a_all = alpha[..., 0]
+        ok = (a_all > 0.5) & (d_all > 0.05)
+        if ok.sum() >= 12:
+            vals = d_all[ok]
+            lo, hi = np.percentile(vals, [10, 90])
+            if hi - lo > 0.5:                      # bilayered: thin object in front
+                near = vals <= lo + 0.30
+                uu, vv = np.meshgrid(np.arange(S), np.arange(S))
+                r2 = (uu - S / 2) ** 2 + (vv - S / 2) ** 2
+                wgt = np.exp(-r2 / (2 * (S / 4) ** 2))[ok]   # center-weighted mass
+                if wgt[near].sum() >= 0.25 * wgt.sum():
+                    return float(np.median(vals[near]))
         c = S // 2
         patch_d = out[c - 1:c + 2, c - 1:c + 2, 3]
         patch_a = alpha[c - 1:c + 2, c - 1:c + 2, 0]

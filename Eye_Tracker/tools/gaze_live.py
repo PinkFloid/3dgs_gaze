@@ -700,9 +700,19 @@ def main() -> int:
             if verdict is not None and t - verdict["_shown_at"] < 4.0:
                 c = verdict["centroid_world"]
                 prov = verdict.get("provisional")
+                v_age = t - verdict["_shown_at"]
+                # stale verdicts fade to gray: a 4s-old banner must not read as
+                # "still looking at it" while no new fixation is forming
+                if prov:
+                    color = (0, 200, 255)
+                elif v_age < 1.5:
+                    color = (0, 0, 255)
+                else:
+                    color = (140, 140, 140)
+                suffix = f"  ({v_age:.0f}s前)" if v_age >= 1.5 else ""
                 cjk.put(img, f"{'~' if prov else '->'} {verdict['object']}  {verdict['vote_share']:.0%}"
-                             f"  [{c[0]:+.2f},{c[1]:+.2f},{c[2]:+.2f}]m", (30, H - 60), 40,
-                        (0, 200, 255) if prov else (0, 0, 255), 3)
+                             f"  [{c[0]:+.2f},{c[1]:+.2f},{c[2]:+.2f}]m{suffix}", (30, H - 60), 40,
+                        color, 3)
             im = np.mean(isect_ms) if isect_ms else 0.0
             status = (f"t={t - t_stream0:6.1f}s  loc {n_loc}/{n_frames}"
                       f"  tags {n_tags}  sigma {bias_est.sigma_deg:.1f}deg"
