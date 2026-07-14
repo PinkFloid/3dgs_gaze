@@ -324,13 +324,13 @@ poses.jsonl(T_world_cam 轨迹)            │
 ### 4.2 gaze_precision.py — 盯 tag 协议 → bias/σ/drift 精度戳
 
 **核心机制**:
-- `window_stats`(54-93 行):窗内每个 gaze 样本 undistort 到 pn(与 gaze_to_world 同款 y 翻转 + fisheye undistort);把每个测绘 tag 中心投进相机 `x = Rᵀ(c − cam)`,x[2]<0.3m 剔除(太近/在背后);角偏 = `pn − x[:2]/x[2]`(**gaze 减 target,归一化平面**);按 tag 收 ‖偏差‖<on_tag_rad 的样本,≥min_samples 者以 ‖逐轴中位偏差‖ 最小胜出;bias = 逐轴中位数;σ = (n,2) 残差**逐轴池化 RMS**(90 行,"1D 等效")。
-- main(96-167 行):`--on-tag-deg` 只在 I/O 处是度,内部一律 `tan(radians(·))`(116 行);头/尾双窗;合并 bias 按样本数加权、合并 σ=√(Σnσ²/n_tot);drift=‖bias_head−bias_tail‖(度向量 L2);`σ = hypot(σ, drift/4)`(145 行,前提是下游线性插值,§5.3);verdict:σ>2.5 poor-sigma / drift>4 re-record / 1.5<drift≤4 lerp 可治。
+- `window_stats`:每个 gaze 样本先 undistort 到归一化平面，再把 tag 中心投进相机；角偏=`gaze − target`。只保留离 tag 小于 `on_tag_deg` 的点，并在相邻样本间隔超过 `max_sample_gap` 时切段；只有持续时间和样本数都达标的连续段才是候选。`_robust_run_stats` 用逐轴中位数估 bias、径向 MAD 剔除异常点，候选选择同时惩罚原始偏差和原始散布，避免一次嘈杂扫过胜出；`--head-tag/--tail-tag` 可锁定协议指定的 tag。
+- `main`:角门在内部使用 `tan(radians(·))`；头尾搜索窗若重叠会在重叠中点切开，禁止同一段 stare 被计算两次。合并 bias 在归一化平面按有效样本数加权后再转回度；`sigma_measured_deg` 是 MAD 清理后的残差，`sigma_deg=hypot(sigma_measured, drift/4)` 保持下游兼容。输出还记录原始/有效样本数、持续时间、协方差与质量警告。
 - 真正的产物是按盯视中位时间排序的 `stamps` 数组(163 行)——resolve_bias 插值穿过它;顶层 bias_deg/sigma_deg 只是给人看的加权汇总。
 
 **为什么这样设计**:协议(片头/片尾各盯一枚 tag 2-3s)= 每段录像的**免费重标**——tag 位置 survey 到毫米即免费真值,视线层的系统偏差当场可测、可下发修正。它 import gaze_to_world 复用 PoseTrack/load_gaze(31 行)——之所以无 CUDA 也能跑,全靠 g2w 的 torch/gsplat 是惰性导入,**谁把那些 import 提到模块级,这个审计工具就得配 GPU 环境**。
 
-**参数速查**:`--head-window 15` | `--tail-window 30`(**默认从 12 改 30:rec002 的片尾戳实际在结束前 12-30s,12s 窗漏掉了它**;代价:<~45s 的短录像头尾窗重叠,同一 stare 数两遍,drift 假 0 且合并 σ 双计)| `--on-tag-deg 4.0`(必须 >|真 bias|+几个 σ,否则截断分布低估 bias;rec001 的 7-18° 滑移对 4° 门**不可见**——你得到 SystemExit 而不是坏数字)| `--min-samples 20`(原始行与 on-tag 子集各查一遍)| `--min-confidence 0.6`(与 gaze_to_world 保持一致,σ 才描述真正被映射的样本)| `--max-gap 1.0`(录像头尾恰是定位可能还没锁的时刻)。
+**参数速查**:`--head-window 15` | `--tail-window 30`(rec002 的尾戳位于结束前 12-30s)| `--on-tag-deg 4.0`(必须覆盖真 bias 与若干 σ)| `--min-samples 20` | `--min-dwell 0.25`(兼容旧录像；新录制建议≥0.8s)| `--max-sample-gap 0.10`(更大的时间洞会切断候选)| `--mad-k 3.5`(径向异常点阈值)| `--head-tag/--tail-tag`(已知协议 tag 时优先指定)| `--min-confidence 0.6` | `--max-gap 1.0`(位姿插值最大空窗)。
 
 **坏了长什么样**:
 - `No usable tag-stare window` → 没执行协议 / bias 超 on-tag 门 / 头尾窗内定位没锁 / **tags_world.json 是旧图的**(7b707a8 恰好重测绘过墙 tag,陈旧 tags 文件静默杀死此工具)。
@@ -501,7 +501,7 @@ poses.jsonl(T_world_cam 轨迹)            │
 - **尾窗 12s → 30s**:用户的片尾戳实际落在结束前 12-30s,12s 默认窗直接漏掉(`gaze_precision.py:42-44` 注释即此案)。
 - **σ 漂移罚项 drift/2 → drift/4**(145 行):常数 bias 模型下未修正残差 ~drift/2;下游线性插值吃掉一阶漂移后只剩**非线性残差**,罚 drift/4。若有人把下游改回常数 bias,这里的 σ 立刻变乐观——两个文件耦合。
 
-**验证与演进**:重跑 rec002:三狗零错误翻转、趴狗中位 76%[61-90]。Eye_Tracker 新版 `gaze_live` 把它推广成**滚动重估**——视线扫过任意测绘 tag 即在线更新 bias,不再依赖头尾协议。
+**验证与演进**:重跑 rec002:三狗零错误翻转、趴狗中位 76%[61-90]。Eye_Tracker 新版 `gaze_live` 将精度戳推广为在线连续检测：必须在同一测绘 tag 上连续停留，断点/换 tag 会重置并用 MAD 去异常；rec002 实测旧逻辑产生 4 枚戳（含 tag3/tag10 路过误戳），新逻辑仅保留两枚连续 0.8s 的 tag83 戳。
 
 ---
 

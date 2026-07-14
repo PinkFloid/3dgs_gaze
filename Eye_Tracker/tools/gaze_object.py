@@ -81,6 +81,24 @@ def cone_votes(splat, tree, label, origin, pt, sigma_rad, span, S, eps):
     return votes, max(0.0, p_none)
 
 
+def pooled_centroids_by_name(instances, names):
+    """Gaussian-count-weighted centroid for each resolved object name.
+
+    Several SAM instances may be hand-merged by assigning them the same name.
+    Their canonical coordinate must describe the whole named object, rather
+    than whichever sub-instance happens to win the current gaze vote.
+    """
+    sums: dict[str, np.ndarray] = {}
+    weights: dict[str, float] = {}
+    for inst in instances:
+        lab = int(inst["id"])
+        name = names.get(str(lab), "") or f"object#{lab}"
+        weight = max(float(inst.get("n_gaussians", 1)), 1.0)
+        sums[name] = sums.get(name, np.zeros(3, dtype=float)) + weight * np.asarray(inst["centroid"], float)
+        weights[name] = weights.get(name, 0.0) + weight
+    return {name: (total / weights[name]).tolist() for name, total in sums.items()}
+
+
 def main() -> int:
     args = parse_args()
     root = Path(__file__).resolve().parents[2] / "SceneRebuild"
@@ -96,7 +114,7 @@ def main() -> int:
     meta = json.loads((seg / "instances.json").read_text(encoding="utf-8"))
     names = json.loads((seg / "names.json").read_text(encoding="utf-8")) if (seg / "names.json").exists() else {}
     bg = {int(k): v for k, v in meta["background"].items()}
-    centroids = {inst["id"]: inst["centroid"] for inst in meta["instances"]}
+    object_centroids = pooled_centroids_by_name(meta["instances"], names)
 
     def name_of(lab: int) -> str:
         if lab in bg:
@@ -173,8 +191,9 @@ def main() -> int:
         best = max(bp["labels"], key=lambda l: votes[l])
         second = f"{ranked[1][0]} {ranked[1][1]['v']/total:.0%}" if len(ranked) > 1 else "-"
         entry.update(object_label=best, object=best_name, vote_share=round(share, 3),
-                     # gaze hit point (surface, varies) vs canonical object position (fixed):
-                     object_centroid_world=centroids.get(best),
+                     # Gaze hit point varies; this canonical coordinate is fixed and
+                     # pools every same-named SAM part into one whole-object centroid.
+                     object_centroid_world=object_centroids.get(best_name),
                      candidates=[{"name": n, "share": round(p["v"] / total, 3),
                                   "labels": sorted(p["labels"])} for n, p in ranked[:3]])
         results.append(entry)

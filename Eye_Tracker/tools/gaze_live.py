@@ -7,7 +7,7 @@ Single process, event-driven:
   gaze.* (ZMQ)       -> undistort -> bias -> ray -> splat depth intersect
                      -> incremental world-space clustering
   fixation closes    -> cone posterior over named instances (gaze_object parts)
-  gaze passes a tag  -> online bias/sigma re-estimation (rolling precision stamp)
+  continuous tag stare -> online bias/sigma re-estimation (rolling precision stamp)
 
 UI (cv2 window, CJK labels via PIL): live frame + named instance boxes +
 gaze cross + verdict banner (object, vote share, world coordinate) + status.
@@ -41,7 +41,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from pupil_localizer import (connect_pupil, load_fisheye, load_tags,  # noqa: E402
                              recording_frames, scale_K, solve_pose)
 from gaze_to_world import SplatDepth  # noqa: E402
-from gaze_object import cone_votes  # noqa: E402
+from gaze_object import cone_votes, pooled_centroids_by_name  # noqa: E402
 from gaze_video import CjkText, draw_instances, load_instances  # noqa: E402
 
 SCENE = Path(__file__).resolve().parents[2] / "SceneRebuild"
@@ -82,6 +82,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--min-confidence", type=float, default=0.6)
     p.add_argument("--sample-hz", type=float, default=20.0, help="Gaze processing rate (intersections/s).")
     p.add_argument("--cluster-radius", type=float, default=0.15)
+    p.add_argument("--omega-max", type=float, default=140.0,
+                   help="Split a fixation when consecutive world points exceed this ANGULAR speed "
+                        "(deg/s, 0 = off). Angular, not m/s: gaze noise apparent speed scales with "
+                        "viewing distance (sqrt(2)*sigma*d/dt ~ 2.2 m/s at sigma=1deg, d=3m, 30Hz), "
+                        "so a fixed m/s threshold tuned near shreds fixations far.")
     p.add_argument("--min-fix-dur", type=float, default=0.25)
     p.add_argument("--idle-close", type=float, default=0.4,
                    help="Close the running cluster after this many s without a mappable gaze sample.")
@@ -99,6 +104,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--max-jump", type=float, default=1.0)
     p.add_argument("--on-tag-deg", type=float, default=4.0, help="Gaze-to-tag angle that counts as staring at it.")
     p.add_argument("--stamp-samples", type=int, default=25, help="Samples on one tag before a bias re-estimate.")
+    p.add_argument("--stamp-min-dwell", type=float, default=0.8,
+                   help="Minimum continuous on-tag dwell before an online bias update (s).")
+    p.add_argument("--stamp-max-gap", type=float, default=0.10,
+                   help="Reset an online tag stare after this gap between gaze samples (s).")
+    p.add_argument("--stamp-mad-k", type=float, default=3.5,
+                   help="Radial MAD multiplier for online stamp outlier rejection.")
     p.add_argument("--stamp-cooldown", type=float, default=5.0)
     p.add_argument("--bias-tau", type=float, default=45.0,
                    help="Bias stamp decay constant (s): correction fades as the stamp ages, so a "
@@ -139,7 +150,10 @@ class RollingPoses:
         t0, T0 = self.buf[i - 1]
         t1, T1 = self.buf[i]
         if t1 - t0 > self.max_gap:
-            return T0 if t - t0 < t1 - t else T1
+            d0, d1 = t - t0, t1 - t
+            if min(d0, d1) > self.max_gap:
+                return None
+            return T0 if d0 <= d1 else T1
         a = (t - t0) / max(t1 - t0, 1e-6)
         out = np.eye(4)
         out[:3, 3] = (1 - a) * T0[:3, 3] + a * T1[:3, 3]
@@ -202,12 +216,14 @@ class Localizer:
 
 
 class StreamCluster:
-    """Incremental version of cluster_world_fixations: same radius/duration rules."""
+    """Incremental world fixation clustering with radius, speed, and gap splits."""
 
-    def __init__(self, radius, min_dur, idle_close):
+    def __init__(self, radius, min_dur, idle_close, omega_max_deg=140.0, min_jump=0.04):
         self.radius = radius
         self.min_dur = min_dur
         self.idle_close = idle_close
+        self.omega_max = np.radians(omega_max_deg)
+        self.min_jump = min_jump          # floor (m): guards omega blow-up at close range
         self.reset()
 
     def reset(self):
@@ -240,8 +256,20 @@ class StreamCluster:
 
     def push(self, t, p, origin):
         closed = None
+        if self.ts:
+            dt = t - self.ts[-1]
+            if dt <= 0 or dt > self.idle_close:
+                closed = self._close()
+            elif self.omega_max > 0:
+                jump = np.linalg.norm(p - self.pts[-1])
+                if jump >= self.min_jump:
+                    d_view = max(float(np.linalg.norm(self.pts[-1] - origin)), 0.3)
+                    if jump / dt > self.omega_max * d_view:   # v_max = omega * distance
+                        closed = self._close()
         if self.centroid is not None and np.linalg.norm(p - self.centroid) > self.radius:
-            closed = self._close()
+            by_radius = self._close()
+            if closed is None:
+                closed = by_radius
         self.ts.append(t)
         self.pts.append(p)
         self.origins.append(origin)
@@ -260,25 +288,37 @@ class StreamCluster:
 
 
 class OnlineBias:
-    """Rolling precision stamp: gaze passing over a surveyed tag re-estimates bias/sigma.
+    """Continuous, robust online tag stamp for bias and cone sigma.
 
-    Fed with FULL-rate gaze (it is cheap: no rendering) -- a 25-sample stamp
-    needs only ~0.1s of staring at ~200Hz. On-tag test uses the bias-corrected
-    direction so a large initial bias cannot push a genuine stare past the gate.
+    Every full-rate gaze sample participates, but a stamp is accepted only
+    after one uninterrupted stare at the same tag. Off-tag samples, tag
+    switches, timestamp reversals, and long sample gaps reset the candidate.
     """
 
-    def __init__(self, tag_centers, on_tag_rad, n_needed, cooldown, bias0, sigma0, tau=15.0):
+    def __init__(self, tag_centers, on_tag_rad, n_needed, cooldown, bias0, sigma0,
+                 tau=15.0, min_dwell=0.8, max_sample_gap=0.10, mad_k=3.5):
         self.ids = np.array(sorted(tag_centers))
         self.C = np.stack([tag_centers[i] for i in self.ids])  # (N,3) world
         self.on_tag = on_tag_rad
         self.n_needed = n_needed
         self.cooldown = cooldown
         self.tau = tau
+        self.min_dwell = min_dwell
+        self.max_sample_gap = max_sample_gap
+        self.mad_k = mad_k
         self.bias = np.asarray(bias0, float)  # undistorted-normalized units, gaze minus target
         self.sigma_deg = sigma0
-        self.buf = deque(maxlen=600)  # (t, tag_id, raw_gaze_norm, target_norm)
+        self.run = deque(maxlen=600)  # (t, raw_gaze_norm, target_norm), one tag only
+        self.run_tag = None
         self.last_stamp_t = -1e9
         self.last_stamp_tag = None
+        self.last_stamp_n = 0
+        self.last_stamp_duration = 0.0
+        self.last_stamp_inlier_ratio = 0.0
+
+    def _reset_run(self):
+        self.run.clear()
+        self.run_tag = None
 
     def effective(self, t):
         """Age-decayed bias: 002 showed a stale head stamp pushing an accurate
@@ -292,14 +332,17 @@ class OnlineBias:
         return None if self.last_stamp_tag is None else max(0.0, t - self.last_stamp_t)
 
     def feed(self, t, raw_norm, T_world_cam):
+        raw_norm = np.asarray(raw_norm, float)
         w2c = np.linalg.inv(T_world_cam)
         pc = self.C @ w2c[:3, :3].T + w2c[:3, 3]              # (N,3) cam frame
         front = pc[:, 2] > 0.3
         if not front.any():
+            self._reset_run()
             return None
-        # on-tag test against BOTH raw and corrected directions: a stale bias
-        # must not lock out the very stamp that would replace it (002 lesson)
-        corr = np.asarray(raw_norm, float) - self.effective(t)
+
+        # Test both raw and corrected directions: a stale bias must not lock out
+        # the continuous tag stare that would replace it.
+        corr = raw_norm - self.effective(t)
         g_c = np.array([corr[0], corr[1], 1.0])
         g_c /= np.linalg.norm(g_c)
         g_r = np.array([raw_norm[0], raw_norm[1], 1.0])
@@ -309,22 +352,47 @@ class OnlineBias:
                          np.arccos(np.clip(v @ g_r, -1, 1)))
         j = int(np.argmin(ang))
         if ang[j] > self.on_tag:
+            self._reset_run()
             return None
+
         tid = int(self.ids[front][j])
         target = pc[front][j, :2] / pc[front][j, 2]
-        self.buf.append((t, tid, np.asarray(raw_norm, float), target))
+        if self.run:
+            gap = t - self.run[-1][0]
+            if tid != self.run_tag or gap <= 0 or gap > self.max_sample_gap:
+                self._reset_run()
+        if not self.run:
+            self.run_tag = tid
+        self.run.append((t, raw_norm.copy(), target))
+
         if t - self.last_stamp_t < self.cooldown:
             return None
-        recent = [b for b in self.buf if t - b[0] <= 2.0 and b[1] == tid]
-        # need density AND dwell: a saccade sweeping past a tag must not stamp
-        if len(recent) < self.n_needed or t - recent[0][0] < 0.3:
+        duration = t - self.run[0][0]
+        if len(self.run) < self.n_needed or duration < self.min_dwell:
             return None
-        d = np.array([r[2] - r[3] for r in recent])
-        self.bias = np.median(d, axis=0)
-        resid = d - self.bias
-        self.sigma_deg = float(np.degrees(np.arctan(np.sqrt((resid ** 2).sum(axis=1).mean()))))
+
+        offsets = np.array([r[1] - r[2] for r in self.run])
+        bias = np.median(offsets, axis=0)
+        radial = np.linalg.norm(offsets - bias, axis=1)
+        radial_med = float(np.median(radial))
+        radial_mad = float(1.4826 * np.median(np.abs(radial - radial_med)))
+        mad_floor = float(np.tan(np.radians(0.05)))
+        inlier = radial <= radial_med + self.mad_k * max(radial_mad, mad_floor)
+        if int(inlier.sum()) < self.n_needed:
+            return None
+
+        clean = offsets[inlier]
+        self.bias = np.median(clean, axis=0)
+        resid = clean - self.bias
+        # Pooled per-axis RMS, matching gaze_precision and cone's 1-D sigma.
+        sigma_norm = float(np.sqrt(np.mean(resid ** 2)))
+        self.sigma_deg = float(np.degrees(np.arctan(sigma_norm)))
         self.last_stamp_t = t
         self.last_stamp_tag = tid
+        self.last_stamp_n = int(inlier.sum())
+        self.last_stamp_duration = float(duration)
+        self.last_stamp_inlier_ratio = float(inlier.mean())
+        self._reset_run()
         return tid
 
 
@@ -388,7 +456,7 @@ def live_events(pupil_addr: str, min_conf: float):
 
 # ------------------------------------------------------------ verdict pooling (as gaze_object)
 
-def rank_votes(votes, name_of, centroids):
+def rank_votes(votes, name_of, object_centroids):
     total = sum(votes.values())
     if not votes or total <= 0:
         return None
@@ -402,7 +470,7 @@ def rank_votes(votes, name_of, centroids):
     best = max(bp["labels"], key=lambda l: votes[l])
     return {"object": best_name, "object_label": best,
             "vote_share": round(bp["v"] / total, 3),
-            "object_centroid_world": centroids.get(best),
+            "object_centroid_world": object_centroids.get(best_name),
             "candidates": [{"name": n, "share": round(p["v"] / total, 3),
                             "labels": sorted(p["labels"])} for n, p in ranked[:3]]}
 
@@ -424,7 +492,7 @@ def main() -> int:
     meta = json.loads((seg / "instances.json").read_text(encoding="utf-8"))
     names = json.loads((seg / "names.json").read_text(encoding="utf-8")) if (seg / "names.json").exists() else {}
     bg = {int(k): v for k, v in meta["background"].items()}
-    centroids = {i["id"]: i["centroid"] for i in meta["instances"]}
+    object_centroids = pooled_centroids_by_name(meta["instances"], names)
 
     def name_of(lab: int) -> str:
         if lab in bg:
@@ -448,12 +516,16 @@ def main() -> int:
     sigma0 = sigma0 or 1.5
     bias_est = OnlineBias(tag_centers, np.radians(args.on_tag_deg),
                           args.stamp_samples, args.stamp_cooldown,
-                          bias0=(0.0, 0.0), sigma0=sigma0, tau=args.bias_tau)
+                          bias0=(0.0, 0.0), sigma0=sigma0, tau=args.bias_tau,
+                          min_dwell=args.stamp_min_dwell,
+                          max_sample_gap=args.stamp_max_gap,
+                          mad_k=args.stamp_mad_k)
     print(f"cone sigma start: {sigma0:.2f} deg (online re-estimation on tag stares)")
 
     loc = Localizer(args, tags)
     poses = RollingPoses()
-    cluster = StreamCluster(args.cluster_radius, args.min_fix_dur, args.idle_close)
+    cluster = StreamCluster(args.cluster_radius, args.min_fix_dur,
+                            args.idle_close, omega_max_deg=args.omega_max)
     cjk = CjkText()
 
     pub = None
@@ -499,7 +571,7 @@ def main() -> int:
                                    np.asarray(fx["centroid_world"], float),
                                    np.radians(bias_est.sigma_deg), args.span_sigmas,
                                    args.patch, args.hit_eps)
-        rank = rank_votes(votes, name_of, centroids)
+        rank = rank_votes(votes, name_of, object_centroids)
         if rank is None:
             return
         fx.update(rank, p_none=round(p_none, 3), sigma_deg=round(bias_est.sigma_deg, 2),
@@ -553,7 +625,9 @@ def main() -> int:
                 if stamped is not None:
                     b = np.degrees(np.arctan(bias_est.bias))
                     print(f"[{t - (t_stream0 or 0):7.1f}s] bias stamp @tag{stamped}: "
-                          f"({b[0]:+.2f},{b[1]:+.2f})deg  sigma {bias_est.sigma_deg:.2f}deg")
+                          f"({b[0]:+.2f},{b[1]:+.2f})deg  sigma {bias_est.sigma_deg:.2f}deg  "
+                          f"n={bias_est.last_stamp_n} dur={bias_est.last_stamp_duration:.2f}s "
+                          f"kept={bias_est.last_stamp_inlier_ratio:.0%}")
                 if t - last_gaze_proc < 1.0 / args.sample_hz:
                     continue                                 # intersection budget gate
                 last_gaze_proc = t
