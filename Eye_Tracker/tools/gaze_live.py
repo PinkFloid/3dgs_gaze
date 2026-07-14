@@ -104,8 +104,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--max-jump", type=float, default=1.0)
     p.add_argument("--on-tag-deg", type=float, default=4.0, help="Gaze-to-tag angle that counts as staring at it.")
     p.add_argument("--stamp-samples", type=int, default=25, help="Samples on one tag before a bias re-estimate.")
-    p.add_argument("--stamp-min-dwell", type=float, default=0.8,
-                   help="Minimum continuous on-tag dwell before an online bias update (s).")
+    p.add_argument("--stamp-min-dwell", type=float, default=0.4,
+                   help="Minimum continuous on-tag dwell before an online bias update (s). "
+                        "Natural tag glances run 0.4-0.5s; 0.8 rejected real stares on 003, "
+                        "leaving a stale bias that pushed 小机械臂 fixations onto the monitor "
+                        "behind it. Quality is enforced by n/MAD/continuity, not dwell length.")
     p.add_argument("--stamp-max-gap", type=float, default=0.10,
                    help="Reset an online tag stare after this gap between gaze samples (s).")
     p.add_argument("--stamp-mad-k", type=float, default=3.5,
