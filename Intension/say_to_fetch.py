@@ -46,6 +46,10 @@ def parse_args():
     p.add_argument("--lookback", type=float, default=4.0,
                    help="视线消解回看窗:说指代词前多少秒内的注视算数")
     p.add_argument("--confirm-timeout", type=float, default=10.0)
+    p.add_argument("--proactive", type=float, default=0.0,
+                   help=">0 时开启第三模式:盯满该秒数主动问询(如 4.8);默认关")
+    p.add_argument("--suppress", type=float, default=30.0,
+                   help="主动问询被拒后同物体静默期 (s)")
     p.add_argument("--skill-endpoint", default=None)
     p.add_argument("--status-endpoint", default=None)
     p.add_argument("--frame", default="board/v2")
@@ -67,8 +71,10 @@ def _noun_match(noun, obj):
 class AttentionBuffer(VisitTracker):
     """VisitTracker 原语义,外加最近 visit 的富记录,供眼-声绑定查询。"""
 
-    def __init__(self, merge_gap):
-        super().__init__(fire_dwell=float("inf"), merge_gap=merge_gap)  # 永不主动触发
+    def __init__(self, merge_gap, fire_dwell=0.0):
+        # fire_dwell<=0 = 纯缓冲不触发;>0 = 同时兼任主动问询的触发器(--proactive)
+        super().__init__(fire_dwell=fire_dwell if fire_dwell > 0 else float("inf"),
+                         merge_gap=merge_gap)
         self.recent = []  # 已关闭 visit 的富记录,按关闭时间升序
 
     def _close(self, t):
@@ -215,7 +221,8 @@ def main() -> int:
         table = {}
         P.say(f"[!] 物体表加载失败({e}),名字消解不可用")
 
-    buf = AttentionBuffer(args.merge_gap)
+    buf = AttentionBuffer(args.merge_gap, args.proactive)
+    suppress = {}  # object -> 流时间,主动问询被拒后的静默截止
     status_seen = None
     if args.skill_endpoint and args.status_endpoint != "off":
         sep = args.status_endpoint or args.skill_endpoint.rsplit(":", 1)[0] + ":5584"
@@ -257,19 +264,24 @@ def main() -> int:
         if args.yes:
             send(req)
         else:
-            pending = {"req": req, "since": t_word}
-            P.say(f"[?] 去拿「{obj}」({tw[0]:+.2f},{tw[1]:+.2f},{tw[2]:+.2f})m ? y=确认 其他=取消")
+            pending = {"req": req, "since": t_word, "mode": mode}
+            ask = (f"[?] 你在看「{obj}」——要我拿来吗?" if mode == "主动"
+                   else f"[?] 去拿「{obj}」({tw[0]:+.2f},{tw[1]:+.2f},{tw[2]:+.2f})m ?")
+            P.say(ask + " y=确认 其他=取消")
 
     def handle(t_word, text):
         nonlocal pending
         cmd = parse_command(text)
         if pending is not None:
-            req, pending = pending["req"], None
+            prev, pending = pending, None
             if text.strip().lower() in YES_WORDS:
-                send(req)
-            else:
-                P.say("[-] 已取消")
-            return
+                send(prev["req"])
+                return
+            if prev["mode"] == "主动":  # 拒绝主动提议 -> 抑制该物体,免得追着问
+                suppress[prev["req"]["params"]["object_name"]] = t_word + args.suppress
+            P.say("[-] 已取消")
+            if cmd is None or cmd["kind"] == "help":
+                return  # 纯拒绝;若输入本身是新指令,则继续往下执行它
         if cmd is None:
             return
         logev({"topic": "command", "text": text, "t": t_word, "kind": cmd["kind"]})
@@ -319,6 +331,14 @@ def main() -> int:
                         if kind == "progress":
                             P.progress(f"看 {pl['object']:<14} {pl['dwell_s']:4.1f}s"
                                        f"  vote {pl['share']:3.0%}")
+                        elif kind == "sustained" and args.proactive > 0:
+                            if pending is not None:
+                                logev({"topic": "proactive.skipped", "object": pl["object"],
+                                       "why": "pending"})
+                            elif pl["t"] < suppress.get(pl["object"], float("-inf")):
+                                P.say(f"[×] {pl['object']} 抑制期,略过主动问询")
+                            elif pl.get("target_world"):
+                                propose(pl["object"], pl["target_world"], "主动", pl["t"])
                 else:
                     buf.advance(t)
             st = stream_now()
