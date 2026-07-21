@@ -7,10 +7,11 @@
     停                          急停旁路
     (--proactive 4.8 加开第三模式:盯满主动问询)
 
-解析级联:关键词语法先试(零延迟、确定性、可回放)-> 失败才走 LLM(OpenAI
-直连,默认 gpt-5-mini;key 放环境变量 OPENAI_API_KEY 或 Intension/.openai_key,
-后者已 gitignore)。LLM 只做"文本->结构";绑定/几何/确认永远是确定性代码。
-实验采数用 --llm off。
+解析:除"停"与 y/n 两个硬旁路外,指令全部由 LLM 转结构(OpenAI 直连,默认
+gpt-5-mini;key 放环境变量 OPENAI_API_KEY 或 Intension/.openai_key,已 gitignore)。
+同一句话的解析结果进 parse_cache.json:缓存命中 0ms 且完全确定——demo 台词
+预热一遍后不再依赖网络;--llm off = 只走缓存(离线回归模式)。
+LLM 只做"文本->结构";绑定/几何/确认永远是确定性代码。
 
     python Intension/brain.py [--skill-endpoint tcp://狗机:5583]
     # 回放回归(确定性):
@@ -36,10 +37,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from stare_to_grasp import (Printer, VisitTracker, accepted, dispatch,  # noqa: E402
                             status_listener)
 
-DEICTIC = ("这个", "那个", "这只", "那只", "这台", "那台")  # 裸"这/那"过度触发(桌子那边),删
-ACTIONS = ("给我拿", "帮我拿", "拿一下", "拿个", "拿来", "拿", "取", "抓", "给我", "要")
-TAILS = ("拿过来", "拿给我", "拿来", "过来", "一下", "拿", "取", "抓", "来", "吧", "啊", "了", "的")
 YES_WORDS = {"y", "yes", "是", "好", "嗯", "要", "ok", "行"}
+NO_WORDS = {"n", "no", "不", "不用", "不要", "算了", "否", "取消"}
+STOP_WORDS = {"停", "stop", "s"}
 SCHEMA = Path(__file__).resolve().parent / "parse_schema.json"
 PARSE_SCHEMA = json.loads(SCHEMA.read_text(encoding="utf-8"))
 
@@ -60,8 +60,8 @@ def parse_args():
                    help=">0 时开启第三模式:盯满该秒数主动问询(如 4.8);默认关")
     p.add_argument("--suppress", type=float, default=30.0,
                    help="主动问询被拒后同物体静默期 (s)")
-    p.add_argument("--llm", choices=["off", "fallback", "always"], default="fallback",
-                   help="LLM 解析:fallback=语法接不住才用(默认);always=全走;off=纯语法(实验)")
+    p.add_argument("--llm", choices=["on", "off"], default="on",
+                   help="off=只走 parse_cache.json(离线/回归);on=缓存未命中时调 OpenAI(默认)")
     p.add_argument("--llm-model", default="gpt-5-mini",
                    help="OpenAI 解析模型;key 读 OPENAI_API_KEY 或 Intension/.openai_key")
     p.add_argument("--skill-endpoint", default=None)
@@ -126,29 +126,7 @@ class AttentionBuffer(VisitTracker):
         return out
 
 
-# ------------------------------------------------------------ 指令解析与名字消解
-
-def parse_command(text):
-    t = "".join(text.split())
-    if not t:
-        return None
-    if t.lower() in ("停", "stop", "s"):
-        return {"kind": "stop"}
-    if not any(a in t for a in ("拿", "取", "抓", "要", "给")):
-        return {"kind": "help"}
-    for m in DEICTIC:
-        if m in t:
-            noun = t.split(m, 1)[1]
-            for suf in TAILS:
-                noun = noun.replace(suf, "")
-            return {"kind": "deictic", "noun": noun}
-    q = t
-    for a in sorted(ACTIONS, key=len, reverse=True):
-        q = q.replace(a, "")
-    for suf in TAILS:
-        q = q.replace(suf, "")
-    return {"kind": "named", "query": q}
-
+# ------------------------------------------------------------ 名字消解
 
 def load_object_table(map_dir):
     """物体名 -> 池化质心(n_gaussians 加权,与 gaze_live 同语义)。"""
@@ -244,51 +222,68 @@ def main() -> int:
         kf = Path(__file__).resolve().parent / ".openai_key"
         if kf.exists():
             openai_key = kf.read_text(encoding="utf-8").strip()
-    if args.llm != "off" and not openai_key:
-        P.say("[!] 未配置 OPENAI_API_KEY(环境变量或 Intension/.openai_key),LLM 解析关闭")
+    if args.llm == "on" and not openai_key:
+        P.say("[!] 未配置 OPENAI_API_KEY(环境变量或 Intension/.openai_key),只用解析缓存")
         args.llm = "off"
 
+    cache_path = Path(__file__).resolve().parent / "parse_cache.json"
+    try:
+        parse_cache = json.loads(cache_path.read_text(encoding="utf-8"))
+    except Exception:
+        parse_cache = {}
+
     def llm_parse(text):
-        """开放句式 -> 结构化指令(OpenAI 直连)。失败返回 None 退回语法。"""
-        prompt = (
-            "把这句对机器人说的中文指令解析成 JSON(只输出 JSON)。\n"
-            "场景中已命名的物体(object_query 与 location_hint 只能取其中之一或 null):\n"
-            f"{'、'.join(sorted(table))}\n"
-            "字段规则:\n"
-            "- action: 让机器人去拿/取/带来某物=fetch;让它停下=stop;都不是=none\n"
-            "- deictic: 用了'这个/那个'等现场指代、且没指名是上表中哪一个时为 true\n"
-            "- object_query: 用户指名的物体 -> 上表中最匹配的一个;没指名则 null\n"
-            "- noun_class: deictic 时用户说的类别词(如 杯、机器人);没有则 null\n"
-            "- location_hint: 提到的地点参照物 -> 上表中的一个;没有则 null\n"
-            "- deliver_to_user: 是否要求送到用户身边\n"
-            f"指令:「{text}」")
-        t0 = time.time()
-        P.say("[LLM] 解析中…")
-        body = json.dumps({
-            "model": args.llm_model,
-            "reasoning_effort": "minimal",  # 解析任务不需要深思,省时省钱
-            "messages": [{"role": "user", "content": prompt}],
-            "response_format": {"type": "json_schema",
-                                "json_schema": {"name": "robot_command", "strict": True,
-                                                "schema": PARSE_SCHEMA}},
-        }).encode()
-        req = urllib.request.Request(
-            "https://api.openai.com/v1/chat/completions", data=body,
-            headers={"Content-Type": "application/json",
-                     "Authorization": f"Bearer {openai_key}"})
-        try:
-            with urllib.request.urlopen(req, timeout=20) as r:
-                resp = json.loads(r.read())
-            data = json.loads(resp["choices"][0]["message"]["content"])
-        except urllib.error.HTTPError as e:
-            P.say(f"[LLM] API {e.code}: {e.read().decode(errors='ignore')[:160]} —— 退回语法")
-            return None
-        except Exception as e:
-            P.say(f"[LLM] 解析失败({type(e).__name__}: {e}),退回语法")
-            return None
-        dt = time.time() - t0
-        P.say(f"[LLM] {json.dumps(data, ensure_ascii=False)}  ({dt:.1f}s)")
-        logev({"topic": "llm_parse", "text": text, "result": data, "s": round(dt, 1)})
+        """指令文本 -> 结构。缓存命中 0ms 且确定;未命中走 OpenAI;都不行 None。"""
+        data = parse_cache.get(text)
+        cached = data is not None
+        if not cached:
+            if args.llm == "off":
+                return None
+            prompt = (
+                "把这句对机器人说的中文指令解析成 JSON(只输出 JSON)。\n"
+                "场景中已命名的物体(object_query 与 location_hint 只能取其中之一或 null):\n"
+                f"{'、'.join(sorted(table))}\n"
+                "字段规则:\n"
+                "- action: 让机器人去拿/取/带来某物=fetch;让它停下=stop;都不是=none\n"
+                "- deictic: 用了'这个/那个'等现场指代、且没指名是上表中哪一个时为 true\n"
+                "- object_query: 用户指名的物体 -> 上表中最匹配的一个;没指名、或说法\n"
+                "  同时匹配多个物体而无法确定是哪一个时为 null(类别词放 noun_class)\n"
+                "- noun_class: 指代或泛指时的类别词(如 杯、机器人);没有则 null\n"
+                "- location_hint: 提到的地点参照物 -> 上表中的一个;没有则 null\n"
+                "- deliver_to_user: 是否要求送到用户身边\n"
+                f"指令:「{text}」")
+            t0 = time.time()
+            P.say("[LLM] 解析中…")
+            body = json.dumps({
+                "model": args.llm_model,
+                "reasoning_effort": "minimal",  # 解析任务不需要深思,省时省钱
+                "messages": [{"role": "user", "content": prompt}],
+                "response_format": {"type": "json_schema",
+                                    "json_schema": {"name": "robot_command", "strict": True,
+                                                    "schema": PARSE_SCHEMA}},
+            }).encode()
+            req = urllib.request.Request(
+                "https://api.openai.com/v1/chat/completions", data=body,
+                headers={"Content-Type": "application/json",
+                         "Authorization": f"Bearer {openai_key}"})
+            try:
+                with urllib.request.urlopen(req, timeout=20) as r:
+                    resp = json.loads(r.read())
+                data = json.loads(resp["choices"][0]["message"]["content"])
+            except urllib.error.HTTPError as e:
+                P.say(f"[LLM] API {e.code}: {e.read().decode(errors='ignore')[:160]}")
+                return None
+            except Exception as e:
+                P.say(f"[LLM] 解析失败({type(e).__name__}: {e})")
+                return None
+            parse_cache[text] = data
+            try:  # 缓存落盘:demo 台词预热一遍后离线可用
+                cache_path.write_text(json.dumps(parse_cache, ensure_ascii=False, indent=1),
+                                      encoding="utf-8")
+            except Exception:
+                pass
+            P.say(f"[LLM] {json.dumps(data, ensure_ascii=False)}  ({time.time() - t0:.1f}s)")
+        logev({"topic": "llm_parse", "text": text, "result": data, "cached": cached})
         if data.get("action") == "stop":
             return {"kind": "stop"}
         if data.get("action") != "fetch":
@@ -359,10 +354,13 @@ def main() -> int:
 
     def handle(t_word, text):
         nonlocal pending
-        cmd = parse_command(text)
+        t = "".join(text.split())
+        if not t:
+            return
+        was_decline = False
         if pending is not None:
             prev, pending = pending, None
-            if text.strip().lower() in YES_WORDS:
+            if t.lower() in YES_WORDS:
                 send(prev["req"])
                 if prev["mode"] == "主动":  # 执行完还盯着,也别立刻再问
                     suppress[prev["req"]["params"]["object_name"]] = t_word + args.suppress
@@ -370,72 +368,65 @@ def main() -> int:
             if prev["mode"] == "主动":  # 拒绝主动提议 -> 抑制该物体,免得追着问
                 suppress[prev["req"]["params"]["object_name"]] = t_word + args.suppress
             P.say("[-] 已取消")
-            if cmd is None or cmd["kind"] == "help":
-                return  # 纯拒绝;若输入本身是新指令,则继续往下执行它
-        if cmd is None:
+            if t.lower() in NO_WORDS:
+                return
+            was_decline = True  # 可能是"取消旧的换新指令":往下试,解析不出就保持安静
+        if t.lower() in STOP_WORDS:  # 急停硬旁路:永不过 LLM
+            send({"v": 1, "type": "skill.request", "skill": "stop",
+                  "req_id": f"{sess.name}-stop", "frame": args.frame,
+                  "sent_at": time.time(), "params": {}})
             return
-        def execute_cmd(cmd, from_llm):
-            logev({"topic": "command", "text": text, "t": t_word,
-                   "kind": cmd["kind"], "llm": from_llm})
-
-            def llm_retry(why):
-                """语法解析或消解失败 -> 让 LLM 再试一次(只试一层,防循环)。"""
-                if args.llm == "off" or from_llm:
-                    return False
-                nc = llm_parse(text)
-                if nc and nc != cmd:
-                    P.say(f"[·] {why},改用 LLM 解析")
-                    execute_cmd(nc, True)
-                    return True
-                return False
-
-            if cmd["kind"] == "stop":
-                send({"v": 1, "type": "skill.request", "skill": "stop",
-                      "req_id": f"{sess.name}-stop", "frame": args.frame,
-                      "sent_at": time.time(), "params": {}})
+        cmd = llm_parse(t)
+        logev({"topic": "command", "text": text, "t": t_word,
+               "kind": cmd["kind"] if cmd else "parse_fail"})
+        if cmd is None:
+            if not was_decline:
+                P.say("[×] 解析不可用(缓存未命中且 LLM 不可达)")
+            return
+        if cmd["kind"] == "stop":
+            send({"v": 1, "type": "skill.request", "skill": "stop",
+                  "req_id": f"{sess.name}-stop", "frame": args.frame,
+                  "sent_at": time.time(), "params": {}})
+            return
+        if cmd["kind"] == "help":
+            if not was_decline:
+                P.say("我能做:拿取场景里的物体。例:拿一下显示器 / 把这个杯子拿来 / 停")
+            return
+        if cmd["kind"] == "named":
+            name, top = resolve_named(cmd["query"], table)
+            if name is None and cmd.get("location"):
+                loc, _ = resolve_named(cmd["location"], table)
+                near = [n for s, n in top if s >= 0.55]
+                if loc and near:  # 名字打平时按地点参照就近消歧
+                    name = min(near, key=lambda n: sum(
+                        (table[n][i] - table[loc][i]) ** 2 for i in range(3)))
+                    P.say(f"[·] 按「{cmd['location']}」就近消歧 -> {name}")
+            if name is None:
+                P.say(f"[×] 「{cmd['query']}」没有唯一命中,最像的:"
+                      + " / ".join(f"{n}({s:.2f})" for s, n in top))
                 return
-            if cmd["kind"] == "help":
-                if not llm_retry("语法接不住"):
-                    P.say("用法:拿一下<名字> | 把这个<类别>拿来 | 停")
-                return
-            if cmd["kind"] == "named":
-                name, top = resolve_named(cmd["query"], table)
-                if name is None and cmd.get("location"):
-                    loc, _ = resolve_named(cmd["location"], table)
-                    near = [n for s, n in top if s >= 0.55]
-                    if loc and near:  # 名字打平时按地点参照就近消歧
-                        name = min(near, key=lambda n: sum(
-                            (table[n][i] - table[loc][i]) ** 2 for i in range(3)))
-                        P.say(f"[·] 按「{cmd['location']}」就近消歧 -> {name}")
-                if name is None:
-                    if not llm_retry(f"「{cmd['query']}」消解失败"):
-                        P.say(f"[×] 「{cmd['query']}」没有唯一命中,最像的:"
-                              + " / ".join(f"{n}({s:.2f})" for s, n in top))
+            propose(name, table[name], "名字", t_word)
+            return
+        # deictic / 类别泛指
+        cands = buf.candidates(t_word, args.lookback, cmd["noun"])
+        if not cands:
+            if cmd["noun"]:
+                name, top = resolve_named(cmd["noun"], table)
+                if name:
+                    P.say(f"[·] 近期没注视「{cmd['noun']}」,按名字兜底 -> {name}")
+                    propose(name, table[name], "名字兜底", t_word)
                     return
-                propose(name, table[name], "名字", t_word)
-                return
-            # deictic
-            cands = buf.candidates(t_word, args.lookback, cmd["noun"])
-            if not cands:
-                if cmd["noun"]:
-                    name, _ = resolve_named(cmd["noun"], table)
-                    if name:
-                        P.say(f"[·] 近期没注视「{cmd['noun']}」,按名字兜底 -> {name}")
-                        propose(name, table[name], "名字兜底", t_word)
-                        return
-                if not llm_retry("指代无候选"):
-                    P.say(f"[×] 最近 {args.lookback:.0f}s 没有可用注视目标"
-                          + (f"(类别「{cmd['noun']}」)" if cmd["noun"] else ""))
-                return
-            c = cands[0]
-            logev({"topic": "binding", "t_word": t_word, "noun": cmd["noun"],
-                   "candidates": cands[:3]})
-            propose(c["object"], c["target_world"], "视线", t_word)
-
-        first_llm = args.llm == "always" and cmd["kind"] != "stop"
-        if first_llm:
-            cmd = llm_parse(text) or cmd
-        execute_cmd(cmd, first_llm)
+                if top:
+                    P.say(f"[×] 「{cmd['noun']}」类有多个且最近没注视——看一眼目标再说,或指名:"
+                          + " / ".join(f"{n}({s:.2f})" for s, n in top))
+                    return
+            P.say(f"[×] 最近 {args.lookback:.0f}s 没有可用注视目标"
+                  + (f"(类别「{cmd['noun']}」)" if cmd["noun"] else ""))
+            return
+        c = cands[0]
+        logev({"topic": "binding", "t_word": t_word, "noun": cmd["noun"],
+               "candidates": cands[:3]})
+        propose(c["object"], c["target_world"], "视线", t_word)
 
     source = replay_events(args.replay) if args.replay else zmq_events(args.sub)
     P.say(f"指令入口就绪:拿一下<名字> / 把这个<类别>拿来 / 停"
