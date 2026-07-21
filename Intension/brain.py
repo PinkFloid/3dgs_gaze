@@ -335,11 +335,16 @@ def main() -> int:
         if rep.get("accepted") and req.get("skill") != "stop":
             last_req["id"] = req["req_id"]
 
+    user_pos = {"xyz": None, "t": 0.0}  # 每条 verdict 的 origin_world = 用户头部位置
+
     def propose(obj, tw, mode, t_word):
         nonlocal n_req, pending
         n_req += 1
+        params = {"object_name": obj, "target_world": tw}
+        if user_pos["xyz"] is not None:  # 确认时刻的用户位置,"带回"的目的地
+            params["deliver_to"] = user_pos["xyz"]
         req = {"v": 1, "type": "skill.request", "skill": "grasp",
-               "params": {"object_name": obj, "target_world": tw},
+               "params": params,
                "req_id": f"{sess.name}-{n_req:03d}", "frame": args.frame,
                "sent_at": time.time(), "t_stream": round(t_word, 3),
                "intent_summary": f"指令({mode})消解为 {obj}"}
@@ -436,6 +441,9 @@ def main() -> int:
             if e is not None:
                 t = float(e.get("t_end", e.get("t_start", 0.0)))
                 clock["stream"], clock["wall"] = t, time.time()
+                ow = e.get("origin_world")
+                if ow:  # 背景注视也带头位姿:每条 verdict 都在更新用户位置
+                    user_pos["xyz"], user_pos["t"] = [round(v, 3) for v in ow], t
                 if accepted(e, args.min_vote):
                     for kind, pl in buf.feed(e):
                         if kind == "progress":

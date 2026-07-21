@@ -42,7 +42,7 @@ stare_to_grasp.py ── REQ ──────────────▶ REP :
 
 | skill | params | 语义 |
 |---|---|---|
-| `grasp` | `object_name: str`, `target_world: [x,y,z]` 米 | 走到目标附近→抓取→带回 |
+| `grasp` | `object_name: str`, `target_world: [x,y,z]` 米, `deliver_to: [x,y,z]`(可选) | 走到目标附近→抓取→带回 `deliver_to`(=确认时刻的用户头位置;缺省回停放点) |
 | `move_to` | `x, y, yaw` | 板坐标系位姿 |
 | `stop` | 无 | **急停,最高优先级**,见 §3 |
 | `get_state` | 无 | 回执里带当前位姿与忙闲 |
