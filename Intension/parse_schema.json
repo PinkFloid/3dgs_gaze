@@ -1,0 +1,14 @@
+{
+  "type": "object",
+  "properties": {
+    "action": {"type": "string", "enum": ["fetch", "stop", "none"]},
+    "deictic": {"type": "boolean"},
+    "object_query": {"type": ["string", "null"]},
+    "noun_class": {"type": ["string", "null"]},
+    "location_hint": {"type": ["string", "null"]},
+    "deliver_to_user": {"type": "boolean"}
+  },
+  "required": ["action", "deictic", "object_query", "noun_class",
+               "location_hint", "deliver_to_user"],
+  "additionalProperties": false
+}

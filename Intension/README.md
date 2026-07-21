@@ -1,65 +1,41 @@
-# Intension — 盯住即夹取(最小 demo)
+# Intension — 多模态指令层(语言出结构,注视出指代)
 
-一个脚本:订阅 `gaze_live` 的 `gaze.intent` 流,同一物体**因果注视 ≥ 4.8s** →
-控制台问一句"夹取「水杯」?" → 键入 `y` → 发出 `grasp(object_name, target_world)`
-技能调用(缺省只打印;`target_world` 是该实例的池化质心)。
-是 `docs/AGENT_DESIGN.md` 的最小可跑切片:层A内核(VisitTracker)+ 规则脑(单条规则),无 LLM。
+主入口 **`brain.py`**:指令 → 指代消解 → y/n 确认 → 派发给狗。三种交互一个进程:
+
+| 说法 | 消解 |
+|---|---|
+| `拿一下黄色机器人` | 名字:模糊匹配地图物体表(池化质心) |
+| `把这个杯子拿来` | 视线:眼-声回看窗取近期注视 + 类别过滤 |
+| `帮我把那个黄颜色的机器人弄过来` | 开放句式:语法接不住时 LLM 解析(codex,--llm) |
+| 盯满 4.8s(`--proactive 4.8` 时) | 主动问询:"要我拿来吗?" |
+| `停` | 急停旁路,不确认 |
+
+解析级联:**关键词语法先试(零延迟、确定性)→ 失败才走 LLM**;LLM 只做
+文本→结构,绑定/几何/确认永远是确定性代码。实验采数用 `--llm off`。
 
 ## 运行
 
 ```bash
-# 终端 1:感知层(与平时一样,加 --publish)
-python Eye_Tracker/tools/gaze_live.py --publish 5581 [...]
+# 感知(另一终端): python Eye_Tracker/tools/gaze_live.py --publish 5581 ...
+python Intension/brain.py                          # 纯本机,派发只打印
+python Intension/brain.py --skill-endpoint tcp://狗机:5583   # 接真狗/模拟器
+python Intension/brain.py --proactive 4.8          # 加开盯视主动问询
 
-# 终端 2:本 demo(同一个 python 环境,需 pyzmq + msgpack)
-python Intension/stare_to_grasp.py
+# 无硬件回放回归(确定性):
+python Intension/gen_fake_gaze.py /tmp/fake.jsonl
+python Intension/brain.py --llm off --replay /tmp/fake.jsonl --yes \
+    --script "106.5:把这个杯子拿来"
 ```
 
-盯目标时终端有实时进度(`盯 水杯 2.4/4.8s vote 78%`)——dwell 交互没有反馈就没法用。
+## 文件地图
 
-## 常用参数
+- `brain.py` — Intension 层本体(解析级联 + AttentionBuffer 眼-声绑定 + 确认 + 派发)
+- `stare_to_grasp.py` — 遗产入口:纯"盯4.8s→问"(层A `VisitTracker` 的宿主,brain 复用其组件;留作对照与回归)
+- `dog_link.py` — **发给狗端同学的唯一文件**:通信壳封好,他只填 `execute/on_stop/get_pose`
+- `send_test.py` — 意图机替身:2 秒后发固定样例,狗端联调用
+- `gen_fake_gaze.py` — 合成 gaze.intent 流,无硬件回放
+- `parse_schema.json` — LLM 解析的输出 JSON schema
+- `PROTOCOL.md` — 通信契约 v1(端口、消息、急停语义、坐标系)
 
-| 参数 | 默认 | 说明 |
-|---|---|---|
-| `--dwell` | 4.8 | 触发阈值 (s) |
-| `--merge-gap` | 0.6 | visit 内瞥离容忍 (s),同 grasp_intent |
-| `--min-vote` | 0.5 | verdict 准入,同 grasp_intent |
-| `--confirm-timeout` | 8 | y/n 等待,超时=取消 |
-| `--suppress` | 30 | 问答后(无论 y/n)同物体静默期 (s) |
-| `--skill-endpoint` | 无 | 技能端 REQ 地址,如 `tcp://127.0.0.1:5583`;缺省只打印 |
-| `--publish` | 无 | 把 `attention.*` 事件 PUB 出去(未来大脑进程的订阅口,如 5582) |
-| `--raw-log` | 关 | 原样落盘进来的 `gaze.intent` 流 |
-| `--replay` | 无 | 用 `--raw-log` 录的 jsonl 回放,替代 ZMQ(纯 stdlib 可跑) |
-
-在确认提示处输入 `q` / `停` 退出。
-
-## 行为细节(即层A的触发纪律)
-
-- 实时 dwell 来自 **provisional** verdict,final 结账——只吃 final 永远不会触发(设计稿 §4.1);
-- 每 visit 只问一次;拒绝或确认后该物体静默 `--suppress` 秒,静默期后需**重新累积** 4.8s;
-- 背景表面(label < 10)、`vote_share < 0.5`、无质心的 verdict 不参与,但其时间戳仍推动 visit 超时。
-
-## 日志与回放
-
-每次运行建 `Intension/logs/<时间戳>/`:
-- `events.jsonl` — attention 事件、问答、技能调用(自包含证据包);
-- `raw.jsonl` — 开 `--raw-log` 时的原始输入流。
-
-回归:`--replay raw.jsonl` 是确定性的,改参数在同一段录像上 A/B(设计稿 §11 的验证方案 A)。
-
-## 技能调用格式(REQ,msgpack)
-
-```json
-{"skill": "grasp",
- "params": {"object_name": "水杯", "target_world": [1.32, -0.45, 0.86]},
- "req_id": "req-001", "t": 123.4,
- "intent_summary": "用户注视 4.8s 并确认夹取 水杯"}
-```
-
-技能端应答 `{"accepted": bool, "reason": str}`(设计稿 §8)。
-
-## 与 AGENT_DESIGN.md 的关系
-
-保留:provisional/final 双流会计、visit 因果语义、单发+抑制、确认门在代码里、
-jsonl+回放、`attention.*` 接口形状。砍掉(等下一步):LLM 大脑、alternation/point 等
-事件、技能层进程、坐标桥接。`VisitTracker` 以后原样抬进 `attention_arbiter.py`。
+端口:5581 感知入 / 5583 命令出(REQ)/ 5584 狗状态回(SUB);日志每次运行落
+`logs/<时间戳>/events.jsonl`(指令、消解、绑定候选、问答、派发、狗状态全在)。
