@@ -230,6 +230,14 @@ def main() -> int:
         threading.Thread(target=status_listener, args=(sep, P, status_seen, logev),
                          daemon=True).start()
 
+    last_req = {"id": None}
+
+    def dog_busy():
+        """上一个已接受的请求还没到终态 -> 狗在忙,主动问询让路。"""
+        if status_seen is None or last_req["id"] is None:
+            return False
+        return status_seen.get(last_req["id"]) not in ("done", "failed", "stopped")
+
     cmd_q = queue.Queue()
     if not args.script:
         def stdin_reader():
@@ -251,6 +259,8 @@ def main() -> int:
         logev({"topic": "skill.req", **req, "rep": rep})
         P.say(f"[派发] {json.dumps(req, ensure_ascii=False)}")
         P.say(f"       -> {json.dumps(rep, ensure_ascii=False)}")
+        if rep.get("accepted") and req.get("skill") != "stop":
+            last_req["id"] = req["req_id"]
 
     def propose(obj, tw, mode, t_word):
         nonlocal n_req, pending
@@ -276,6 +286,8 @@ def main() -> int:
             prev, pending = pending, None
             if text.strip().lower() in YES_WORDS:
                 send(prev["req"])
+                if prev["mode"] == "主动":  # 执行完还盯着,也别立刻再问
+                    suppress[prev["req"]["params"]["object_name"]] = t_word + args.suppress
                 return
             if prev["mode"] == "主动":  # 拒绝主动提议 -> 抑制该物体,免得追着问
                 suppress[prev["req"]["params"]["object_name"]] = t_word + args.suppress
@@ -335,6 +347,9 @@ def main() -> int:
                             if pending is not None:
                                 logev({"topic": "proactive.skipped", "object": pl["object"],
                                        "why": "pending"})
+                            elif dog_busy():
+                                logev({"topic": "proactive.skipped", "object": pl["object"],
+                                       "why": "dog_busy"})
                             elif pl["t"] < suppress.get(pl["object"], float("-inf")):
                                 P.say(f"[×] {pl['object']} 抑制期,略过主动问询")
                             elif pl.get("target_world"):
@@ -350,6 +365,8 @@ def main() -> int:
                 handle(st, cmd_q.get())
             if pending and st - pending["since"] > args.confirm_timeout:
                 P.say("[-] 确认超时,已取消")
+                if pending["mode"] == "主动":
+                    suppress[pending["req"]["params"]["object_name"]] = st + args.suppress
                 pending = None
             if args.replay and not scripted and pending is None:
                 done = status_seen is None or not status_seen or \
