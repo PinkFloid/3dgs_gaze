@@ -170,6 +170,8 @@ def resolve_named(query, table):
     """返回 (唯一命中名 或 None, 前三候选[(score,name)])。"""
     if not query or not table:
         return None, []
+    if query in table:  # 精确命中直接赢:名字是标识符,残余风险交给确认门
+        return query, [(1.0, query)]
     scored = []
     for name in table:
         if query == name:
