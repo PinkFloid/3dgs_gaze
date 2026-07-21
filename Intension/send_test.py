@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
-"""send_test.py -- 意图机发送端的最小测试替身(狗端联调用,不需要视线管线)。
 
-启动后等 2 秒,向狗端发一条固定的 grasp 请求,打印回执,
-然后持续打印狗端广播的执行进度,直到终态(done/failed/stopped)。
-
-    python send_test.py                     # 连本机的 dog_link
-    python send_test.py --host 192.168.1.7  # 连狗机
-"""
 
 import argparse
 import json
@@ -18,7 +11,7 @@ import zmq
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--host", default="127.0.0.1", help="狗机 IP")
+    ap.add_argument("--host", default="127.0.0.1", help="SERVER IP")
     ap.add_argument("--rep", type=int, default=5583, help="技能请求端口")
     ap.add_argument("--pub", type=int, default=5584, help="进度广播端口")
     args = ap.parse_args()
@@ -54,10 +47,10 @@ def main():
     if not rep.get("accepted"):
         return
 
-    print("等待进度广播(终态自动结束,Ctrl-C 手动退)...")
+    print("等待进度广播")
     while True:
         if not sub.poll(120000):
-            print("[进度] 120s 没有广播,退出")
+            print("auto quit")
             return
         st = msgpack.unpackb(sub.recv_multipart()[-1], strict_map_key=False)
         print("[进度]", json.dumps(st, ensure_ascii=False))
