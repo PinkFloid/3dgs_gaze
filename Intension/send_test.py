@@ -27,7 +27,8 @@ def main():
            "frame": "board/v2",
            "skill": "grasp",
            "params": {"object_name": "黄色机器人",
-                      "target_world": [-0.185, 3.413, 0.829]},
+                      "target_world": [-0.185, 3.413, 0.829],
+                      "deliver_to": [2.0, -1.5, 1.4]},
            "intent_summary": "send_test 固定样例"}
 
     print(f"2 秒后发送到 tcp://{args.host}:{args.rep} ...")
