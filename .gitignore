@@ -9,3 +9,6 @@
 /lab_result/
 /tools/
 SceneRebuild/lab_result/segmentation_sam/preview.zip
+
+# Python 字节码缓存
+__pycache__/
