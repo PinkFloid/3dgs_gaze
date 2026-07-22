@@ -9,7 +9,7 @@ Single process, event-driven:
   fixation closes    -> cone posterior over named instances (gaze_object parts)
   continuous tag stare -> online bias/sigma re-estimation (rolling precision stamp)
 
-UI (cv2 window, CJK labels via PIL): live frame + named instance boxes +
+UI (Tk window, CJK labels via PIL): live frame + named instance boxes +
 gaze cross + verdict banner (object, vote share, world coordinate) + status.
 
 Replay mode (no Pupil Capture needed, e.g. for UI work and regression tests):
@@ -119,7 +119,7 @@ def parse_args() -> argparse.Namespace:
                         "stale stamp cannot keep pushing gaze off target long after the drift moved "
                         "on (0 = never decay). Fresh stamps (age << tau) apply near-fully.")
     p.add_argument("--display-scale", type=float, default=0.67)
-    p.add_argument("--headless", action="store_true", help="No cv2 window (replay tests, remote shells).")
+    p.add_argument("--headless", action="store_true", help="No preview window (replay tests, remote shells).")
     p.add_argument("--dump-video", default=None, help="Write the UI frames to this mp4.")
     p.add_argument("--duration", type=float, default=None, help="Stop after N stream seconds.")
     p.add_argument("--publish", type=int, default=None, help="ZMQ PUB port for 'gaze.intent' events.")
@@ -128,6 +128,56 @@ def parse_args() -> argparse.Namespace:
 
 
 # ------------------------------------------------------------ streaming pieces
+
+class TkPreview:
+    """Small Tk image window that avoids OpenCV's bundled Qt HighGUI backend."""
+
+    def __init__(self, title: str):
+        import tkinter as tk
+        from PIL import Image, ImageTk
+
+        self.tk = tk
+        self.Image = Image
+        self.ImageTk = ImageTk
+        self.closed = False
+        self.photo = None
+        try:
+            self.root = tk.Tk()
+        except tk.TclError as exc:
+            raise SystemExit(f"Cannot open preview window: {exc}. Use --headless to run without one.") from exc
+        self.root.title(title)
+        self.label = tk.Label(self.root, borderwidth=0, highlightthickness=0)
+        self.label.pack()
+        self.root.protocol("WM_DELETE_WINDOW", self._request_close)
+        self.root.bind("<KeyPress-q>", self._request_close)
+        self.root.bind("<KeyPress-Q>", self._request_close)
+        self.root.bind("<Escape>", self._request_close)
+
+    def _request_close(self, _event=None):
+        self.closed = True
+        try:
+            self.root.destroy()
+        except self.tk.TclError:
+            pass
+
+    def show(self, bgr: np.ndarray) -> bool:
+        """Display one BGR frame; return False after q/Escape/window close."""
+        if self.closed:
+            return False
+        rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+        self.photo = self.ImageTk.PhotoImage(self.Image.fromarray(rgb))
+        try:
+            self.label.configure(image=self.photo)
+            self.root.update_idletasks()
+            self.root.update()
+        except self.tk.TclError:
+            self.closed = True
+        return not self.closed
+
+    def close(self):
+        if not self.closed:
+            self._request_close()
+
 
 class RollingPoses:
     """Last few localized poses; query(t) interpolates like PoseTrack but in memory."""
@@ -510,6 +560,14 @@ def main() -> int:
     ckpt = Path(args.ckpt) if args.ckpt else max(
         (SCENE / "lab_result").rglob("step-*.ckpt"), key=lambda p: p.stat().st_mtime)
     splat = SplatDepth(ckpt)
+    # gsplat builds its CUDA extension lazily on the first rasterization. Do it
+    # before opening the preview so a cold cache is reported as compilation,
+    # rather than looking like a frozen window on the first gaze sample.
+    print("gsplat CUDA: warming up (a cold cache may compile for several minutes; do not interrupt)...",
+          flush=True)
+    warmup_t0 = time.perf_counter()
+    splat.depth_along_ray(np.zeros(3), np.array([0.0, 0.0, 1.0]))
+    print(f"gsplat CUDA: ready ({time.perf_counter() - warmup_t0:.1f}s)", flush=True)
 
     sigma0 = args.sigma_deg
     if sigma0 is None and args.replay:
@@ -547,8 +605,7 @@ def main() -> int:
 
     writer = None
     win = not args.headless
-    if win:
-        cv2.namedWindow("gaze_live", cv2.WINDOW_NORMAL)
+    preview = TkPreview("gaze_live") if win else None
 
     K = None
     W = H = None
@@ -737,8 +794,7 @@ def main() -> int:
             if win:
                 disp = img if args.display_scale == 1.0 else cv2.resize(
                     img, None, fx=args.display_scale, fy=args.display_scale)
-                cv2.imshow("gaze_live", disp)
-                if cv2.waitKey(1) & 0xFF == ord("q"):
+                if not preview.show(disp):
                     break
     except KeyboardInterrupt:
         pass
@@ -749,8 +805,8 @@ def main() -> int:
             print(f"wrote {args.dump_video}")
         if log_f:
             log_f.close()
-        if win:
-            cv2.destroyAllWindows()
+        if preview is not None:
+            preview.close()
     print(f"done: {n_frames} frames, {n_loc} localized")
     return 0
 

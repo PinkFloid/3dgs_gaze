@@ -9,5 +9,5 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV="$HOME/miniconda3/envs/nerfstudio"
 export PATH="$ENV/bin:$PATH" CUDA_HOME="$ENV" \
   CC="$ENV/bin/x86_64-conda-linux-gnu-gcc" CXX="$ENV/bin/x86_64-conda-linux-gnu-g++" \
-  TORCH_CUDA_ARCH_LIST="5.2"
+  TORCH_CUDA_ARCH_LIST="5.2" MAX_JOBS="${MAX_JOBS:-4}"
 exec "$ENV/bin/python" "$DIR/gaze_live.py" "$@"

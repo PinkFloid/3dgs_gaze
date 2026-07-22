@@ -1,0 +1,3 @@
+logs/
+.openai_key
+parse_cache.json
