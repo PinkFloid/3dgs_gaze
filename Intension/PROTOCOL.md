@@ -12,10 +12,12 @@ stare_to_grasp.py ── REQ ──────────────▶ REP :
 依赖(狗机):`pip install pyzmq msgpack`。同一局域网,狗机用固定 IP,放行 5583/5584。
 
 **狗端拿到的文件是 `dog_link.py`**:通信壳已封好(收包/解析/回执/广播/急停),
-只需改「你的区」三个函数 —— `execute()`(写技能逻辑)、`on_stop()`(接急停)、
-`get_pose()`(报位姿);`MY_SKILLS` 列表声明支持哪些技能名。execute 抛异常自动
-广播 failed、忘发终态自动补 done,不会把对方卡死。
-它自带 3 秒假执行示例,不接真机直接跑,就是全链路模拟器(意图机侧自测同样用它)。
+真机只需填一个 `RealDog` 适配器类(get_pose / send_velocity / stand_still /
+gripper_close / gripper_open,Go2 对应关系写在类注释里);技能逻辑(standoff
+接近、对准、夹取、送达)、每阶段看门狗超时、卡死检测、工作空间校验都已实现。
+execute 抛异常自动广播 failed、忘发终态自动补 done,不会把对方卡死。
+不接真机直接 `python dog_link.py --fake` 跑速度积分假狗 = 全链路模拟器
+(无 RealDog 时自动回落假狗;意图机侧自测同样用它)。
 
 ## 1. 技能请求(意图机 → 狗机,REQ)
 
@@ -42,8 +44,8 @@ stare_to_grasp.py ── REQ ──────────────▶ REP :
 
 | skill | params | 语义 |
 |---|---|---|
-| `grasp` | `object_name: str`, `target_world: [x,y,z]` 米, `deliver_to: [x,y,z]`(可选) | 走到目标附近→抓取→带回 `deliver_to`(=确认时刻的用户头位置;缺省回停放点) |
-| `move_to` | `x, y, yaw` | 板坐标系位姿 |
+| `grasp` | `object_name: str`, `target_world: [x,y,z]` 米, `deliver_to: [x,y,z]`(可选), `bbox: [[..],[..]]`(可选,standoff 按物体尺寸缩放) | 走到 standoff 点→对准→抓取;**有 `deliver_to` 则 returning 送达**(=确认时刻的用户头位置),**缺省原地 done**——取回由意图机收到 done 后组合 `move_to`,不引入第三技能 |
+| `move_to` | `x, y`, `yaw`(可选,到点后再对准) | 板坐标系位姿 |
 | `stop` | 无 | **急停,最高优先级**,见 §3 |
 | `get_state` | 无 | 回执里带当前位姿与忙闲 |
 
@@ -65,9 +67,11 @@ stare_to_grasp.py ── REQ ──────────────▶ REP :
  "pose": {"x": 0.5, "y": 1.2, "yaw": 1.57}, "detail": "", "t": 1789456125.0}
 ```
 
-`state` 顺序:`accepted → moving → grasping → returning → done`,任何时刻可终止于
-`failed` 或 `stopped`。`pose` 是板坐标系狗位姿,随手带上(以后意图机要用它做
-"看狗"检测)。**急停语义**:收到 `stop` 请求 → 立即回执 → 中断当前动作(unitree
+`state` 顺序:`accepted → moving → grasping [→ returning] → done`,任何时刻可终止于
+`failed` 或 `stopped`(对准阶段仍是 `moving`,`detail:"aligning"`;失败原因走 detail:
+`moving_timeout` / `stuck` / `unlocalized` / `grasp_missed` 等)。`pose` 是板坐标系
+狗位姿,随手带上(以后意图机要用它做"看狗"检测)。另有独立话题 **`dog.heartbeat`**
+(1Hz,pose+busy):意图机据此区分"空闲"和"死机",且不污染 skill.status 的日志流。**急停语义**:收到 `stop` 请求 → 立即回执 → 中断当前动作(unitree
 damp/stop + 臂急停)→ 给被中断的 req_id 广播 `stopped`。急停链路上不许有任何模型/慢逻辑。
 
 ## 4. 坐标系(最容易悄悄出错的地方)
