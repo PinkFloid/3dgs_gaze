@@ -65,6 +65,9 @@ def parse_args():
     p.add_argument("--frame", default="board/v2")
     p.add_argument("--standoff", type=float, default=0.6,
                    help="站位距离:target 发在目标前多少米(狗端自留 standoff 时设 0)")
+    p.add_argument("--detect-names", default=str(Path(__file__).resolve().parent
+                                                 / "detect_names.json"),
+                   help="地图名->检测器类名映射(狗端 /detect_grasp 只认英文类名)")
     p.add_argument("--replay", default=None)
     p.add_argument("--script", action="append", default=[],
                    help="回归用脚本指令 '流时间:指令文本',可重复")
@@ -95,6 +98,24 @@ def main() -> int:
 
     buf = AttentionBuffer(args.merge_gap, args.proactive)
     suppress = {}  # object -> 流时间,主动问询被拒后的静默截止
+
+    try:  # 狗端检测器只认类名(如 orange):发送前把地图名翻译过去
+        dmap = json.loads(Path(args.detect_names).read_text(encoding="utf-8"))
+    except Exception:
+        dmap = {}
+        P.say(f"[!] 检测名映射不可用({args.detect_names}),object_name 将按地图原名直发")
+    unmapped = set()
+
+    def detect_name(obj):
+        if obj in dmap:
+            return dmap[obj]
+        hit = max((k for k in dmap if k in obj), key=len, default=None)  # 杯A -> 杯 -> cup
+        if hit:
+            return dmap[hit]
+        if dmap and obj not in unmapped:
+            unmapped.add(obj)
+            P.say(f"[!] 「{obj}」不在 detect_names.json,按原名直发(狗端检测器可能不认)")
+        return obj
 
     key = load_openai_key()
     if args.llm == "on" and not key:
@@ -165,7 +186,7 @@ def main() -> int:
         nonlocal n_req, pending
         n_req += 1
         stand, yaw = stand_pose(tw, approach_from)
-        params = {"object_name": None if goto else obj,
+        params = {"object_name": None if goto else detect_name(obj),
                   "target_world": stand, "yaw": yaw}
         if not goto and user_pos["xyz"] is not None:  # 确认时刻的用户位置:带它=送达
             params["deliver_to"] = user_pos["xyz"]
@@ -179,7 +200,7 @@ def main() -> int:
         if args.yes:
             send(req)
         else:
-            pending = {"req": req, "since": t_word, "mode": mode}
+            pending = {"req": req, "since": t_word, "mode": mode, "object": obj}
             pose_txt = f"站位({stand[0]:+.2f},{stand[1]:+.2f}) 朝向{math.degrees(yaw):+.0f}°"
             ask = (f"[?] 你在看「{obj}」——要我拿来吗?" if mode == "主动"
                    else f"[?] 过去「{obj}」{pose_txt} ?" if goto
@@ -197,10 +218,10 @@ def main() -> int:
             if t.lower() in YES_WORDS:
                 send(prev["req"])
                 if prev["mode"] == "主动":  # 执行完还盯着,也别立刻再问
-                    suppress[prev["req"]["params"]["object_name"]] = t_word + args.suppress
+                    suppress[prev["object"]] = t_word + args.suppress
                 return
             if prev["mode"] == "主动":  # 拒绝主动提议 -> 抑制该物体,免得追着问
-                suppress[prev["req"]["params"]["object_name"]] = t_word + args.suppress
+                suppress[prev["object"]] = t_word + args.suppress
             P.say("[-] 已取消")
             if t.lower() in NO_WORDS:
                 return
@@ -325,7 +346,7 @@ def main() -> int:
             if pending and st - pending["since"] > args.confirm_timeout:
                 P.say("[-] 确认超时,已取消")
                 if pending["mode"] == "主动":
-                    suppress[pending["req"]["params"]["object_name"]] = st + args.suppress
+                    suppress[pending["object"]] = st + args.suppress
                 pending = None
             if args.replay and not scripted and pending is None and e is None:
                 rid = last_req["id"]  # 等最后一个已接受请求到终态,而不是"暂时没状态"就走

@@ -111,7 +111,8 @@ damp/stop + 臂急停)→ 给被中断的 req_id 广播 `stopped`。急停链路
 1. `yaw` 单位与零轴:意图机发**弧度、板系 +x=0、逆时针正**——狗端确认或换算。
 2. `target_world` = 站位(意图机留 standoff)已按此实现;狗端若想自己留,告知即可(意图机 `--standoff 0`)。
 3. **检测类名词表**:`/detect_grasp` 只认检测器类名("苹果"被 goal reject,"orange" 通过)。
-   狗端给一份支持的类名列表,意图机加"地图名→检测名"映射。
+   意图机已有映射(`Intension/detect_names.json`,发送前地图名→检测名);
+   狗端给一份支持的类名列表,填进这张表即完事。
 4. **送达段未实现**:`deliver_to` 现被当未知字段忽略——需在 Pick 成功后追加
    Move(deliver_to 的 x,y 前 ~0.8m,yaw 朝向用户)。
 5. `stop` 抢占尚未在真机验证(`/b2_move_path` 需支持 cancel)。
