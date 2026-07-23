@@ -1,31 +1,14 @@
 #!/usr/bin/env python3
-"""stare_to_grasp.py -- 盯住即夹取:AGENT_DESIGN 的最小可跑切片(无 LLM)。
+"""stare_to_grasp.py -- 盯住即夹取:最早的最小切片,留作对照与回归(无 LLM)。
 
-    gaze_live.py --publish 5581        感知层(已有,另开终端)
-        |  PUB 'gaze.intent'           per-fixation verdict(provisional + final)
-        v
-    VisitTracker(本文件,层A内核)    因果 visit/dwell 累积,每 visit 单发
-        |  sustained: 同一物体因果注视 >= --dwell(默认 4.8s)
-        v
-    规则脑(本文件,层B的极简替身)   sustained -> 控制台问一句 -> y 确认
-        |
-        v  dispatch: 打印 grasp 调用(或 --skill-endpoint REQ 发给技能端)
+    gaze_live.py --publish 5581 ──▶ VisitTracker(core.attention)──▶
+    盯满 --dwell(默认 4.8s)──▶ 控制台问一句 ──▶ y 确认 ──▶ dispatch
 
-用法:
-    # 上游(另一终端,与 gaze_live 同一个 python 环境):
-    python Eye_Tracker/tools/gaze_live.py --publish 5581 [...]
-    # 本脚本(需要 pyzmq + msgpack;回放模式纯 stdlib):
-    python Intension/stare_to_grasp.py
+组件已抬进 core/(brain.py 同用);本文件只剩这一条规则的编排。
+
+    python Intension/stare_to_grasp.py [--skill-endpoint tcp://狗机:5583]
     python Intension/stare_to_grasp.py --raw-log                       # 录原始流供回放
-    python Intension/stare_to_grasp.py --replay logs/<sess>/raw.jsonl  # 确定性回放,无需上游
-
-保留自 AGENT_DESIGN.md、将来直接长成层A/层B的部分:
-  * 吃 provisional 做实时 dwell,final 结账(§4.1:只吃 final 的仲裁器永远不触发);
-  * visit 语义 = grasp_intent.py 的因果化:merge-gap 瞥离容忍、revisit 只数过去(§4.2);
-  * 每 visit 单发 + 对话后抑制期(§4.4/§9,Midas touch 防线);
-  * 确认门在代码里(§2.3):没有 y 就没有 dispatch;
-  * 一切事件落 jsonl;--raw-log + --replay 给仲裁层确定性回放(§2.5);
-  * --publish 5582 可选发布 attention.* 事件,即未来大脑进程的订阅口。
+    python Intension/stare_to_grasp.py --replay logs/<sess>/raw.jsonl  # 确定性回放
 """
 
 from __future__ import annotations
@@ -36,10 +19,12 @@ import select
 import sys
 import threading
 import time
-from collections import deque
 from pathlib import Path
 
-OBJ0 = 10  # instance labels >= OBJ0 are objects; below: floor/wall/ceiling (same as grasp_intent.py)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from core.attention import VisitTracker, accepted           # noqa: E402
+from core.comms import Printer, dispatch, status_listener   # noqa: E402
+
 YES_WORDS = {"y", "yes", "是", "好", "嗯", "要", "ok", "行"}
 QUIT_WORDS = {"q", "quit", "停", "stop", "exit"}
 
@@ -76,119 +61,6 @@ def parse_args():
     return p.parse_args()
 
 
-# ------------------------------------------------------------ 层A内核:因果 visit 累积
-
-class VisitTracker:
-    """Causal visit/dwell accumulation over fixation verdicts (intent-agnostic).
-
-    Live dwell comes from provisional verdicts of the still-open fixation;
-    finals settle the books (closed_s). Same-object fixations merge across
-    gaps <= merge_gap; revisits count past visits only; 'sustained' fires at
-    most once per visit. What a sustained visit *means* is the caller's call.
-    """
-
-    def __init__(self, fire_dwell, merge_gap, revisit_window=90.0, release_grace=0.6):
-        self.fire_dwell = fire_dwell
-        self.merge_gap = merge_gap
-        self.revisit_window = revisit_window
-        self.release_grace = release_grace
-        self.visit = None    # object/label/t_start/t_last_end/closed_s/shares/fired/last
-        self.run_fx = None   # still-open fixation: t_start/dur/object
-        self.past = deque()  # (t_close, object) -- causal revisit counting
-
-    def _dwell(self):
-        v = self.visit
-        run = 0.0
-        if v and self.run_fx and self.run_fx["object"] == v["object"] \
-                and self.run_fx["t_start"] >= v["t_start"] - 1e-9:
-            run = self.run_fx["dur"]
-        return v["closed_s"] + run if v else 0.0
-
-    def _revisits(self, obj, now):
-        while self.past and now - self.past[0][0] > self.revisit_window:
-            self.past.popleft()
-        return sum(1 for _, o in self.past if o == obj)
-
-    def _close(self, t):
-        v = self.visit
-        if v is None:
-            return []
-        dwell = self._dwell()
-        # a run_fx that belongs to the closed span must not leak into the next visit
-        if self.run_fx and self.run_fx["object"] == v["object"] \
-                and self.run_fx["t_start"] <= v["t_last_end"] + 1e-9:
-            self.run_fx = None
-        self.past.append((t, v["object"]))
-        self.visit = None
-        return [("released", {"object": v["object"], "dwell_s": round(dwell, 2),
-                              "fired": v["fired"], "t": round(t, 3)})]
-
-    def advance(self, t):
-        """Clock tick from gated-out events: merge-gap timeout release.
-
-        Grace on top of merge_gap: a merging same-object fixation announces
-        itself only ~0.4-0.5s after its t_start (first provisional), so closing
-        on the raw gap would kill visits the offline semantics would merge.
-        feed() still applies the strict t_start-based gap, so dwell accounting
-        stays exactly grasp_intent's; grace only delays the released event.
-        """
-        if self.visit and t - self.visit["t_last_end"] > self.merge_gap + self.release_grace:
-            return self._close(t)
-        return []
-
-    def feed(self, e):
-        """One accepted verdict in; a list of (kind, payload) events out."""
-        out = []
-        t0, t1 = float(e["t_start"]), float(e["t_end"])
-        dur, obj = float(e["duration_s"]), e["object"]
-        if e.get("provisional"):
-            self.run_fx = {"t_start": t0, "dur": dur, "object": obj}
-        elif self.run_fx and abs(self.run_fx["t_start"] - t0) < 1e-9:
-            self.run_fx = None  # this fixation's final settles it below
-
-        v = self.visit
-        if v is None or obj != v["object"] or t0 - v["t_last_end"] > self.merge_gap:
-            out += self._close(t1)
-            self.visit = v = {"object": obj, "label": e.get("object_label"),
-                              "t_start": t0, "t_last_end": t1, "closed_s": 0.0,
-                              "shares": [], "fired": False, "last": e,
-                              "revisits": self._revisits(obj, t0)}
-        v["t_last_end"] = max(v["t_last_end"], t1)
-        v["shares"].append(float(e.get("vote_share", 0.0)))
-        v["last"] = e
-        if not e.get("provisional"):
-            v["closed_s"] += dur
-
-        dwell = self._dwell()
-        out.append(("progress", {"object": obj, "dwell_s": round(dwell, 2),
-                                 "share": float(e.get("vote_share", 0.0))}))
-        if not v["fired"] and dwell >= self.fire_dwell - 1e-9:
-            v["fired"] = True
-            last = v["last"]
-            out.append(("sustained", {
-                "object": v["object"],
-                "target_world": last.get("object_centroid_world"),
-                "dwell_s": round(dwell, 2),
-                "revisits": v["revisits"],
-                "mean_vote_share": round(sum(v["shares"]) / len(v["shares"]), 2),
-                "p_none": last.get("p_none"),
-                "sigma_deg": last.get("sigma_deg"),
-                "candidates": last.get("candidates"),
-                "t": round(t1, 3),
-            }))
-        return out
-
-
-# ------------------------------------------------------------ IO
-
-def accepted(e, min_vote):
-    """Same gate as grasp_intent.py: objects only, clean cone verdicts."""
-    return (e.get("object_label", -1) >= OBJ0
-            and e.get("vote_share", 0.0) >= min_vote
-            and e.get("mode") == "cone"
-            and e.get("object_centroid_world"))
-
-
 def zmq_source(endpoint):
     import msgpack
     import zmq
@@ -208,61 +80,6 @@ def replay_source(path):
             line = line.strip()
             if line:
                 yield json.loads(line)
-
-
-def dispatch(req, endpoint):
-    """Skill call, AGENT_DESIGN §8 REQ shape. Print-only unless an endpoint is given."""
-    if not endpoint:
-        return {"accepted": True, "reason": "print-only (no --skill-endpoint)"}
-    import msgpack
-    import zmq
-    s = zmq.Context.instance().socket(zmq.REQ)
-    s.setsockopt(zmq.LINGER, 0)
-    s.connect(endpoint)
-    s.send(msgpack.packb(req))
-    if s.poll(2000):
-        rep = msgpack.unpackb(s.recv(), strict_map_key=False)
-    else:
-        rep = {"accepted": False, "reason": "skill endpoint timeout (2s)"}
-    s.close()
-    return rep
-
-
-class Printer:
-    """One-line live progress that never collides with real lines."""
-
-    def __init__(self):
-        self._open = False
-
-    def progress(self, s):
-        print(f"\r  {s}   ", end="", flush=True)
-        self._open = True
-
-    def say(self, s):
-        if self._open:
-            print()
-            self._open = False
-        print(s, flush=True)
-
-
-def status_listener(endpoint, printer, seen, logev):
-    """Print the dog's skill.status broadcasts into our console (daemon thread)."""
-    import msgpack
-    import zmq
-    sub = zmq.Context.instance().socket(zmq.SUB)
-    sub.connect(endpoint)
-    sub.setsockopt(zmq.SUBSCRIBE, b"skill.status")
-    while True:
-        st = msgpack.unpackb(sub.recv_multipart()[-1], strict_map_key=False)
-        seen[st.get("req_id", "?")] = st.get("state", "?")
-        pose = st.get("pose") or {}
-        line = f"[狗] {st.get('state', '?'):<10} req={st.get('req_id', '?')}"
-        if pose:
-            line += f"  pose=({pose.get('x', 0):+.2f},{pose.get('y', 0):+.2f})"
-        if st.get("detail"):
-            line += f"  {st['detail']}"
-        printer.say(line)
-        logev({"topic": "skill.status", **st})
 
 
 def ask(printer, question, timeout):
