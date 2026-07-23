@@ -1,7 +1,7 @@
 {
   "type": "object",
   "properties": {
-    "action": {"type": "string", "enum": ["fetch", "stop", "none"]},
+    "action": {"type": "string", "enum": ["fetch", "goto", "stop", "none"]},
     "deictic": {"type": "boolean"},
     "object_query": {"type": ["string", "null"]},
     "noun_class": {"type": ["string", "null"]},

@@ -241,16 +241,20 @@ def main() -> int:
                 return None
             prompt = (
                 "把这句对机器人说的中文指令解析成 JSON(只输出 JSON)。\n"
+                "机器人技能(action 取值):\n"
+                "- fetch: 去拿某个物体并送回来(需要一个物体目标)\n"
+                "- goto: 只移动过去,不抓取——去某物体旁边,或来用户身边('过来')\n"
+                "- stop: 让它立刻停下\n"
+                "- none: 都不是\n"
                 "场景中已命名的物体(object_query 与 location_hint 只能取其中之一或 null):\n"
                 f"{'、'.join(sorted(table))}\n"
                 "字段规则:\n"
-                "- action: 让机器人去拿/取/带来某物=fetch;让它停下=stop;都不是=none\n"
-                "- deictic: 用了'这个/那个'等现场指代、且没指名是上表中哪一个时为 true\n"
-                "- object_query: 用户指名的物体 -> 上表中最匹配的一个;没指名、或说法\n"
-                "  同时匹配多个物体而无法确定是哪一个时为 null(类别词放 noun_class)\n"
+                "- deictic: 用了'这个/那个/那边'等现场指代、且没指名是上表中哪一个时为 true\n"
+                "- object_query: 目标物体(fetch=要拿的物;goto=要去的参照物)->\n"
+                "  上表中最匹配的一个;没指名、或说法同时匹配多个而无法确定时为 null\n"
                 "- noun_class: 指代或泛指时的类别词(如 杯、机器人);没有则 null\n"
-                "- location_hint: 提到的地点参照物 -> 上表中的一个;没有则 null\n"
-                "- deliver_to_user: 是否要求送到用户身边\n"
+                "- location_hint: 顺带提到的地点参照物 -> 上表中的一个;没有则 null\n"
+                "- deliver_to_user: fetch=是否要求送到用户身边;goto=目的地是否就是用户身边\n"
                 f"指令:「{text}」")
             t0 = time.time()
             P.say("[LLM] 解析中…")
@@ -286,6 +290,11 @@ def main() -> int:
         logev({"topic": "llm_parse", "text": text, "result": data, "cached": cached})
         if data.get("action") == "stop":
             return {"kind": "stop"}
+        if data.get("action") == "goto":
+            return {"kind": "goto", "query": data.get("object_query"),
+                    "noun": data.get("noun_class") or "",
+                    "deictic": bool(data.get("deictic")),
+                    "to_user": bool(data.get("deliver_to_user"))}
         if data.get("action") != "fetch":
             return {"kind": "help"}
         if data.get("deictic"):
@@ -337,23 +346,29 @@ def main() -> int:
 
     user_pos = {"xyz": None, "t": 0.0}  # 每条 verdict 的 origin_world = 用户头部位置
 
-    def propose(obj, tw, mode, t_word):
+    def propose(obj, tw, mode, t_word, goto=False):
+        """goto=True 时发狗端真实的 move_to(纯导航);否则 grasp。"""
         nonlocal n_req, pending
         n_req += 1
-        params = {"object_name": obj, "target_world": tw}
-        if user_pos["xyz"] is not None:  # 确认时刻的用户位置,"带回"的目的地
-            params["deliver_to"] = user_pos["xyz"]
-        req = {"v": 1, "type": "skill.request", "skill": "grasp",
+        if goto:
+            params = {"x": round(tw[0], 3), "y": round(tw[1], 3)}
+        else:
+            params = {"object_name": obj, "target_world": tw}
+            if user_pos["xyz"] is not None:  # 确认时刻的用户位置:带它=送达,缺省=原地done
+                params["deliver_to"] = user_pos["xyz"]
+        req = {"v": 1, "type": "skill.request",
+               "skill": "move_to" if goto else "grasp",
                "params": params,
                "req_id": f"{sess.name}-{n_req:03d}", "frame": args.frame,
                "sent_at": time.time(), "t_stream": round(t_word, 3),
-               "intent_summary": f"指令({mode})消解为 {obj}"}
-        logev({"topic": "resolution", "mode": mode, "object": obj, "t": t_word})
+               "intent_summary": f"指令({mode}){'导航至' if goto else '消解为'} {obj}"}
+        logev({"topic": "resolution", "mode": mode, "object": obj, "goto": goto, "t": t_word})
         if args.yes:
             send(req)
         else:
             pending = {"req": req, "since": t_word, "mode": mode}
             ask = (f"[?] 你在看「{obj}」——要我拿来吗?" if mode == "主动"
+                   else f"[?] 过去「{obj}」({tw[0]:+.2f},{tw[1]:+.2f},{tw[2]:+.2f})m ?" if goto
                    else f"[?] 去拿「{obj}」({tw[0]:+.2f},{tw[1]:+.2f},{tw[2]:+.2f})m ?")
             P.say(ask + " y=确认 其他=取消")
 
@@ -396,6 +411,29 @@ def main() -> int:
         if cmd["kind"] == "help":
             if not was_decline:
                 P.say("我能做:拿取场景里的物体。例:拿一下显示器 / 把这个杯子拿来 / 停")
+            return
+        if cmd["kind"] == "goto":  # 高维 move_to:目的地=物体旁/注视处/用户身边
+            if cmd["to_user"] and not cmd["query"] and not cmd["deictic"]:
+                if user_pos["xyz"] is None:
+                    P.say("[×] 还不知道你的位置(视线流没送来定位)")
+                    return
+                propose("你这里", user_pos["xyz"], "导航", t_word, goto=True)
+                return
+            if cmd["deictic"]:
+                cands = buf.candidates(t_word, args.lookback, cmd["noun"])
+                if cands and cands[0].get("target_world"):
+                    propose(f"{cands[0]['object']}那边", cands[0]["target_world"],
+                            "导航", t_word, goto=True)
+                    return
+            if cmd["query"]:
+                name, top = resolve_named(cmd["query"], table)
+                if name:
+                    propose(f"{name}那边", table[name], "导航", t_word, goto=True)
+                    return
+                P.say(f"[×] 「{cmd['query']}」没有唯一命中,最像的:"
+                      + " / ".join(f"{n}({s:.2f})" for s, n in top))
+                return
+            P.say("[×] 说不清去哪:指个名字,或看一眼目的地再说")
             return
         if cmd["kind"] == "named":
             name, top = resolve_named(cmd["query"], table)
