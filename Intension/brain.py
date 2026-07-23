@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import queue
 import sys
 import threading
@@ -62,6 +63,8 @@ def parse_args():
     p.add_argument("--skill-endpoint", default=None)
     p.add_argument("--status-endpoint", default=None)
     p.add_argument("--frame", default="board/v2")
+    p.add_argument("--standoff", type=float, default=0.6,
+                   help="站位距离:target 发在目标前多少米(狗端自留 standoff 时设 0)")
     p.add_argument("--replay", default=None)
     p.add_argument("--script", action="append", default=[],
                    help="回归用脚本指令 '流时间:指令文本',可重复")
@@ -144,11 +147,26 @@ def main() -> int:
               "req_id": f"{sess.name}-stop", "frame": args.frame,
               "sent_at": time.time(), "params": {}})
 
-    def propose(obj, tw, mode, t_word, goto=False):
-        """唯一技能 grasp:goto=True 时 object_name 置空 = 纯导航(冻结定义)。"""
+    def stand_pose(goal, approach_from=None):
+        """狗基座站位:沿 approach_from(缺省=用户位置,再缺省=原点)→goal 方向,
+        在 goal 前 --standoff 米停;yaw 指向 goal(弧度,板系 +x=0,逆时针正)。"""
+        src = approach_from or user_pos["xyz"] or (0.0, 0.0, 0.0)
+        vx, vy = goal[0] - src[0], goal[1] - src[1]
+        n = math.hypot(vx, vy)
+        if n < 1e-6:
+            vx, vy, n = 1.0, 0.0, 1.0
+        d = min(args.standoff, n)  # 出发侧离目标太近时,别退越过出发点
+        return ([round(goal[0] - vx / n * d, 3), round(goal[1] - vy / n * d, 3),
+                 round(goal[2], 3)], round(math.atan2(vy, vx), 3))
+
+    def propose(obj, tw, mode, t_word, goto=False, approach_from=None):
+        """唯一技能 grasp:goto=True 时 object_name 置空 = 纯导航(冻结定义)。
+        狗端导航吃 (x,y)+yaw、高度自调:target_world = 站位,z 仅是目标高度参考。"""
         nonlocal n_req, pending
         n_req += 1
-        params = {"object_name": None if goto else obj, "target_world": tw}
+        stand, yaw = stand_pose(tw, approach_from)
+        params = {"object_name": None if goto else obj,
+                  "target_world": stand, "yaw": yaw}
         if not goto and user_pos["xyz"] is not None:  # 确认时刻的用户位置:带它=送达
             params["deliver_to"] = user_pos["xyz"]
         req = {"v": 1, "type": "skill.request", "skill": "grasp",
@@ -156,14 +174,16 @@ def main() -> int:
                "req_id": f"{sess.name}-{n_req:03d}", "frame": args.frame,
                "sent_at": time.time(), "t_stream": round(t_word, 3),
                "intent_summary": f"指令({mode}){'导航至' if goto else '消解为'} {obj}"}
-        logev({"topic": "resolution", "mode": mode, "object": obj, "goto": goto, "t": t_word})
+        logev({"topic": "resolution", "mode": mode, "object": obj, "goto": goto,
+               "t": t_word, "goal": tw, "stand": stand, "yaw": yaw})
         if args.yes:
             send(req)
         else:
             pending = {"req": req, "since": t_word, "mode": mode}
+            pose_txt = f"站位({stand[0]:+.2f},{stand[1]:+.2f}) 朝向{math.degrees(yaw):+.0f}°"
             ask = (f"[?] 你在看「{obj}」——要我拿来吗?" if mode == "主动"
-                   else f"[?] 过去「{obj}」({tw[0]:+.2f},{tw[1]:+.2f},{tw[2]:+.2f})m ?" if goto
-                   else f"[?] 去拿「{obj}」({tw[0]:+.2f},{tw[1]:+.2f},{tw[2]:+.2f})m ?")
+                   else f"[?] 过去「{obj}」{pose_txt} ?" if goto
+                   else f"[?] 去拿「{obj}」{pose_txt} ?")
             P.say(ask + " y=确认 其他=取消")
 
     def handle(t_word, text):
@@ -207,7 +227,12 @@ def main() -> int:
                 if user_pos["xyz"] is None:
                     P.say("[×] 还不知道你的位置(视线流没送来定位)")
                     return
-                propose("你这里", user_pos["xyz"], "导航", t_word, goto=True)
+                # 从最近注视处那一侧接近:站到用户视野里,yaw 朝向用户
+                ref = (buf.visit["last"].get("object_centroid_world")
+                       if buf.visit is not None
+                       else buf.recent[-1].get("target_world") if buf.recent else None)
+                propose("你这里", user_pos["xyz"], "导航", t_word, goto=True,
+                        approach_from=ref)
                 return
             if cmd["deictic"]:
                 cands = buf.candidates(t_word, args.lookback, cmd["noun"])

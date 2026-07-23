@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """send_test2.py -- 顺序双步测试(狗端联调,不需要视线管线):
 
-    步骤1  grasp{"苹果", T1}        去 T1 抓苹果(等终态)
-    步骤2  grasp{null,  T2}        纯导航走回 T2(冻结定义:空 object=只走不抓)
+    步骤1  grasp{物体, T1}         去 T1 站位抓物体(等终态)
+    步骤2  grasp{null, T2}         纯导航走回 T2(冻结定义:空 object=只走不抓)
 
-    python send_test2.py                              # 本机 dog_link
-    python send_test2.py --host 192.168.1.7           # 狗机
-    python send_test2.py --t1 -0.1,-1.1,0.5 --t2 0,0,0
+坐标可带第 4 个分量 = yaw(弧度,站位朝向;缺省 0)。真狗端吃 x,y+yaw、z 忽略。
+
+    python send_test2.py                              # 默认打狗机
+    python send_test2.py --obj apple --t1 2.27,-0.27,0,1.57
+    python send_test2.py --host 127.0.0.1             # 本机 dog_link --fake
 """
 
 import argparse
@@ -19,9 +21,9 @@ import zmq
 TERMINAL = ("done", "failed", "stopped")
 
 
-def xyz(s):
+def xyzw(s):
     v = [float(x) for x in s.split(",")]
-    assert len(v) == 3, "坐标格式 x,y,z"
+    assert len(v) in (3, 4), "坐标格式 x,y,z 或 x,y,z,yaw"
     return v
 
 
@@ -59,12 +61,14 @@ def wait_terminal(sub, req_id, timeout=120):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--host", default="127.0.0.1", help="狗机 IP")
+    ap.add_argument("--host", default="192.168.123.164", help="狗机 IP")
     ap.add_argument("--rep", type=int, default=5583)
     ap.add_argument("--pub", type=int, default=5584)
-    ap.add_argument("--t1", type=xyz, default=[-0.1, -1.1, -2.0],
-                    help="步骤1 抓取目标 x,y,z(注意 z 需在夹爪可达内,狗端默认 0.02~0.90)")
-    ap.add_argument("--t2", type=xyz, default=[0.0, 0.0, 0.0], help="步骤2 导航目标 x,y,z")
+    ap.add_argument("--obj", default="orange", help="步骤1 抓取物体名(检测器类名,英文)")
+    ap.add_argument("--t1", type=xyzw, default=[2.27, -0.27, 0.0],
+                    help="步骤1 站位 x,y,z[,yaw](真狗端 z 忽略;--fake 模拟端 z 需 0.02~0.90)")
+    ap.add_argument("--t2", type=xyzw, default=[0.0, 0.0, 0.0],
+                    help="步骤2 导航站位 x,y,z[,yaw]")
     args = ap.parse_args()
 
     ctx = zmq.Context.instance()
@@ -77,12 +81,13 @@ def main():
     base = {"v": 1, "type": "skill.request", "frame": "board/v2"}
     tag = time.strftime("%H%M%S")
 
-    print("---- 步骤1:去抓苹果 ----")
+    print(f"---- 步骤1:去抓{args.obj} ----")
     rep = send(ctx, args.host, args.rep, {
         **base, "req_id": f"test2-{tag}-1", "sent_at": time.time(),
         "skill": "grasp",
-        "params": {"object_name": "苹果", "target_world": args.t1},
-        "intent_summary": "send_test2 步骤1:抓苹果"})
+        "params": {"object_name": args.obj, "target_world": args.t1[:3],
+                   "yaw": args.t1[3] if len(args.t1) > 3 else 0.0},
+        "intent_summary": f"send_test2 步骤1:抓{args.obj}"})
     state = None
     if rep and rep.get("accepted"):
         state = wait_terminal(sub, f"test2-{tag}-1")
@@ -93,7 +98,8 @@ def main():
     rep = send(ctx, args.host, args.rep, {
         **base, "req_id": f"test2-{tag}-2", "sent_at": time.time(),
         "skill": "grasp",
-        "params": {"object_name": None, "target_world": args.t2},
+        "params": {"object_name": None, "target_world": args.t2[:3],
+                   "yaw": args.t2[3] if len(args.t2) > 3 else 0.0},
         "intent_summary": "send_test2 步骤2:导航返回"})
     if rep and rep.get("accepted"):
         wait_terminal(sub, f"test2-{tag}-2")
