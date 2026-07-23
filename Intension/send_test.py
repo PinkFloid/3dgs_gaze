@@ -11,7 +11,7 @@ import zmq
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--host", default="127.0.0.1", help="SERVER IP")
+    ap.add_argument("--host", default="192.168.123.164", help="SERVER IP")
     ap.add_argument("--rep", type=int, default=5583, help="技能请求端口")
     ap.add_argument("--pub", type=int, default=5584, help="进度广播端口")
     args = ap.parse_args()
@@ -26,9 +26,9 @@ def main():
            "sent_at": time.time(),
            "frame": "board/v2",
            "skill": "grasp",
-           "params": {"object_name": "黄色机器人",
-                      "target_world": [-0.185, 3.413, 0.829],
-                      "deliver_to": [2.0, -1.5, 1.4]},
+           "params": {"object_name": "apple",
+                      "target_world": [-0.1, -1.1, -2.0]
+                      },
            "intent_summary": "send_test 固定样例"}
 
     print(f"2 秒后发送到 tcp://{args.host}:{args.rep} ...")

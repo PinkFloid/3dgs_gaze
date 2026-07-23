@@ -200,7 +200,7 @@ def execute(dog, skill, params, report, should_stop):
 
     # grasp
     target = [float(v) for v in params["target_world"]]
-    if params.get("object_name") is None:   # 冻结定义:object 为空 = 纯导航,不动臂
+    if not params.get("object_name"):   # 冻结定义:object 为空(null/"")= 纯导航,不动臂
         report("moving")
         err = _navigate(dog, (target[0], target[1]), None, NAV_TOL, "moving", should_stop)
         return _finish(report, err) if err else report("done")
@@ -248,7 +248,7 @@ def validate(skill, params):
         t = params.get("target_world")
         if not (isinstance(t, (list, tuple)) and len(t) == 3):
             return "bad_params: grasp needs target_world [x,y,z]"
-        nav_only = params.get("object_name") is None  # 纯导航:z 是头高不是抓取高,不检臂展
+        nav_only = not params.get("object_name")  # 纯导航(null/""):z 非抓取高,不检臂展
         pts = [(float(t[0]), float(t[1]), None if nav_only else float(t[2]))]
         if params.get("deliver_to") is not None:
             dv = params["deliver_to"]
