@@ -347,17 +347,13 @@ def main() -> int:
     user_pos = {"xyz": None, "t": 0.0}  # 每条 verdict 的 origin_world = 用户头部位置
 
     def propose(obj, tw, mode, t_word, goto=False):
-        """goto=True 时发狗端真实的 move_to(纯导航);否则 grasp。"""
+        """唯一技能 grasp:goto=True 时 object_name 置空 = 纯导航(冻结定义)。"""
         nonlocal n_req, pending
         n_req += 1
-        if goto:
-            params = {"x": round(tw[0], 3), "y": round(tw[1], 3)}
-        else:
-            params = {"object_name": obj, "target_world": tw}
-            if user_pos["xyz"] is not None:  # 确认时刻的用户位置:带它=送达,缺省=原地done
-                params["deliver_to"] = user_pos["xyz"]
-        req = {"v": 1, "type": "skill.request",
-               "skill": "move_to" if goto else "grasp",
+        params = {"object_name": None if goto else obj, "target_world": tw}
+        if not goto and user_pos["xyz"] is not None:  # 确认时刻的用户位置:带它=送达
+            params["deliver_to"] = user_pos["xyz"]
+        req = {"v": 1, "type": "skill.request", "skill": "grasp",
                "params": params,
                "req_id": f"{sess.name}-{n_req:03d}", "frame": args.frame,
                "sent_at": time.time(), "t_stream": round(t_word, 3),
@@ -512,10 +508,10 @@ def main() -> int:
                 if pending["mode"] == "主动":
                     suppress[pending["req"]["params"]["object_name"]] = st + args.suppress
                 pending = None
-            if args.replay and not scripted and pending is None:
-                done = status_seen is None or not status_seen or \
-                    all(s in ("done", "failed", "stopped") for s in status_seen.values())
-                if e is None and done:
+            if args.replay and not scripted and pending is None and e is None:
+                rid = last_req["id"]  # 等最后一个已接受请求到终态,而不是"暂时没状态"就走
+                if status_seen is None or rid is None or \
+                        status_seen.get(rid) in ("done", "failed", "stopped"):
                     break
     except KeyboardInterrupt:
         pass
