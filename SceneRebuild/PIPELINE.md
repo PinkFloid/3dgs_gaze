@@ -22,11 +22,13 @@
 ```powershell
 # 0. 前提（已完成，换手机/换相机模式才需要重做）
 #    手机内参: calibration_results\phone_camera_calibration.npz
-#      2026-07-04 重标定, CALIB_FIX_K3, RMS 0.69px, 48MP 模式 5712x4284,
-#      竖幅内参已在 npz 的 upright_90cw 键里算好
+#      2026-07-24 重标定(新 A3 板), CALIB_FIX_K3, RMS 1.01px/45帧, 5712x4284,
+#      竖幅内参已在 npz 的 upright_90cw 键里算好(run_colmap 脚本已同步此值)
 #    眼动仪世界相机: calibration_results\world_camera_calibration.npz (鱼眼)
-#    ChArUco 板: 11x8 格(=8*11 的行列叫法), 格 32mm, 码 24mm, DICT_6X6_250,
-#      ID 从 30 起, legacy 图案 —— ⚠ 格子尺寸待尺子实测确认
+#      2026-07-24 重标定(调焦后), RMS 0.48px/52帧
+#    ChArUco 板(2026-07 新 A3 板): 11x8 格, 名义 格32mm/码24mm, DICT_6X6_250,
+#      **ID 从 0 起(0-43)**, legacy 图案 —— ⚠ align 的 --square-size 必须用
+#      尺子实测值(量 10 格总长/10),内参对板尺寸不敏感但世界系米制全靠它
 #    拍摄注意: 板 + 所有 ArUco tag 必须同场入镜（每个 tag ≥3 张清晰照片）
 
 # 1. 照片转正 + 剔除分辨率不符的照片（EXIF 旋转烘进像素）
@@ -53,22 +55,24 @@ ns-process-data images `
 #      （多相机时先跑 tools\merge_colmap_cameras.py + bundle_adjuster，
 #       并加 --colmap-model-path colmap/sparse/0_merged，见"已知坑"）
 
-# 4. 对齐到板坐标系（米）。格 32mm、码 24mm，其余为脚本默认
+# 4. 对齐到板坐标系（米）。⚠ 新 A3 板 ID 从 0 起：--marker-id-start 0 必须给
+#    （脚本默认 30 是旧板）；--square-size 用尺子实测值（名义 0.032）
 python E:\Grasp\tools\align_to_charuco.py `
   --dataset E:\Grasp\data\<数据集> `
-  --square-size 0.032 --marker-size 0.024
+  --marker-id-start 0 --square-size 0.032 --marker-size 0.024
 #    →  transforms_aligned.json
 #    检查："1 colmap-unit = X m" 合理、板拟合残差毫米级、相机高度=实际拍摄高度
 #    （lab_colmap_v2 基准：scale 0.768、RMS 0.48mm、相机 Z 0.93-2.03m）
 
 # 5. ArUco tag 测绘（在线定位锚点）。混合尺寸用 --tag-sizes 分段给预期边长；
-#    角点三角化与尺寸无关，尺寸只影响拟合模板和体检数字。范围放宽自动收新 tag
-#    （30-73 是板的 ID 段，勿包含）
+#    角点三角化与尺寸无关，尺寸只影响拟合模板和体检数字。
+#    2026-07 部署：79-86=留用的旧 24cm 大 tag，90-119=新 2x3 组合纸，
+#    120-139=新 A3 单 tag（含预留）。⚠ 0-43 现在是板的 ID 段，勿包含
 python E:\Grasp\tools\survey_aruco_tags.py `
   --dataset E:\Grasp\data\<数据集> `
-  --tag-ids "0-29,74-249" --tag-sizes "0-29:0.099,74-249:0.24"
+  --tag-ids "79-86,90-139" --tag-sizes "79-86:0.24,90-119:<实测>,120-139:<实测>"
 #    →  tags_world.json；检查每 tag fit_rms 毫米级、实测≈预期、视角数≥3
-#    （旧 6 合 1 纸实测 99mm；新 A3 单 tag 240mm 实测 ±0.4%，打印无缩放）
+#    （尺寸按打印批次尺量：旧 6 合 1 纸当年实测 99mm 可参考）
 
 # 6. 训练。三个 flag 缺一不可，否则 nerfstudio 会把对齐好的坐标再打乱
 #    ⚠ Windows 上 ns-train 同样需要 gsplat JIT 环境变量（TORCH_EXTENSIONS_DIR/
