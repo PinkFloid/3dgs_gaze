@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
-"""capture_world_frames.py -- 世界相机标定图自动采集(需 Pupil Capture 在跑 + Frame Publisher 插件)。
+"""capture_world_frames.py -- 世界相机标定图采集(需 Pupil Capture 在跑 + Frame Publisher 插件)。
 
-订阅 frame.world,检测 ChArUco 板;角点数达标、离上一张拉开距离且间隔够时自动存 PNG。
-挥板要慢、盖满视野——鱼眼的畸变主战场在边角,边角机位多给。
+默认手动挡:终端里**按回车拍一张**,q 回车收工。状态行实时报当前 ChArUco 角点数
+和 4x4 视野覆盖,对准了再按。--auto 换回自动挡(角点够+移动够+间隔够就存)。
 
-    python capture_world_frames.py                     # 存满 80 张到 ../world_camera_calibration_imgs
-    python capture_world_frames.py --target 60 --min-corners 30
+    python capture_world_frames.py                     # 回车拍照,存到 ../world_camera_calibration_imgs
+    python capture_world_frames.py --auto --target 80  # 自动挡
 """
 
 from __future__ import annotations
 
 import argparse
+import queue
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -28,11 +30,12 @@ def parse_args():
     p.add_argument("--pupil", default="127.0.0.1:50020", help="Pupil Remote host:port")
     p.add_argument("--out", default=str(Path(__file__).resolve().parents[1]
                                         / "world_camera_calibration_imgs"))
-    p.add_argument("--target", type=int, default=80, help="存满多少张自动退出")
-    p.add_argument("--min-corners", type=int, default=40, help="入选帧的最少 ChArUco 角点")
-    p.add_argument("--interval", type=float, default=0.7, help="两张之间最短间隔 (s)")
-    p.add_argument("--min-move", type=float, default=60.0,
-                   help="板中心相对上一张至少移动多少像素(逼出机位多样性)")
+    p.add_argument("--auto", action="store_true", help="自动挡(默认手动:回车拍)")
+    p.add_argument("--target", type=int, default=80, help="自动挡存满多少张退出")
+    p.add_argument("--min-corners", type=int, default=40,
+                   help="自动挡入选门槛;手动挡低于它只警告不拦")
+    p.add_argument("--interval", type=float, default=0.7, help="自动挡两张最短间隔 (s)")
+    p.add_argument("--min-move", type=float, default=60.0, help="自动挡板中心最小位移 (px)")
     p.add_argument("--squares-x", type=int, default=11)
     p.add_argument("--squares-y", type=int, default=8)
     p.add_argument("--marker-id-start", type=int, default=0, help="新 A3 板=0(旧板=30)")
@@ -80,40 +83,64 @@ def main() -> int:
     board.setLegacyPattern(not args.no_legacy)
     det = cv2.aruco.CharucoDetector(board)
 
+    keys: queue.Queue[str] = queue.Queue()
+    if not args.auto:
+        def stdin_reader():
+            for line in sys.stdin:
+                keys.put(line.strip().lower())
+        threading.Thread(target=stdin_reader, daemon=True).start()
+
     print(f"连接 {args.pupil} ...")
     sub = wait_pupil(args.pupil)
-    print(f"开始采集:目标 {args.target} 张,角点>={args.min_corners},"
-          f"间隔>={args.interval}s,移动>={args.min_move:.0f}px。Ctrl-C 提前结束。")
+    print("自动挡:角点/位移/间隔达标即存" if args.auto
+          else "手动挡:[回车]拍一张  [q回车]收工(角点数看状态行,对准了再按)")
 
-    saved, last_t, last_c, t_msg = 0, 0.0, None, 0.0
-    grid = set()  # 板中心走过的 4x4 画面格,提示覆盖率
+    saved, last_t, last_c, t_line = 0, 0.0, None, 0.0
+    grid = set()
     try:
         for _ts, bgr in live_frames(sub):
             gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
             cc, ci, _mc, _mi = det.detectBoard(gray)
             n = 0 if ci is None else len(ci)
-            now = time.time()
-            if n < args.min_corners:
-                if now - t_msg > 5:
-                    print(f"  ...等板子(当前角点 {n})", flush=True)
-                    t_msg = now
-                continue
-            c = cc.reshape(-1, 2).mean(0)
-            if last_c is not None and float(np.hypot(*(c - last_c))) < args.min_move:
-                continue
-            if now - last_t < args.interval:
-                continue
-            cv2.imwrite(str(out / f"frame_{n0 + saved:03d}.png"), bgr)
-            saved += 1
-            last_t, last_c, t_msg = now, c, now
             h, w = gray.shape
-            grid.add((min(3, int(c[0] / w * 4)), min(3, int(c[1] / h * 4))))
-            print(f"[{saved}/{args.target}] 角点 {n}  画面覆盖 {len(grid)}/16 格", flush=True)
-            if saved >= args.target:
+            c = cc.reshape(-1, 2).mean(0) if n else None
+
+            def snap(warn_low):
+                nonlocal saved, last_t, last_c
+                cv2.imwrite(str(out / f"frame_{n0 + saved:03d}.png"), bgr)
+                saved += 1
+                last_t, last_c = time.time(), c
+                if c is not None:
+                    grid.add((min(3, int(c[0] / w * 4)), min(3, int(c[1] / h * 4))))
+                note = "  [!] 角点偏少,标定时可能被剔" if warn_low and n < args.min_corners else ""
+                print(f"\r[{saved}] 存 frame_{n0 + saved - 1:03d}.png  角点 {n}"
+                      f"  覆盖 {len(grid)}/16 格{note}" + " " * 12, flush=True)
+
+            if args.auto:
+                if n >= args.min_corners and c is not None \
+                        and (last_c is None or float(np.hypot(*(c - last_c))) >= args.min_move) \
+                        and time.time() - last_t >= args.interval:
+                    snap(False)
+                    if saved >= args.target:
+                        break
+                continue
+
+            # 手动挡:状态行 + 回车触发
+            now = time.time()
+            if now - t_line > 0.25:
+                print(f"\r角点 {n:2d} | 已存 {saved} | 覆盖 {len(grid)}/16"
+                      f"   [回车]拍  [q回车]收工   ", end="", flush=True)
+                t_line = now
+            try:
+                k = keys.get_nowait()
+            except queue.Empty:
+                continue
+            if k == "q":
                 break
+            snap(True)
     except KeyboardInterrupt:
         pass
-    print(f"完成:存了 {saved} 张到 {out}(覆盖 {len(grid)}/16 格;边角格没到就再补拍)")
+    print(f"\n完成:本次存 {saved} 张到 {out}(覆盖 {len(grid)}/16 格;边角格没到就再补)")
     return 0
 
 
