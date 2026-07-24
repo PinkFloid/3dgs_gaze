@@ -1,17 +1,16 @@
 {
-  "camera": "iPhone 16 Pro Max, 1x main, 48MP (5712x4284), raw landscape sensor frame (EXIF orientation ignored)",
   "image_width": 5712,
   "image_height": 4284,
   "camera_matrix": [
     [
-      4000.621078050455,
+      4037.9549397598,
       0.0,
-      2814.4040546112533
+      2873.824084592402
     ],
     [
       0.0,
-      4024.816565427381,
-      2123.4132622766865
+      4037.315989086338,
+      2127.414333399196
     ],
     [
       0.0,
@@ -20,122 +19,346 @@
     ]
   ],
   "distortion_coefficients": [
-    0.16665224730432593,
-    -0.14699350249706383,
-    -0.001523977764551305,
-    -0.00598953343545814,
+    0.18320790806831705,
+    -0.4926730394573243,
+    0.001141640243586436,
+    -9.46547325521816e-05,
     0.0
   ],
-  "distortion_model": "OPENCV k1,k2,p1,p2 (k3 fixed to 0 for COLMAP)",
-  "rms_reprojection_error": 0.6919174977835483,
-  "valid_images": 47,
+  "rms_reprojection_error": 1.0124770600523865,
+  "valid_images": 45,
   "used_images": [
-    "IMG_0901.JPG",
-    "IMG_0902.JPG",
-    "IMG_0903.JPG",
-    "IMG_0904.JPG",
-    "IMG_0905.JPG",
-    "IMG_0906.JPG",
-    "IMG_0907.JPG",
-    "IMG_0908.JPG",
-    "IMG_0909.JPG",
-    "IMG_0910.JPG",
-    "IMG_0911.JPG",
-    "IMG_0912.JPG",
-    "IMG_0913.JPG",
-    "IMG_0914.JPG",
-    "IMG_0915.JPG",
-    "IMG_0916.JPG",
-    "IMG_0917.JPG",
-    "IMG_0918.JPG",
-    "IMG_0919.JPG",
-    "IMG_0920.JPG",
-    "IMG_0921.JPG",
-    "IMG_0922.JPG",
-    "IMG_0923.JPG",
-    "IMG_0924.JPG",
-    "IMG_0925.JPG",
-    "IMG_0926.JPG",
-    "IMG_0927.JPG",
-    "IMG_0928.JPG",
-    "IMG_0929.JPG",
-    "IMG_0930.JPG",
-    "IMG_0931.JPG",
-    "IMG_0932.JPG",
-    "IMG_0933.JPG",
-    "IMG_0934.JPG",
-    "IMG_0935.JPG",
-    "IMG_0936.JPG",
-    "IMG_0937.JPG",
-    "IMG_0939.JPG",
-    "IMG_0940.JPG",
-    "IMG_0948.JPG",
-    "IMG_0949.JPG",
-    "IMG_0950.JPG",
-    "IMG_0951.JPG",
-    "IMG_0952.JPG",
-    "IMG_0953.JPG",
-    "IMG_0954.JPG",
-    "IMG_0955.JPG"
+    "IMG_1935.JPG",
+    "IMG_1936.JPG",
+    "IMG_1937.JPG",
+    "IMG_1938.JPG",
+    "IMG_1939.JPG",
+    "IMG_1940.JPG",
+    "IMG_1941.JPG",
+    "IMG_1942.JPG",
+    "IMG_1943.JPG",
+    "IMG_1944.JPG",
+    "IMG_1945.JPG",
+    "IMG_1947.JPG",
+    "IMG_1948.JPG",
+    "IMG_1950.JPG",
+    "IMG_1955.JPG",
+    "IMG_1965.JPG",
+    "IMG_1967.JPG",
+    "IMG_1970.JPG",
+    "IMG_1973.JPG",
+    "IMG_1974.JPG",
+    "IMG_1975.JPG",
+    "IMG_1976.JPG",
+    "IMG_1978.JPG",
+    "IMG_1980.JPG",
+    "IMG_1981.JPG",
+    "IMG_1982.JPG",
+    "IMG_1983.JPG",
+    "IMG_1984.JPG",
+    "IMG_1985.JPG",
+    "IMG_1988.JPG",
+    "IMG_1989.JPG",
+    "IMG_1990.JPG",
+    "IMG_1994.JPG",
+    "IMG_1995.JPG",
+    "IMG_2011.JPG",
+    "IMG_2015.JPG",
+    "IMG_2017.JPG",
+    "IMG_2019.JPG",
+    "IMG_2021.JPG",
+    "IMG_2024.JPG",
+    "IMG_2027.JPG",
+    "IMG_2028.JPG",
+    "IMG_2030.JPG",
+    "IMG_2033.JPG",
+    "IMG_2039.JPG"
   ],
   "rejected_images": [
-    "IMG_0900.JPG",
-    "IMG_0938.JPG",
-    "IMG_0941.JPG",
-    "IMG_0942.JPG",
-    "IMG_0943.JPG",
-    "IMG_0944.JPG",
-    "IMG_0945.JPG",
-    "IMG_0946.JPG",
-    "IMG_0947.JPG",
-    "IMG_1282.JPG",
-    "IMG_1283.JPG",
-    "IMG_1284.JPG",
-    "IMG_1285.JPG",
-    "IMG_1323.JPG",
-    "IMG_1324.JPG",
-    "IMG_1325.JPG",
-    "IMG_1326.JPG",
-    "IMG_1327.JPG",
-    "IMG_1328.JPG",
-    "IMG_1329.JPG",
-    "IMG_1330.JPG",
-    "IMG_1331.JPG",
-    "IMG_1332.JPG",
-    "IMG_1333.JPG",
-    "IMG_1334.JPG",
-    "IMG_1335.JPG",
-    "IMG_1336.JPG",
-    "IMG_1337.JPG",
-    "IMG_1338.JPG",
-    "IMG_1339.JPG",
-    "IMG_1340.JPG",
-    "IMG_1341.JPG",
-    "IMG_1342.JPG",
-    "IMG_1343.JPG",
-    "IMG_1344.JPG"
+    {
+      "name": "IMG_1934.JPG",
+      "mean_err_px": 1.599
+    },
+    {
+      "name": "IMG_1946.JPG",
+      "mean_err_px": 2.108
+    },
+    {
+      "name": "IMG_1949.JPG",
+      "mean_err_px": 3.759
+    },
+    {
+      "name": "IMG_1951.JPG",
+      "mean_err_px": 2.667
+    },
+    {
+      "name": "IMG_1952.JPG",
+      "mean_err_px": 1.852
+    },
+    {
+      "name": "IMG_1953.JPG",
+      "mean_err_px": 3.928
+    },
+    {
+      "name": "IMG_1954.JPG",
+      "mean_err_px": 5.073
+    },
+    {
+      "name": "IMG_1956.JPG",
+      "mean_err_px": 1.966
+    },
+    {
+      "name": "IMG_1957.JPG",
+      "mean_err_px": 3.918
+    },
+    {
+      "name": "IMG_1958.JPG",
+      "mean_err_px": 2.065
+    },
+    {
+      "name": "IMG_1959.JPG",
+      "mean_err_px": 2.328
+    },
+    {
+      "name": "IMG_1960.JPG",
+      "mean_err_px": 3.791
+    },
+    {
+      "name": "IMG_1961.JPG",
+      "mean_err_px": 3.482
+    },
+    {
+      "name": "IMG_1962.JPG",
+      "mean_err_px": 2.55
+    },
+    {
+      "name": "IMG_1963.JPG",
+      "mean_err_px": 2.197
+    },
+    {
+      "name": "IMG_1964.JPG",
+      "mean_err_px": 2.064
+    },
+    {
+      "name": "IMG_1966.JPG",
+      "mean_err_px": 1.527
+    },
+    {
+      "name": "IMG_1968.JPG",
+      "mean_err_px": 2.391
+    },
+    {
+      "name": "IMG_1969.JPG",
+      "mean_err_px": 2.098
+    },
+    {
+      "name": "IMG_1971.JPG",
+      "mean_err_px": 2.703
+    },
+    {
+      "name": "IMG_1972.JPG",
+      "mean_err_px": 3.762
+    },
+    {
+      "name": "IMG_1977.JPG",
+      "mean_err_px": 1.536
+    },
+    {
+      "name": "IMG_1979.JPG",
+      "mean_err_px": 1.792
+    },
+    {
+      "name": "IMG_1986.JPG",
+      "mean_err_px": 1.657
+    },
+    {
+      "name": "IMG_1987.JPG",
+      "mean_err_px": 1.502
+    },
+    {
+      "name": "IMG_1991.JPG",
+      "mean_err_px": 1.827
+    },
+    {
+      "name": "IMG_1992.JPG",
+      "mean_err_px": 1.719
+    },
+    {
+      "name": "IMG_1993.JPG",
+      "mean_err_px": 1.757
+    },
+    {
+      "name": "IMG_1996.JPG",
+      "mean_err_px": 1.665
+    },
+    {
+      "name": "IMG_1997.JPG",
+      "mean_err_px": 1.513
+    },
+    {
+      "name": "IMG_1998.JPG",
+      "mean_err_px": 2.227
+    },
+    {
+      "name": "IMG_1999.JPG",
+      "mean_err_px": 1.83
+    },
+    {
+      "name": "IMG_2001.JPG",
+      "mean_err_px": 1.673
+    },
+    {
+      "name": "IMG_2002.JPG",
+      "mean_err_px": 2.501
+    },
+    {
+      "name": "IMG_2003.JPG",
+      "mean_err_px": 2.985
+    },
+    {
+      "name": "IMG_2004.JPG",
+      "mean_err_px": 2.696
+    },
+    {
+      "name": "IMG_2005.JPG",
+      "mean_err_px": 3.142
+    },
+    {
+      "name": "IMG_2006.JPG",
+      "mean_err_px": 3.983
+    },
+    {
+      "name": "IMG_2007.JPG",
+      "mean_err_px": 5.94
+    },
+    {
+      "name": "IMG_2008.JPG",
+      "mean_err_px": 3.292
+    },
+    {
+      "name": "IMG_2009.JPG",
+      "mean_err_px": 1.735
+    },
+    {
+      "name": "IMG_2010.JPG",
+      "mean_err_px": 1.734
+    },
+    {
+      "name": "IMG_2012.JPG",
+      "mean_err_px": 2.465
+    },
+    {
+      "name": "IMG_2013.JPG",
+      "mean_err_px": 1.818
+    },
+    {
+      "name": "IMG_2014.JPG",
+      "mean_err_px": 2.237
+    },
+    {
+      "name": "IMG_2016.JPG",
+      "mean_err_px": 2.596
+    },
+    {
+      "name": "IMG_2018.JPG",
+      "mean_err_px": 1.636
+    },
+    {
+      "name": "IMG_2020.JPG",
+      "mean_err_px": 2.188
+    },
+    {
+      "name": "IMG_2023.JPG",
+      "mean_err_px": 1.514
+    },
+    {
+      "name": "IMG_2025.JPG",
+      "mean_err_px": 2.214
+    },
+    {
+      "name": "IMG_2026.JPG",
+      "mean_err_px": 1.698
+    },
+    {
+      "name": "IMG_2029.JPG",
+      "mean_err_px": 2.41
+    },
+    {
+      "name": "IMG_2031.JPG",
+      "mean_err_px": 2.492
+    },
+    {
+      "name": "IMG_2032.JPG",
+      "mean_err_px": 2.358
+    },
+    {
+      "name": "IMG_2034.JPG",
+      "mean_err_px": 1.528
+    },
+    {
+      "name": "IMG_2035.JPG",
+      "mean_err_px": 3.08
+    },
+    {
+      "name": "IMG_2036.JPG",
+      "mean_err_px": 2.548
+    },
+    {
+      "name": "IMG_2037.JPG",
+      "mean_err_px": 3.725
+    },
+    {
+      "name": "IMG_2038.JPG",
+      "mean_err_px": 4.074
+    },
+    {
+      "name": "IMG_2040.JPG",
+      "mean_err_px": 1.548
+    },
+    {
+      "name": "IMG_2041.JPG",
+      "mean_err_px": 2.442
+    },
+    {
+      "name": "IMG_2042.JPG",
+      "mean_err_px": 2.87
+    },
+    {
+      "name": "IMG_2043.JPG",
+      "mean_err_px": 1.584
+    },
+    {
+      "name": "IMG_2044.JPG",
+      "mean_err_px": 2.539
+    },
+    {
+      "name": "IMG_2022.JPG",
+      "mean_err_px": 1.646
+    }
   ],
-  "rejection": "per-image rms > 1.5*median, iterated to convergence (13xx close-up session was blurred)",
+  "rejection": {
+    "max_image_err_px": 1.5,
+    "rounds": 2
+  },
   "board": {
     "squares_x": 11,
     "squares_y": 8,
     "square_length": 0.032,
     "marker_length": 0.024,
     "dictionary": "DICT_6X6_250",
-    "marker_id_start": 30,
-    "legacy": true,
-    "note": "user-specified 32mm/24mm, absolute size pending ruler check; intrinsics are invariant to board scale so K/dist are unaffected either way"
+    "marker_id_start": 0,
+    "legacy": true
   },
   "upright_90cw": {
     "image_width": 4284,
     "image_height": 5712,
-    "fx": 4024.816565427381,
-    "fy": 4000.621078050455,
-    "cx": 2159.5867377233135,
-    "cy": 2814.4040546112533,
-    "k1": 0.16665224730432593,
-    "k2": -0.14699350249706383,
-    "p1": -0.00598953343545814,
-    "p2": 0.001523977764551305
+    "fx": 4037.315989086338,
+    "fy": 4037.9549397598,
+    "cx": 2155.585666600804,
+    "cy": 2873.824084592402,
+    "k1": 0.18320790806831705,
+    "k2": -0.4926730394573243,
+    "p1": -9.46547325521816e-05,
+    "p2": -0.001141640243586436
   }
 }
