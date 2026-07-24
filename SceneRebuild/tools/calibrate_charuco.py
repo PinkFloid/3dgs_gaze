@@ -29,7 +29,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--square-length", type=float, required=True, help="Chessboard square side length.")
     parser.add_argument("--marker-length", type=float, required=True, help="ArUco marker side length.")
     parser.add_argument("--dictionary", default="DICT_4X4_50", help="OpenCV ArUco dictionary name.")
+    parser.add_argument("--marker-id-start", type=int, default=0,
+                        help="First ArUco id on the board (calib.io 'Start Id').")
+    parser.add_argument("--no-legacy", action="store_true",
+                        help="Board was generated with the new (non-legacy) pattern. "
+                             "calib.io boards are legacy, so legacy is the default.")
     parser.add_argument("--min-corners", type=int, default=8, help="Minimum ChArUco corners per image.")
+    parser.add_argument("--max-image-err", type=float, default=1.5,
+                        help="After each calibration round, drop images whose mean reprojection "
+                             "error exceeds this (px), then recalibrate. 0 disables pruning.")
+    parser.add_argument("--prune-rounds", type=int, default=2, help="Max prune+recalibrate rounds.")
     parser.add_argument(
         "--fix-k3",
         action="store_true",
@@ -82,10 +91,16 @@ def get_dictionary(cv2, name: str):
     return aruco.getPredefinedDictionary(getattr(aruco, name))
 
 
-def create_charuco_board(cv2, squares_x: int, squares_y: int, square_length: float, marker_length: float, dictionary):
+def create_charuco_board(cv2, squares_x: int, squares_y: int, square_length: float, marker_length: float,
+                         dictionary, marker_id_start: int = 0, legacy: bool = True):
     aruco = cv2.aruco
+    n_markers = (squares_x * squares_y) // 2
+    ids = np.arange(marker_id_start, marker_id_start + n_markers)
     if hasattr(aruco, "CharucoBoard"):
-        return aruco.CharucoBoard((squares_x, squares_y), square_length, marker_length, dictionary)
+        board = aruco.CharucoBoard((squares_x, squares_y), square_length, marker_length, dictionary, ids)
+        if hasattr(board, "setLegacyPattern"):
+            board.setLegacyPattern(legacy)
+        return board
     if hasattr(aruco, "CharucoBoard_create"):
         return aruco.CharucoBoard_create(squares_x, squares_y, square_length, marker_length, dictionary)
     raise SystemExit("This OpenCV build does not provide CharucoBoard APIs.")
@@ -116,7 +131,25 @@ def draw_preview(cv2, image, charuco_corners, charuco_ids):
     return preview
 
 
-def save_output(cv2, out_path: Path, image_size, rms, camera_matrix, dist_coeffs, valid_images, args):
+def upright_90cw(image_size, camera_matrix, dist_coeffs):
+    """Intrinsics for the same frames rotated 90° clockwise to upright portrait
+    ((x,y) -> (H-1-y, x)): fx/fy swap, principal point maps, tangential terms
+    rotate as (p1', p2') = (p2, -p1); radial terms are rotation-invariant."""
+    w, h = image_size
+    fx, fy = camera_matrix[0, 0], camera_matrix[1, 1]
+    cx, cy = camera_matrix[0, 2], camera_matrix[1, 2]
+    d = dist_coeffs.reshape(-1)
+    return {
+        "image_width": int(h), "image_height": int(w),
+        "fx": float(fy), "fy": float(fx),
+        "cx": float(h - 1 - cy), "cy": float(cx),
+        "k1": float(d[0]), "k2": float(d[1]),
+        "p1": float(d[3]), "p2": float(-d[2]),
+    }
+
+
+def save_output(cv2, out_path: Path, image_size, rms, camera_matrix, dist_coeffs, used_names, args,
+                rejected=()):
     out_path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "image_width": int(image_size[0]),
@@ -124,15 +157,35 @@ def save_output(cv2, out_path: Path, image_size, rms, camera_matrix, dist_coeffs
         "camera_matrix": camera_matrix.tolist(),
         "distortion_coefficients": dist_coeffs.reshape(-1).tolist(),
         "rms_reprojection_error": float(rms),
-        "valid_images": int(valid_images),
+        "valid_images": len(used_names),
+        "used_images": list(used_names),
+        "rejected_images": [{"name": n, "mean_err_px": e} for n, e in rejected],
+        "rejection": {"max_image_err_px": args.max_image_err, "rounds": args.prune_rounds},
         "board": {
             "squares_x": args.squares_x,
             "squares_y": args.squares_y,
             "square_length": args.square_length,
             "marker_length": args.marker_length,
             "dictionary": args.dictionary,
+            "marker_id_start": args.marker_id_start,
+            "legacy": not args.no_legacy,
         },
+        "upright_90cw": upright_90cw(image_size, camera_matrix, dist_coeffs),
     }
+
+    if out_path.suffix.lower() == ".npz":
+        np.savez(out_path,
+                 camera_matrix=camera_matrix,
+                 dist_coeffs=dist_coeffs.reshape(-1),
+                 image_width=payload["image_width"],
+                 image_height=payload["image_height"],
+                 rms_reprojection_error=payload["rms_reprojection_error"],
+                 valid_images=payload["valid_images"],
+                 board=json.dumps(payload["board"]),
+                 upright_90cw=json.dumps(payload["upright_90cw"]),
+                 used_images=np.array(used_names))
+        out_path.with_suffix(".json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        return
 
     if out_path.suffix.lower() == ".json":
         out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -171,6 +224,8 @@ def main() -> int:
         args.square_length,
         args.marker_length,
         dictionary,
+        marker_id_start=args.marker_id_start,
+        legacy=not args.no_legacy,
     )
 
     preview_dir = Path(args.preview_dir) if args.preview_dir else None
@@ -179,11 +234,14 @@ def main() -> int:
 
     all_corners = []
     all_ids = []
+    used_names = []
     image_size = None
 
     print(f"Found {len(images)} image(s).")
     for image_path in images:
-        image = cv2.imread(str(image_path))
+        # phones tag portrait shots via EXIF; load raw sensor orientation so all
+        # frames share one (W,H) and one principal point convention
+        image = cv2.imread(str(image_path), cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
         if image is None:
             print(f"[skip] {image_path.name}: cannot read")
             continue
@@ -204,6 +262,7 @@ def main() -> int:
 
         all_corners.append(charuco_corners)
         all_ids.append(charuco_ids)
+        used_names.append(image_path.name)
         print(f"[ok]   {image_path.name}: {corner_count} ChArUco corners")
 
         if preview_dir:
@@ -219,18 +278,47 @@ def main() -> int:
         )
 
     calib_flags = cv2.CALIB_FIX_K3 if args.fix_k3 else 0
-    rms, camera_matrix, dist_coeffs, _rvecs, _tvecs = cv2.aruco.calibrateCameraCharuco(
-        all_corners,
-        all_ids,
-        board,
-        image_size,
-        None,
-        None,
-        flags=calib_flags,
-    )
+    if not hasattr(board, "matchImagePoints"):
+        # ancient OpenCV: single-shot charuco calibration, no pruning
+        rms, camera_matrix, dist_coeffs, _rvecs, _tvecs = cv2.aruco.calibrateCameraCharuco(
+            all_corners, all_ids, board, image_size, None, None, flags=calib_flags)
+        rejected = []
+    else:
+        # OpenCV >= 4.7 dropped calibrateCameraCharuco from the python bindings:
+        # map charuco corner ids to board 3D corners, then plain calibrateCamera,
+        # with per-image reprojection pruning (bad frames poison K silently)
+        obj_pts, img_pts = [], []
+        for corners, ids in zip(all_corners, all_ids):
+            o, i = board.matchImagePoints(corners, ids)
+            obj_pts.append(o)
+            img_pts.append(i)
+        rejected = []
+        for round_i in range(max(1, args.prune_rounds + 1)):
+            rms, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(
+                obj_pts, img_pts, image_size, None, None, flags=calib_flags)
+            errs = []
+            for o, i, rv, tv in zip(obj_pts, img_pts, rvecs, tvecs):
+                proj, _ = cv2.projectPoints(o, rv, tv, camera_matrix, dist_coeffs)
+                errs.append(float(np.sqrt(np.mean(np.sum((proj - i) ** 2, axis=2)))))
+            order = np.argsort(errs)[::-1]
+            print(f"round {round_i}: rms {rms:.3f}px over {len(obj_pts)} images; worst: "
+                  + ", ".join(f"{used_names[k]} {errs[k]:.2f}" for k in order[:5]))
+            if args.max_image_err <= 0 or round_i >= args.prune_rounds:
+                break
+            keep = [k for k in range(len(errs)) if errs[k] <= args.max_image_err]
+            if len(keep) == len(errs) or len(keep) < 5:
+                break
+            rejected += [(used_names[k], round(errs[k], 3)) for k in range(len(errs))
+                         if errs[k] > args.max_image_err]
+            obj_pts = [obj_pts[k] for k in keep]
+            img_pts = [img_pts[k] for k in keep]
+            used_names = [used_names[k] for k in keep]
+    if rejected:
+        print(f"pruned {len(rejected)}: " + ", ".join(f"{n}({e})" for n, e in rejected))
 
     out_path = Path(args.out)
-    save_output(cv2, out_path, image_size, rms, camera_matrix, dist_coeffs, len(all_corners), args)
+    save_output(cv2, out_path, image_size, rms, camera_matrix, dist_coeffs, used_names, args,
+                rejected)
 
     print()
     print(f"RMS reprojection error: {rms:.6f}")
