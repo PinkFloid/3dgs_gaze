@@ -62,7 +62,7 @@ def parse_args():
                    help="OpenAI 解析模型;key 读 OPENAI_API_KEY 或 Intension/.openai_key")
     p.add_argument("--skill-endpoint", default=None)
     p.add_argument("--status-endpoint", default=None)
-    p.add_argument("--frame", default="board/v2")
+    p.add_argument("--frame", default="board/v3")
     p.add_argument("--standoff", type=float, default=0.6,
                    help="站位距离:target 发在目标前多少米(狗端自留 standoff 时设 0)")
     p.add_argument("--detect-names", default=str(Path(__file__).resolve().parent

@@ -78,7 +78,7 @@ def main():
     print(f"2 秒后开始,目标 tcp://{args.host}:{args.rep} ...")
     time.sleep(2)
 
-    base = {"v": 1, "type": "skill.request", "frame": "board/v2"}
+    base = {"v": 1, "type": "skill.request", "frame": "board/v3"}
     tag = time.strftime("%H%M%S")
 
     print(f"---- 步骤1:去抓{args.obj} ----")

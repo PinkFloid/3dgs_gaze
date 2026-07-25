@@ -24,7 +24,7 @@ def main():
     req = {"v": 1, "type": "skill.request",
            "req_id": time.strftime("test-%H%M%S"),
            "sent_at": time.time(),
-           "frame": "board/v2",
+           "frame": "board/v3",
            "skill": "grasp",
            "params": {"object_name": "apple",
                       "target_world": [-0.1, -1.1, -2.0]

@@ -46,7 +46,7 @@ def parse_args():
                    help="一次问答后(无论 y/n)同一物体的静默期,流时间 (s)")
     p.add_argument("--skill-endpoint", default=None,
                    help="技能端 REQ 端点(如 tcp://127.0.0.1:5583);缺省只打印调用")
-    p.add_argument("--frame", default="board/v2",
+    p.add_argument("--frame", default="board/v3",
                    help="target_world 的坐标系/地图版本标识,须与狗端一致(见 PROTOCOL.md §4)")
     p.add_argument("--status-endpoint", default=None,
                    help="狗端 skill.status 的 PUB 端点;缺省由 --skill-endpoint 推导"
