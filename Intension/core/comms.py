@@ -7,12 +7,20 @@ import time
 
 
 class Printer:
-    """One-line live progress that never collides with real lines."""
+    """One-line live progress that never collides with real lines.
 
-    def __init__(self):
+    plain=True 时进度也走整行输出——配 prompt_toolkit 的 patch_stdout 用:
+    \r 覆写在那种终端下会被拆成一行行残迹,整行打印才干净。
+    """
+
+    def __init__(self, plain=False):
+        self.plain = plain
         self._open = False
 
     def progress(self, s):
+        if self.plain:
+            self.say(f"  {s}")
+            return
         print(f"\r  {s}   ", end="", flush=True)
         self._open = True
 

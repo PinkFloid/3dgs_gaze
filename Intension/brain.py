@@ -88,13 +88,49 @@ def main() -> int:
             ev_f.write(json.dumps(rec, ensure_ascii=False) + "\n")
             ev_f.flush()
 
-    P = Printer()
-    try:
-        table = load_object_table(args.map_dir)
-        P.say(f"物体表:{len(table)} 个命名物体(名字消解可用)")
-    except Exception as e:  # 地图缺失只失去名字模式,视线模式照常
-        table = {}
-        P.say(f"[!] 物体表加载失败({e}),名字消解不可用")
+    use_pt = False
+    if not args.script:  # 交互输入走 prompt_toolkit:后台输出永远打在输入行上方
+        try:
+            import prompt_toolkit  # noqa: F401
+            use_pt = sys.stdin.isatty()
+        except ImportError:
+            use_pt = False
+    P = Printer(plain=use_pt)
+
+    # 物体表热加载:names.json 是用户随分割命名反复改的活文件,按 mtime 跟进,
+    # 原地更新 dict —— resolve 分支和 CommandParser 的提示词共享同一引用。
+    table: dict = {}
+    tbl = {"sig": None, "t": 0.0}
+    tbl_files = [Path(args.map_dir) / "instances.json", Path(args.map_dir) / "names.json"]
+
+    def refresh_table(force=False):
+        now = time.time()
+        if not force and now - tbl["t"] < 1.0:
+            return
+        tbl["t"] = now
+        try:
+            sig = tuple(f.stat().st_mtime_ns for f in tbl_files)
+        except OSError as e:
+            if tbl["sig"] is None and force:
+                P.say(f"[!] 物体表加载失败({e}),名字消解不可用")
+            return
+        if sig == tbl["sig"]:
+            return
+        first = tbl["sig"] is None
+        try:
+            new = load_object_table(args.map_dir)
+        except Exception as e:
+            P.say(f"[!] 物体表{'加载' if first else '重载'}失败({e})"
+                  + (",沿用旧表" if not first else ",名字消解不可用"))
+            tbl["sig"] = sig
+            return
+        tbl["sig"] = sig
+        table.clear()
+        table.update(new)
+        P.say(f"{'物体表' if first else '[·] 物体表已刷新'}:{len(table)} 个命名物体"
+              + ("(名字消解可用)" if first else ""))
+
+    refresh_table(force=True)
 
     buf = AttentionBuffer(args.merge_gap, args.proactive)
     suppress = {}  # object -> 流时间,主动问询被拒后的静默截止
@@ -141,14 +177,29 @@ def main() -> int:
 
     cmd_q = queue.Queue()
     if not args.script:
-        def stdin_reader():
-            for line in sys.stdin:
-                cmd_q.put(line.rstrip("\n"))
+        if use_pt:
+            def stdin_reader():  # 输入行常驻底部,后台 say/进度全部打在上方
+                from prompt_toolkit import PromptSession
+                from prompt_toolkit.patch_stdout import patch_stdout
+                ps = PromptSession()
+                with patch_stdout(raw=True):
+                    while True:
+                        try:
+                            cmd_q.put(ps.prompt("指令> "))
+                        except (EOFError, KeyboardInterrupt):
+                            cmd_q.put(None)  # 哨兵:主循环转成正常退出
+                            return
+        else:
+            def stdin_reader():
+                for line in sys.stdin:
+                    cmd_q.put(line.rstrip("\n"))
+                cmd_q.put(None)
         threading.Thread(target=stdin_reader, daemon=True).start()
     scripted = sorted((float(s.split(":", 1)[0]), s.split(":", 1)[1]) for s in args.script)
 
     n_req = 0
-    pending = None  # {"req":..., "since": stream_t, "mode":...}
+    pending = None  # {"req":..., "since": stream_t, "mode":..., "object":...}
+    last_prog = None
     clock = {"stream": 0.0, "wall": time.time()}
     user_pos = {"xyz": None, "t": 0.0}  # 每条 verdict 的 origin_world = 用户头部位置
 
@@ -212,6 +263,7 @@ def main() -> int:
         t = "".join(text.split())
         if not t:
             return
+        refresh_table(force=True)  # 名字消解前跟一次 names.json,拿最新命名
         was_decline = False
         if pending is not None:
             prev, pending = pending, None
@@ -321,6 +373,10 @@ def main() -> int:
                 if accepted(e, args.min_vote):
                     for kind, pl in buf.feed(e):
                         if kind == "progress":
+                            key = (pl["object"], int(pl["dwell_s"]))
+                            if key == last_prog:  # 1Hz/换目标才刷,少打扰输入行
+                                continue
+                            last_prog = key
                             P.progress(f"看 {pl['object']:<14} {pl['dwell_s']:4.1f}s"
                                        f"  vote {pl['share']:3.0%}")
                         elif kind == "sustained" and args.proactive > 0:
@@ -337,12 +393,16 @@ def main() -> int:
                 else:
                     buf.advance(t)
             st = stream_now()
+            refresh_table()
             while scripted and st >= scripted[0][0]:
                 _, text = scripted.pop(0)
                 P.say(f"[指令] {text}")
                 handle(st, text)
             while not cmd_q.empty():
-                handle(st, cmd_q.get())
+                text = cmd_q.get()
+                if text is None:  # 输入端收摊(Ctrl-C/Ctrl-D)-> 正常退出
+                    raise KeyboardInterrupt
+                handle(st, text)
             if pending and st - pending["since"] > args.confirm_timeout:
                 P.say("[-] 确认超时,已取消")
                 if pending["mode"] == "主动":
