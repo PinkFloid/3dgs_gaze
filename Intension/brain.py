@@ -348,6 +348,16 @@ def main() -> int:
                 return
             propose(name, table[name], "名字", t_word)
             return
+        # deictic + 明确物名 = 指代词指的是地点("去这里拿Bottle"):
+        # 注视处当导航地点,物名交给狗端到位检测(物体可以不在地图里)
+        if cmd.get("query"):
+            cands = buf.candidates(t_word, args.lookback, "")
+            if cands and cands[0].get("target_world"):
+                P.say(f"[·] 按注视处「{cands[0]['object']}」导航,到位后检测「{cmd['query']}」")
+                propose(cmd["query"], cands[0]["target_world"], "视线地点", t_word)
+            else:
+                P.say(f"[×] 最近 {args.lookback:.0f}s 没注视到地点——看一眼目的地再说")
+            return
         # deictic / 类别泛指
         cands = buf.candidates(t_word, args.lookback, cmd["noun"])
         if not cands:

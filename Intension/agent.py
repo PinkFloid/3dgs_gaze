@@ -52,9 +52,11 @@ class CommandParser:
             "场景中已命名的物体(object_query 与 location_hint 只能取其中之一或 null):\n"
             f"{'、'.join(sorted(self.table))}\n"
             "字段规则:\n"
-            "- deictic: 用了'这个/那个/那边'等现场指代、且没指名是上表中哪一个时为 true\n"
+            "- deictic: 用了'这个/那个/这里/那边'等现场指代时为 true。指代可指物也可指\n"
+            "  地点:'去这里拿X' = deictic true 且 object_query=X\n"
             "- object_query: 目标物体(fetch=要拿的物;goto=要去的参照物)->\n"
-            "  上表中最匹配的一个;没指名、或说法同时匹配多个而无法确定时为 null\n"
+            "  上表中最匹配的一个;不在表中但明确指名的照抄原文;\n"
+            "  没指名、或说法同时匹配多个而无法确定时为 null\n"
             "- noun_class: 指代或泛指时的类别词(如 杯、机器人);没有则 null\n"
             "- location_hint: 顺带提到的地点参照物 -> 上表中的一个;没有则 null\n"
             "- deliver_to_user: fetch=是否要求送到用户身边;goto=目的地是否就是用户身边\n"
@@ -116,7 +118,8 @@ class CommandParser:
         if data.get("action") != "fetch":
             return {"kind": "help"}
         if data.get("deictic"):
-            return {"kind": "deictic", "noun": data.get("noun_class") or ""}
+            return {"kind": "deictic", "noun": data.get("noun_class") or "",
+                    "query": data.get("object_query")}  # 有物名=指代词指地点(去这里拿X)
         if data.get("object_query"):
             return {"kind": "named", "query": data["object_query"],
                     "location": data.get("location_hint")}
