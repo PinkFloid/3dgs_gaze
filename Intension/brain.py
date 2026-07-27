@@ -11,10 +11,11 @@
 core/resolve = 名字消解;core/comms = 派发/状态订阅/事件源。本文件只做编排:
 状态(pending/suppress/user_pos)+ 消解分支 + 确认门 + 事件循环。
 
-    python Intension/brain.py [--skill-endpoint tcp://狗机:5583]
+    python Intension/brain.py                        # 默认直连狗机 192.168.123.164:5583
+    python Intension/brain.py --skill-endpoint off   # 干跑:请求只打印不发送
     # 回放回归(确定性,只吃 parse_cache):
     python Intension/brain.py --llm off --replay /tmp/fake.jsonl --yes \
-        --script "106.5:把这个杯子拿来"
+        --skill-endpoint off --script "106.5:把这个杯子拿来"
 """
 
 from __future__ import annotations
@@ -60,7 +61,8 @@ def parse_args():
                    help="off=只走 parse_cache.json(离线/回归);on=缓存未命中时调 OpenAI(默认)")
     p.add_argument("--llm-model", default="gpt-5-mini",
                    help="OpenAI 解析模型;key 读 OPENAI_API_KEY 或 Intension/.openai_key")
-    p.add_argument("--skill-endpoint", default=None)
+    p.add_argument("--skill-endpoint", default="tcp://192.168.123.164:5583",
+                   help="狗机 REP 端点;传 off = 干跑只打印请求(回归/无狗调试)")
     p.add_argument("--status-endpoint", default=None)
     p.add_argument("--frame", default="board/v3")
     p.add_argument("--standoff", type=float, default=0.6,
@@ -78,6 +80,8 @@ def parse_args():
 
 def main() -> int:
     args = parse_args()
+    if args.skill_endpoint in ("off", "none", "print", ""):
+        args.skill_endpoint = None  # 干跑:请求只打印不发送
     sess = Path(args.log_dir) / time.strftime("%Y%m%d-%H%M%S")
     sess.mkdir(parents=True, exist_ok=True)
     ev_f = open(sess / "events.jsonl", "w", encoding="utf-8")
