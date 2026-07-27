@@ -152,6 +152,8 @@ def main() -> int:
         hit = max((k for k in dmap if k in obj), key=len, default=None)  # 杯A -> 杯 -> cup
         if hit:
             return dmap[hit]
+        if obj.isascii():  # 英文命名直接小写直发:检测器类名惯例是小写(Bottle->bottle)
+            return obj.lower()
         if dmap and obj not in unmapped:
             unmapped.add(obj)
             P.say(f"[!] 「{obj}」不在 detect_names.json,按原名直发(狗端检测器可能不认)")
@@ -245,6 +247,8 @@ def main() -> int:
                   "target_world": [stand[0], stand[1], yaw]}  # 线上三元组=[x,y,yaw]
         if not goto and user_pos["xyz"] is not None:  # 确认时刻的用户位置:带它=送达
             params["deliver_to"] = user_pos["xyz"]
+        elif not goto:  # 拿取但不知用户在哪:降级可用,但必须说出来,不许静默丢送回
+            P.say("[!] 不知道你在哪(视线流未定位)——本单不带送回,接近方向退化为原点侧")
         req = {"v": 1, "type": "skill.request", "skill": "grasp",
                "params": params,
                "req_id": f"{sess.name}-{n_req:03d}", "frame": args.frame,
@@ -257,6 +261,8 @@ def main() -> int:
         else:
             pending = {"req": req, "since": t_word, "mode": mode, "object": obj}
             pose_txt = f"站位({stand[0]:+.2f},{stand[1]:+.2f}) 朝向{math.degrees(yaw):+.0f}°"
+            if not goto:
+                pose_txt += " 送回你这" if "deliver_to" in params else "(无送回)"
             ask = (f"[?] 你在看「{obj}」——要我拿来吗?" if mode == "主动"
                    else f"[?] 过去「{obj}」{pose_txt} ?" if goto
                    else f"[?] 去拿「{obj}」{pose_txt} ?")
