@@ -57,7 +57,9 @@ def parse_args():
     p.add_argument("--proactive", type=float, default=0.0,
                    help=">0 时开启第三模式:盯满该秒数主动问询(如 4.8);默认关")
     p.add_argument("--proactive-goto", action="store_true",
-                   help="主动模式只导航不抓取:盯物体去物体旁,盯地板去注视点(看哪去哪)")
+                   help="主动模式只导航不抓取:盯满即去注视物体旁(看哪去哪)")
+    p.add_argument("--goto-floor", action="store_true",
+                   help="看哪去哪也响应地板注视点(地板判定噪声大,默认只认物体)")
     p.add_argument("--suppress", type=float, default=30.0,
                    help="主动问询被拒后同物体静默期 (s)")
     p.add_argument("--llm", choices=["on", "off"], default="on",
@@ -144,7 +146,8 @@ def main() -> int:
     buf = AttentionBuffer(args.merge_gap, args.proactive)
     # 看哪去哪:地板注视单独记账(按 1m 网格分桶,目标=注视落点而非全地板质心)
     floor_buf = (VisitTracker(args.proactive, args.merge_gap)
-                 if args.proactive > 0 and args.proactive_goto else None)
+                 if args.proactive > 0 and args.proactive_goto and args.goto_floor
+                 else None)
     suppress = {}  # object -> 流时间,主动问询被拒后的静默截止
 
     try:  # 狗端检测器只认类名(如 orange):发送前把地图名翻译过去
