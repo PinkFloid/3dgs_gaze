@@ -5,7 +5,8 @@
     把这个杯子拿来              视线消解:眼-声窗口取近期注视目标,名词过滤类别
     过来 / 去凳子那边           goto:空 object 的 grasp = 纯导航
     停                          急停旁路(永不过 LLM)
-    (--proactive 4.8 加开第三模式:盯满主动问询)
+    (--proactive 4.8 加开第三模式:盯满主动问询;
+     --proactive 3 --proactive-goto --yes = 看哪去哪,物体/地板皆可,不抓取)
 
 模块分工:agent.py = 文本->结构(LLM+缓存);core/attention = 层A与注意缓冲;
 core/resolve = 名字消解;core/comms = 派发/状态订阅/事件源。本文件只做编排:
@@ -31,7 +32,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from agent import CommandParser, load_openai_key            # noqa: E402
-from core.attention import AttentionBuffer, accepted        # noqa: E402
+from core.attention import AttentionBuffer, VisitTracker, accepted  # noqa: E402
 from core.comms import (Printer, dispatch, gaze_events,     # noqa: E402
                         replay_events, status_listener)
 from core.resolve import load_object_table, resolve_named   # noqa: E402
@@ -55,6 +56,8 @@ def parse_args():
     p.add_argument("--confirm-timeout", type=float, default=10.0)
     p.add_argument("--proactive", type=float, default=0.0,
                    help=">0 时开启第三模式:盯满该秒数主动问询(如 4.8);默认关")
+    p.add_argument("--proactive-goto", action="store_true",
+                   help="主动模式只导航不抓取:盯物体去物体旁,盯地板去注视点(看哪去哪)")
     p.add_argument("--suppress", type=float, default=30.0,
                    help="主动问询被拒后同物体静默期 (s)")
     p.add_argument("--llm", choices=["on", "off"], default="on",
@@ -139,6 +142,9 @@ def main() -> int:
     refresh_table(force=True)
 
     buf = AttentionBuffer(args.merge_gap, args.proactive)
+    # 看哪去哪:地板注视单独记账(按 1m 网格分桶,目标=注视落点而非全地板质心)
+    floor_buf = (VisitTracker(args.proactive, args.merge_gap)
+                 if args.proactive > 0 and args.proactive_goto else None)
     suppress = {}  # object -> 流时间,主动问询被拒后的静默截止
 
     try:  # 狗端检测器只认类名(如 orange):发送前把地图名翻译过去
@@ -284,10 +290,22 @@ def main() -> int:
             pose_txt = f"站位({stand[0]:+.2f},{stand[1]:+.2f}) 朝向{math.degrees(yaw):+.0f}°"
             if not goto:
                 pose_txt += " 送回你这" if "deliver_to" in params else "(无送回)"
-            ask = (f"[?] 你在看「{obj}」——要我拿来吗?" if mode == "主动"
+            ask = (f"[?] 你在看「{obj}」——{'过去吗' if goto else '要我拿来吗'}?" if mode == "主动"
                    else f"[?] 过去「{obj}」{pose_txt} ?" if goto
                    else f"[?] 去拿「{obj}」{pose_txt} ?")
             P.say(ask + " y=确认 其他=取消")
+
+    def proactive_fire(pl, display=None):
+        """盯满触发的公共闸(物体缓冲与地板缓冲共用):pending/狗忙/抑制期。"""
+        if pending is not None:
+            logev({"topic": "proactive.skipped", "object": pl["object"], "why": "pending"})
+        elif dog_busy():
+            logev({"topic": "proactive.skipped", "object": pl["object"], "why": "dog_busy"})
+        elif pl["t"] < suppress.get(pl["object"], float("-inf")):
+            P.say(f"[×] {display or pl['object']} 抑制期,略过主动问询")
+        elif pl.get("target_world"):
+            propose(display or pl["object"], pl["target_world"], "主动", pl["t"],
+                    goto=args.proactive_goto)
 
     def handle(t_word, text):
         nonlocal pending
@@ -421,18 +439,28 @@ def main() -> int:
                             P.progress(f"看 {pl['object']:<14} {pl['dwell_s']:4.1f}s"
                                        f"  vote {pl['share']:3.0%}")
                         elif kind == "sustained" and args.proactive > 0:
-                            if pending is not None:
-                                logev({"topic": "proactive.skipped", "object": pl["object"],
-                                       "why": "pending"})
-                            elif dog_busy():
-                                logev({"topic": "proactive.skipped", "object": pl["object"],
-                                       "why": "dog_busy"})
-                            elif pl["t"] < suppress.get(pl["object"], float("-inf")):
-                                P.say(f"[×] {pl['object']} 抑制期,略过主动问询")
-                            elif pl.get("target_world"):
-                                propose(pl["object"], pl["target_world"], "主动", pl["t"])
+                            proactive_fire(pl)
                 else:
                     buf.advance(t)
+                    if floor_buf is not None:  # 盯地板某处 -> 去那个位置(看哪去哪)
+                        if (e.get("object") == "floor" and e.get("mode") == "cone"
+                                and e.get("vote_share", 0.0) >= args.min_vote
+                                and e.get("centroid_world")):
+                            cw = e["centroid_world"]
+                            evs = floor_buf.feed(
+                                {**e, "object": f"地板({cw[0]:+.0f},{cw[1]:+.0f})",
+                                 "object_centroid_world": cw})
+                        else:
+                            evs = floor_buf.advance(t)
+                        for kind, pl in evs:
+                            if kind == "progress":
+                                key = (pl["object"], int(pl["dwell_s"]))
+                                if key != last_prog:
+                                    last_prog = key
+                                    P.progress(f"看 {pl['object']:<14} "
+                                               f"{pl['dwell_s']:4.1f}s(导航点)")
+                            elif kind == "sustained":
+                                proactive_fire(pl, display="那个位置")
             st = stream_now()
             refresh_table()
             while scripted and st >= scripted[0][0]:
