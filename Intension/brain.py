@@ -62,6 +62,8 @@ def parse_args():
                    help="看哪去哪也响应地板注视点(地板判定噪声大,默认只认物体)")
     p.add_argument("--suppress", type=float, default=30.0,
                    help="主动问询被拒后同物体静默期 (s)")
+    p.add_argument("--busy-timeout", type=float, default=120.0,
+                   help="请求超过该秒数无终态则视为空闲(防狗端卡死/状态流断锁死大脑)")
     p.add_argument("--llm", choices=["on", "off"], default="on",
                    help="off=只走 parse_cache.json(离线/回归);on=缓存未命中时调 OpenAI(默认)")
     p.add_argument("--llm-model", default="gpt-5-mini",
@@ -184,13 +186,21 @@ def main() -> int:
         threading.Thread(target=status_listener, args=(sep, P, status_seen, logev),
                          daemon=True).start()
 
-    last_req = {"id": None}
+    last_req = {"id": None, "t": 0.0}
 
     def dog_busy():
-        """上一个已接受的请求还没到终态 -> 狗在忙,主动问询让路。"""
+        """上一个已接受的请求还没到终态 -> 狗在忙,主动问询让路。
+        超时无终态自动解锁:狗端卡死或状态流断,不该把大脑锁死。"""
         if status_seen is None or last_req["id"] is None:
             return False
-        return status_seen.get(last_req["id"]) not in ("done", "failed", "stopped")
+        if status_seen.get(last_req["id"]) in ("done", "failed", "stopped"):
+            return False
+        if time.time() - last_req["t"] > args.busy_timeout:
+            P.say(f"[!] req {last_req['id']} 超 {args.busy_timeout:.0f}s 无终态,视为空闲"
+                  f"(狗端卡死或状态流断;可打「重置」手动清)")
+            last_req["id"] = None
+            return False
+        return True
 
     cmd_q = queue.Queue()
     if not args.script:
@@ -230,7 +240,7 @@ def main() -> int:
         P.say(f"[派发] {json.dumps(req, ensure_ascii=False)}")
         P.say(f"       -> {json.dumps(rep, ensure_ascii=False)}")
         if rep.get("accepted") and req.get("skill") != "stop":
-            last_req["id"] = req["req_id"]
+            last_req["id"], last_req["t"] = req["req_id"], time.time()
 
     def send_stop():
         send({"v": 1, "type": "skill.request", "skill": "stop",
@@ -310,7 +320,9 @@ def main() -> int:
             logev({"topic": "proactive.skipped", "object": pl["object"], "why": "pending"})
         elif dog_busy():
             queued["pl"], queued["display"] = pl, display  # 覆盖式排队:只记最新
-            P.say(f"[·] 狗在忙,已排队:{display or pl['object']}(新注视会覆盖)")
+            st_now = status_seen.get(last_req["id"]) if status_seen else "?"
+            P.say(f"[·] 狗在忙(req {last_req['id']} 状态 {st_now},"
+                  f"{time.time() - last_req['t']:.0f}s),已排队:{display or pl['object']}")
         elif pl["t"] < suppress.get(pl["object"], float("-inf")):
             P.say(f"[×] {display or pl['object']} 抑制期,略过主动问询")
         elif pl.get("target_world"):
@@ -339,6 +351,10 @@ def main() -> int:
             was_decline = True  # 可能是"取消旧的换新指令":往下试,解析不出就保持安静
         if t.lower() in STOP_WORDS:  # 急停硬旁路:永不过 LLM
             send_stop()
+            return
+        if t.lower() in ("重置", "reset"):  # 手动解锁:清忙碌记账+排队(不发任何请求)
+            last_req["id"], queued["pl"], queued["display"] = None, None, None
+            P.say("[·] 已重置:忙碌状态与排队清空(狗端在跑的任务不受影响,要停打「停」)")
             return
         cmd = parser.parse(t)
         logev({"topic": "command", "text": text, "t": t_word,
