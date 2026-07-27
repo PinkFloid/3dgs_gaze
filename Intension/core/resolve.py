@@ -7,12 +7,17 @@ import json
 from pathlib import Path
 
 
-def load_object_table(map_dir):
-    """物体名 -> 池化质心(n_gaussians 加权,与 gaze_live 同语义)。"""
+def load_object_table(map_dir, with_boxes=False):
+    """物体名 -> 池化质心(n_gaussians 加权,与 gaze_live 同语义)。
+
+    with_boxes=True 时额外返回逐实例 xy 占地 [(名字, [minx,miny,maxx,maxy]), ...]
+    (不做同名并集,免得把两件家具之间的空地也封掉;悬空物不算障碍),
+    给站位计算避障用。
+    """
     d = Path(map_dir)
     inst = json.load(open(d / "instances.json", encoding="utf-8"))["instances"]
     names = json.load(open(d / "names.json", encoding="utf-8"))
-    acc = {}
+    acc, box = {}, []
     for it in inst:
         name = names.get(str(int(it["id"])), "")
         if not name:
@@ -20,7 +25,11 @@ def load_object_table(map_dir):
         w = max(float(it.get("n_gaussians", 1)), 1.0)
         s, tw = acc.get(name, ([0.0, 0.0, 0.0], 0.0))
         acc[name] = ([s[i] + w * float(it["centroid"][i]) for i in range(3)], tw + w)
-    return {n: [s[i] / w for i in range(3)] for n, (s, w) in acc.items()}
+        lo, hi = it.get("bbox_min"), it.get("bbox_max")
+        if lo and hi and float(lo[2]) < 1.0:  # 底面高过狗身的(挂墙物)不算障碍
+            box.append((name, [float(lo[0]), float(lo[1]), float(hi[0]), float(hi[1])]))
+    table = {n: [s[i] / w for i in range(3)] for n, (s, w) in acc.items()}
+    return (table, box) if with_boxes else table
 
 
 def resolve_named(query, table):

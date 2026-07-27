@@ -104,6 +104,7 @@ def main() -> int:
     # 物体表热加载:names.json 是用户随分割命名反复改的活文件,按 mtime 跟进,
     # 原地更新 dict —— resolve 分支和 CommandParser 的提示词共享同一引用。
     table: dict = {}
+    boxes: list = []  # [(名字, [minx,miny,maxx,maxy])] 逐实例占地,站位避障用
     tbl = {"sig": None, "t": 0.0}
     tbl_files = [Path(args.map_dir) / "instances.json", Path(args.map_dir) / "names.json"]
 
@@ -122,7 +123,7 @@ def main() -> int:
             return
         first = tbl["sig"] is None
         try:
-            new = load_object_table(args.map_dir)
+            new, nbox = load_object_table(args.map_dir, with_boxes=True)
         except Exception as e:
             P.say(f"[!] 物体表{'加载' if first else '重载'}失败({e})"
                   + (",沿用旧表" if not first else ",名字消解不可用"))
@@ -131,6 +132,7 @@ def main() -> int:
         tbl["sig"] = sig
         table.clear()
         table.update(new)
+        boxes[:] = nbox
         P.say(f"{'物体表' if first else '[·] 物体表已刷新'}:{len(table)} 个命名物体"
               + ("(名字消解可用)" if first else ""))
 
@@ -227,14 +229,31 @@ def main() -> int:
 
     def stand_pose(goal, approach_from=None):
         """狗基座站位:沿 approach_from(缺省=用户位置,再缺省=原点)→goal 方向,
-        在 goal 前 --standoff 米停;yaw 指向 goal(弧度,板系 +x=0,逆时针正)。"""
+        在 goal 前 --standoff 米停;yaw 指向 goal(弧度,板系 +x=0,逆时针正)。
+        站位落进任何已命名实例的 xy 占地(桌子/台子…)时沿同方向继续后退:
+        standoff 只保证离目标,这一步保证不站进家具里(撞 tag 的根因)。"""
         src = approach_from or user_pos["xyz"] or (0.0, 0.0, 0.0)
         vx, vy = goal[0] - src[0], goal[1] - src[1]
         n = math.hypot(vx, vy)
         if n < 1e-6:
             vx, vy, n = 1.0, 0.0, 1.0
-        d = min(args.standoff, n)  # 出发侧离目标太近时,别退越过出发点
-        return ([round(goal[0] - vx / n * d, 3), round(goal[1] - vy / n * d, 3),
+        ux, uy = vx / n, vy / n
+        pad = 0.15  # 占地外扩:狗身半宽级别的安全边
+        d_max = max(n - 0.05, 0.05)  # 别退越过出发点(用户/原点)
+        d = min(args.standoff, d_max)
+        hit = None
+        while d < d_max:
+            px, py = goal[0] - ux * d, goal[1] - uy * d
+            nm = next((nm for nm, (x0, y0, x1, y1) in boxes
+                       if x0 - pad <= px <= x1 + pad and y0 - pad <= py <= y1 + pad), None)
+            if nm is None:
+                break
+            hit, d = nm, d + 0.1
+        if hit:
+            P.say(f"[·] 站位避开「{hit}」占地,后退至距目标 {d:.2f}m"
+                  if d < d_max else
+                  f"[!] 到「{hit}」的整条接近线都被占——换个方向看/站再下指令更稳")
+        return ([round(goal[0] - ux * d, 3), round(goal[1] - uy * d, 3),
                  round(goal[2], 3)], round(math.atan2(vy, vx), 3))
 
     def propose(obj, tw, mode, t_word, goto=False, approach_from=None):
