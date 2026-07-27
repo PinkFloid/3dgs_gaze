@@ -2,9 +2,10 @@
 """狗机技能服务端(交付给狗机同学的唯一文件)。协议见 Intension/PROTOCOL.md。
 
 技能:
-  grasp   params: object_name, target_world:[x,y,z], deliver_to:[x,y,z]?(可选)
-          走到 standoff 点(按 bbox 自动缩放)→ 对准 → 夹取 → 有 deliver_to 则
-          returning 送达,没有则原地 done(意图机可自行组合 move_to 取回)。
+  grasp   params: object_name, target_world:[x,y,yaw], deliver_to:[x,y,z]?(可选)
+          target_world = 基座站位(发送方已留 standoff)+ 到位朝向(弧度)。
+          走到站位 → 转到 yaw → 夹取 → 有 deliver_to 则 returning 送达,
+          没有则原地 done。object_name 空(null/"")= 纯导航,只走到站位。
   move_to params: x, y, yaw?(可选,到点后再对准朝向)
 
   状态流:accepted → moving → grasping [→ returning] → done / failed / stopped
@@ -42,9 +43,7 @@ TERMINAL = ("done", "failed", "stopped")
 # 板坐标系,米。上真机前收紧到真实可走区域
 ROOM_X = (-3.5, 5.5)
 ROOM_Y = (-4.5, 5.5)
-Z_REACH = (0.02, 0.90)          # 夹爪可达高度,超出拒绝 out_of_workspace
-DEFAULT_STANDOFF = 0.5          # m,距目标停车距离
-STANDOFF_TOL = 0.10
+STANDOFF_TOL = 0.10             # m,站位到位容差(比纯导航更严)
 HEADING_TOL = 0.15              # rad
 NAV_TOL = 0.15                  # m,move_to 到点半径
 PHASE_TIMEOUT = {"moving": 45.0, "grasping": 15.0, "returning": 45.0}
@@ -198,30 +197,21 @@ def execute(dog, skill, params, report, should_stop):
                 return _finish(report, err)
         return report("done")
 
-    # grasp
-    target = [float(v) for v in params["target_world"]]
+    # grasp: target_world = [x, y, yaw],站位由发送方留好 standoff
+    x, y, yaw = (float(v) for v in params["target_world"])
     if not params.get("object_name"):   # 冻结定义:object 为空(null/"")= 纯导航,不动臂
         report("moving")
-        err = _navigate(dog, (target[0], target[1]), None, NAV_TOL, "moving", should_stop)
+        err = _navigate(dog, (x, y), None, NAV_TOL, "moving", should_stop)
+        if err:
+            return _finish(report, err)
+        err = _align(dog, yaw, should_stop)
         return _finish(report, err) if err else report("done")
-    standoff = float(params.get("standoff", DEFAULT_STANDOFF))
-    if params.get("bbox"):
-        lo, hi = params["bbox"]
-        standoff = max(standoff, 0.4 * math.hypot(hi[0] - lo[0], hi[1] - lo[1]) + 0.3)
-    pose = dog.get_pose()
-    if pose is None:
-        return report("failed", "unlocalized")
-    dx, dy = target[0] - pose["x"], target[1] - pose["y"]
-    d = math.hypot(dx, dy)
-    goal = ((target[0] - dx / d * standoff, target[1] - dy / d * standoff)
-            if d > standoff else (pose["x"], pose["y"]))
-    report("moving", f"standoff {standoff:.2f}m -> {params.get('object_name', '?')}")
-    err = _navigate(dog, goal, target[:2], STANDOFF_TOL, "moving", should_stop)
+    report("moving", f"站位({x:+.2f},{y:+.2f}) -> {params.get('object_name', '?')}")
+    err = _navigate(dog, (x, y), None, STANDOFF_TOL, "moving", should_stop)
     if err:
         return _finish(report, err)
-    pose = dog.get_pose()
     report("moving", "aligning")
-    err = _align(dog, math.atan2(target[1] - pose["y"], target[0] - pose["x"]), should_stop)
+    err = _align(dog, yaw, should_stop)
     if err:
         return _finish(report, err)
     report("grasping")
@@ -243,22 +233,19 @@ def validate(skill, params):
     if skill == "move_to":
         if "x" not in params or "y" not in params:
             return "bad_params: move_to needs x, y"
-        pts = [(float(params["x"]), float(params["y"]), None)]
+        pts = [(float(params["x"]), float(params["y"]))]
     else:
         t = params.get("target_world")
         if not (isinstance(t, (list, tuple)) and len(t) == 3):
-            return "bad_params: grasp needs target_world [x,y,z]"
-        nav_only = not params.get("object_name")  # 纯导航(null/""):z 非抓取高,不检臂展
-        pts = [(float(t[0]), float(t[1]), None if nav_only else float(t[2]))]
+            return "bad_params: grasp needs target_world [x,y,yaw]"
+        pts = [(float(t[0]), float(t[1]))]
         if params.get("deliver_to") is not None:
             dv = params["deliver_to"]
             if not (isinstance(dv, (list, tuple)) and len(dv) >= 2):
                 return "bad_params: deliver_to must be [x,y,(z)]"
-            pts.append((float(dv[0]), float(dv[1]), None))
-    for x, y, z in pts:
+            pts.append((float(dv[0]), float(dv[1])))
+    for x, y in pts:
         if not (ROOM_X[0] <= x <= ROOM_X[1] and ROOM_Y[0] <= y <= ROOM_Y[1]):
-            return "out_of_workspace"
-        if z is not None and not (Z_REACH[0] <= z <= Z_REACH[1]):
             return "out_of_workspace"
     return None
 

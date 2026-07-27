@@ -28,8 +28,7 @@ execute 抛异常自动广播 failed、忘发终态自动补 done,不会把对�
  "frame": "board/v2",
  "skill": "grasp",
  "params": {"object_name": "黄色机器人",
-            "target_world": [-0.185, 3.413, 0.829],
-            "yaw": 1.571},
+            "target_world": [-0.185, 3.413, 1.571]},
  "intent_summary": "用户注视 4.8s 并确认夹取 黄色机器人"}
 ```
 
@@ -45,7 +44,7 @@ execute 抛异常自动广播 failed、忘发终态自动补 done,不会把对�
 
 | skill | params | 语义 |
 |---|---|---|
-| `grasp` | `object_name: str \| null`, `target_world: [x,y,z]` 米, `yaw: float` 弧度, `deliver_to: [x,y,z]`(可选) | **唯一技能,两种用法**。`target_world` = **狗基座站位**(非物体位置:意图机已沿"用户→目标"方向留 standoff,`--standoff` 默认 0.6m,狗端若自留则意图机设 0);x,y 为准,**z 只是目标高度参考、狗端可忽略**(高度由臂自调)。`yaw` = 站位处朝向,指向要抓的物体/目的地(弧度,板系 +x=0,逆时针正)。①`object_name` 有值 = 到站位→按名检测→抓取,有 `deliver_to`(=确认时刻用户头位置)则送达、无则原地 done;②**`object_name` 空(null/"")= 纯导航**,只走到站位,不动臂,进度 `moving→done` |
+| `grasp` | `object_name: str \| null`, `target_world: [x, y, yaw]`, `deliver_to: [x,y,z]`(可选) | **唯一技能,两种用法**。`target_world` 三元组 = **狗基座站位** x,y(米)+ 到位朝向 yaw(弧度,板系 +x=0,逆时针正,指向要抓的物体/目的地)。**协议不传高度**——抓取高度狗端自调。站位由意图机沿"用户→目标"方向留 standoff(`--standoff` 默认 0.6m,狗端若自留则意图机设 0)。①`object_name` 有值 = 到站位→转到 yaw→按名检测→抓取,有 `deliver_to`(=确认时刻用户头位置)则送达、无则原地 done;②**`object_name` 空(null/"")= 纯导航**,走到站位并转到 yaw,不动臂,进度 `moving→done` |
 | `move_to` | — | 不使用:导航一律用 `object_name=null` 的 grasp 表达(服务器里残留的实现无害) |
 | `stop` | 无 | **急停,最高优先级**,见 §3 |
 | `get_state` | 无 | 回执里带当前位姿与忙闲 |
@@ -105,11 +104,11 @@ damp/stop + 臂急停)→ 给被中断的 req_id 广播 `stopped`。急停链路
 `/gripper_control`、`/z1_move_ee`),server 把请求编成 `task=[Move, Pick]`。
 已实测通过:导航→按名检测(返回 6DoF grasp_pose)→开爪→伸臂→合爪→抬臂→done。
 
-**已定**:导航目标 = (x, y) + `yaw`,高度狗端自调(`target_world` 的 z 仅参考)。
+**已定(2026-07-27 定稿)**:`target_world = [x, y, yaw]`——第三位就是偏航角,协议不传高度(狗端自调)。
 
 **待对齐(每条一句话就能定)**:
 1. `yaw` 单位与零轴:意图机发**弧度、板系 +x=0、逆时针正**——狗端确认或换算。
-2. `target_world` = 站位(意图机留 standoff)已按此实现;狗端若想自己留,告知即可(意图机 `--standoff 0`)。
+2. 站位 standoff 由意图机留(`--standoff` 0.6m);狗端若想自己留,告知即可(意图机设 0)。
 3. **检测类名词表**:`/detect_grasp` 只认检测器类名("苹果"被 goal reject,"orange" 通过)。
    意图机已有映射(`Intension/detect_names.json`,发送前地图名→检测名);
    狗端给一份支持的类名列表,填进这张表即完事。

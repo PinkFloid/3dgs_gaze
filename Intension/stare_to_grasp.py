@@ -182,7 +182,7 @@ def main() -> int:
                     continue
                 n_req += 1
                 req = {"v": 1, "type": "skill.request", "skill": "grasp",
-                       "params": {"object_name": obj, "target_world": tw},
+                       "params": {"object_name": obj, "target_world": [tw[0], tw[1], 0.0]},
                        "req_id": f"{sess.name}-{n_req:03d}",
                        "frame": args.frame, "sent_at": time.time(), "t_stream": t,
                        "intent_summary": f"用户注视 {pl['dwell_s']:.1f}s 并确认夹取 {obj}"}

@@ -242,7 +242,7 @@ def main() -> int:
         n_req += 1
         stand, yaw = stand_pose(tw, approach_from)
         params = {"object_name": None if goto else detect_name(obj),
-                  "target_world": stand, "yaw": yaw}
+                  "target_world": [stand[0], stand[1], yaw]}  # 线上三元组=[x,y,yaw]
         if not goto and user_pos["xyz"] is not None:  # 确认时刻的用户位置:带它=送达
             params["deliver_to"] = user_pos["xyz"]
         req = {"v": 1, "type": "skill.request", "skill": "grasp",
