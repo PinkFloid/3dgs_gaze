@@ -334,14 +334,14 @@ def main() -> int:
             P.say("[×] 说不清去哪:指个名字,或看一眼目的地再说")
             return
         if cmd["kind"] == "named":
+            if cmd.get("location"):  # 地点优先:物品会被挪动/可能不在图里,
+                loc, _ = resolve_named(cmd["location"], table)  # 导航去地点,到位后按名检测
+                if loc:
+                    P.say(f"[·] 按地点「{loc}」导航,到位后检测「{cmd['query']}」")
+                    propose(cmd["query"], table[loc], "地点", t_word)
+                    return
+                P.say(f"[!] 地点「{cmd['location']}」没认出,退回按物名的地图位置")
             name, top = resolve_named(cmd["query"], table)
-            if name is None and cmd.get("location"):
-                loc, _ = resolve_named(cmd["location"], table)
-                near = [n for s, n in top if s >= 0.55]
-                if loc and near:  # 名字打平时按地点参照就近消歧
-                    name = min(near, key=lambda n: sum(
-                        (table[n][i] - table[loc][i]) ** 2 for i in range(3)))
-                    P.say(f"[·] 按「{cmd['location']}」就近消歧 -> {name}")
             if name is None:
                 P.say(f"[×] 「{cmd['query']}」没有唯一命中,最像的:"
                       + " / ".join(f"{n}({s:.2f})" for s, n in top))
