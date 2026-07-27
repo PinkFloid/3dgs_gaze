@@ -2,7 +2,7 @@
 """狗机技能服务端(交付给狗机同学的唯一文件)。协议见 Intension/PROTOCOL.md。
 
 技能:
-  grasp   params: object_name, target_world:[x,y,yaw], deliver_to:[x,y,z]?(可选)
+  grasp   params: object_name, target_world:[x,y,yaw], deliver_to:[x,y,yaw]?(可选)
           target_world = 基座站位(发送方已留 standoff)+ 到位朝向(弧度)。
           走到站位 → 转到 yaw → 夹取 → 有 deliver_to 则 returning 送达,
           没有则原地 done。object_name 空(null/"")= 纯导航,只走到站位。
@@ -225,6 +225,9 @@ def execute(dog, skill, params, report, should_stop):
         err = _navigate(dog, dst[:2], None, NAV_TOL, "returning", should_stop)
         if err:
             return _finish(report, err)          # 注意:失败时爪里还有东西
+        err = _align(dog, dst[2], should_stop)   # 第三位=送达朝向(朝向用户)
+        if err:
+            return _finish(report, err)
     report("done")
 
 
@@ -242,7 +245,7 @@ def validate(skill, params):
         if params.get("deliver_to") is not None:
             dv = params["deliver_to"]
             if not (isinstance(dv, (list, tuple)) and len(dv) >= 2):
-                return "bad_params: deliver_to must be [x,y,(z)]"
+                return "bad_params: deliver_to must be [x,y,yaw]"
             pts.append((float(dv[0]), float(dv[1])))
     for x, y in pts:
         if not (ROOM_X[0] <= x <= ROOM_X[1] and ROOM_Y[0] <= y <= ROOM_Y[1]):

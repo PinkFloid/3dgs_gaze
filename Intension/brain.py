@@ -265,7 +265,9 @@ def main() -> int:
         params = {"object_name": None if goto else detect_name(obj),
                   "target_world": [stand[0], stand[1], yaw]}  # 线上三元组=[x,y,yaw]
         if not goto and user_pos["xyz"] is not None:  # 确认时刻的用户位置:带它=送达
-            params["deliver_to"] = user_pos["xyz"]
+            # 送达也是站位语义:从物体那侧接近,停在用户前 standoff,yaw 朝向用户
+            dstand, dyaw = stand_pose(user_pos["xyz"], approach_from=tw)
+            params["deliver_to"] = [dstand[0], dstand[1], dyaw]
         elif not goto:  # 拿取但不知用户在哪:降级可用,但必须说出来,不许静默丢送回
             P.say("[!] 不知道你在哪(视线流未定位)——本单不带送回,接近方向退化为原点侧")
         req = {"v": 1, "type": "skill.request", "skill": "grasp",

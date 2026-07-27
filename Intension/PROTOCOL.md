@@ -44,7 +44,7 @@ execute 抛异常自动广播 failed、忘发终态自动补 done,不会把对�
 
 | skill | params | 语义 |
 |---|---|---|
-| `grasp` | `object_name: str \| null`, `target_world: [x, y, yaw]`, `deliver_to: [x,y,z]`(可选) | **唯一技能,两种用法**。`target_world` 三元组 = **狗基座站位** x,y(米)+ 到位朝向 yaw(弧度,板系 +x=0,逆时针正,指向要抓的物体/目的地)。**协议不传高度**——抓取高度狗端自调。站位由意图机沿"用户→目标"方向留 standoff(`--standoff` 默认 0.6m,狗端若自留则意图机设 0)。①`object_name` 有值 = 到站位→转到 yaw→按名检测→抓取,有 `deliver_to`(=确认时刻用户头位置)则送达、无则原地 done;②**`object_name` 空(null/"")= 纯导航**,走到站位并转到 yaw,不动臂,进度 `moving→done` |
+| `grasp` | `object_name: str \| null`, `target_world: [x, y, yaw]`, `deliver_to: [x, y, yaw]`(可选) | **唯一技能,两种用法**。`target_world` 三元组 = **狗基座站位** x,y(米)+ 到位朝向 yaw(弧度,板系 +x=0,逆时针正,指向要抓的物体/目的地)。**协议不传高度**——抓取高度狗端自调。站位由意图机沿"用户→目标"方向留 standoff(`--standoff` 默认 0.6m,狗端若自留则意图机设 0)。①`object_name` 有值 = 到站位→转到 yaw→按名检测→抓取,有 `deliver_to`(=送达站位:用户前 0.6m、yaw 朝向用户,意图机已算好)则送达、无则原地 done;②**`object_name` 空(null/"")= 纯导航**,走到站位并转到 yaw,不动臂,进度 `moving→done` |
 | `move_to` | — | 不使用:导航一律用 `object_name=null` 的 grasp 表达(服务器里残留的实现无害) |
 | `stop` | 无 | **急停,最高优先级**,见 §3 |
 | `get_state` | 无 | 回执里带当前位姿与忙闲 |
@@ -113,6 +113,6 @@ damp/stop + 臂急停)→ 给被中断的 req_id 广播 `stopped`。急停链路
    意图机已有映射(`Intension/detect_names.json`,发送前地图名→检测名);
    狗端给一份支持的类名列表,填进这张表即完事。
 4. **送达段未实现**:`deliver_to` 现被当未知字段忽略——需在 Pick 成功后追加
-   Move(deliver_to 的 x,y 前 ~0.8m,yaw 朝向用户)。
+   Move(deliver_to 已是算好的送达站位 [x,y,yaw],直接走到并转向即可,无需再留距离)。
 5. `stop` 抢占尚未在真机验证(`/b2_move_path` 需支持 cancel)。
 6. 障碍:直线插值路径不会绕桌子/门,跨房 demo 前确认规划器如何避障。
