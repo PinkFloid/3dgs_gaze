@@ -56,9 +56,14 @@ def status_listener(endpoint, printer, seen, logev):
     sub = zmq.Context.instance().socket(zmq.SUB)
     sub.connect(endpoint)
     sub.setsockopt(zmq.SUBSCRIBE, b"skill.status")
+    terminal = ("done", "failed", "stopped")
     while True:
         st = msgpack.unpackb(sub.recv_multipart()[-1], strict_map_key=False)
-        seen[st.get("req_id", "?")] = st.get("state", "?")
+        rid, state = st.get("req_id", "?"), st.get("state", "?")
+        if seen.get(rid) in terminal and state not in terminal:
+            logev({"topic": "skill.status", **st, "stale_after_terminal": True})
+            continue  # 终态粘滞:done 之后迟到的 running 不许把状态改回"忙"
+        seen[rid] = state
         pose = st.get("pose") or {}
         line = f"[狗] {st.get('state', '?'):<10} req={st.get('req_id', '?')}"
         if pose:
