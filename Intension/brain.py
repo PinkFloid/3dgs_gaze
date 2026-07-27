@@ -217,6 +217,7 @@ def main() -> int:
     n_req = 0
     pending = None  # {"req":..., "since": stream_t, "mode":..., "object":...}
     last_prog = None
+    last_obj = {"name": None}  # 最近一次提议的目标名:排队补发时跳过原地重发
     clock = {"stream": 0.0, "wall": time.time()}
     user_pos = {"xyz": None, "t": 0.0}  # 每条 verdict 的 origin_world = 用户头部位置
 
@@ -270,6 +271,7 @@ def main() -> int:
         狗端导航吃 (x,y)+yaw、高度自调:target_world = 站位,z 仅是目标高度参考。"""
         nonlocal n_req, pending
         n_req += 1
+        last_obj["name"] = obj
         stand, yaw = stand_pose(tw, approach_from)
         params = {"object_name": None if goto else detect_name(obj),
                   "target_world": [stand[0], stand[1], yaw]}  # 线上三元组=[x,y,yaw]
@@ -298,12 +300,17 @@ def main() -> int:
                    else f"[?] 去拿「{obj}」{pose_txt} ?")
             P.say(ask + " y=确认 其他=取消")
 
+    queued = {"pl": None, "display": None}  # 狗忙时的最新盯视目标,空闲后自动补发
+
     def proactive_fire(pl, display=None):
-        """盯满触发的公共闸(物体缓冲与地板缓冲共用):pending/狗忙/抑制期。"""
-        if pending is not None:
+        """盯满触发的公共闸(物体缓冲与地板缓冲共用):命名/pending/狗忙/抑制期。"""
+        if display is None and pl["object"] not in table:  # 只去有名字的物体旁
+            logev({"topic": "proactive.skipped", "object": pl["object"], "why": "unnamed"})
+        elif pending is not None:
             logev({"topic": "proactive.skipped", "object": pl["object"], "why": "pending"})
         elif dog_busy():
-            logev({"topic": "proactive.skipped", "object": pl["object"], "why": "dog_busy"})
+            queued["pl"], queued["display"] = pl, display  # 覆盖式排队:只记最新
+            P.say(f"[·] 狗在忙,已排队:{display or pl['object']}(新注视会覆盖)")
         elif pl["t"] < suppress.get(pl["object"], float("-inf")):
             P.say(f"[×] {display or pl['object']} 抑制期,略过主动问询")
         elif pl.get("target_world"):
@@ -475,6 +482,12 @@ def main() -> int:
                 if text is None:  # 输入端收摊(Ctrl-C/Ctrl-D)-> 正常退出
                     raise KeyboardInterrupt
                 handle(st, text)
+            if queued["pl"] is not None and pending is None and not dog_busy():
+                qp, qd = queued["pl"], queued["display"]
+                queued["pl"] = queued["display"] = None
+                if (qd or qp["object"]) != last_obj["name"]:  # 同一目标不用原地重发
+                    P.say(f"[·] 狗空闲,补发排队目标:{qd or qp['object']}")
+                    proactive_fire(qp, qd)
             if pending and st - pending["since"] > args.confirm_timeout:
                 P.say("[-] 确认超时,已取消")
                 if pending["mode"] == "主动":
