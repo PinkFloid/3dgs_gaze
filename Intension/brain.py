@@ -210,7 +210,7 @@ def main() -> int:
             def stdin_reader():
                 for line in sys.stdin:
                     cmd_q.put(line.rstrip("\n"))
-                cmd_q.put(None)
+                # 管道 EOF 不塞哨兵:stdin 关闭(如重定向跑回放)不该杀事件循环
         threading.Thread(target=stdin_reader, daemon=True).start()
     scripted = sorted((float(s.split(":", 1)[0]), s.split(":", 1)[1]) for s in args.script)
 
