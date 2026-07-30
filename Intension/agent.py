@@ -1,8 +1,12 @@
-"""agent.py -- 指令文本 -> 结构化命令(LLM + 解析缓存)。
+"""agent.py -- 指令文本 -> 结构化槽位(LLM + 解析缓存)。
 
-只做"文本->结构"这一件事;绑定/几何/确认永远是外面的确定性代码。
-缓存命中 0ms 且完全确定(parse_cache.json);未命中且 mode=='on' 时
-直连 OpenAI(strict json_schema,reasoning minimal);都不行返回 None。
+只做"文本->槽位"这一件事;绑定/几何/确认永远是外面的确定性代码。
+槽位模型(v2,双通道消解的输入):object(拿什么)/ place(去哪拿)/
+dest(送到哪),每个槽位独立地要么给名字(*_query),要么标指代(*_deictic
+——指什么由视线决定,LLM 永远不猜)。
+缓存命中 0ms 且完全确定(parse_cache_v2.json;schema 变更即换文件名,
+旧缓存不许毒化新解析);未命中且 mode=='on' 时直连 OpenAI(strict
+json_schema,reasoning minimal);都不行返回 None。
 """
 
 from __future__ import annotations
@@ -16,6 +20,31 @@ from pathlib import Path
 
 _DIR = Path(__file__).resolve().parent
 PARSE_SCHEMA = json.loads((_DIR / "parse_schema.json").read_text(encoding="utf-8"))
+
+# 槽位卫生:LLM 偶尔把指代词本身塞进 *_query(实测:"去这里拿Orange" ->
+# place_query="这里")。查询字段里出现指代词 = 确定性清洗成 deictic 标记,
+# 不指望提示词能管住模型。
+_DEICTIC_WORDS = {"这", "那", "这个", "那个", "这里", "那里", "这边", "那边",
+                  "这儿", "那儿", "此处", "这块", "那块", "这个地方", "那个地方",
+                  "这个位置", "那个位置"}
+
+
+def _sanitize(data):
+    for q, d in (("object_query", "object_deictic"),
+                 ("place_query", "place_deictic"),
+                 ("dest_query", "dest_deictic")):
+        v = data.get(q)
+        if v and v.strip() in _DEICTIC_WORDS:
+            data[q], data[d] = None, True
+    # 指名即指称:object_query 是真名字、且没有独立类别词(noun 缺失或只是名字的
+    # 重复)时,object_deictic 视为地点槽漏过来的错标,按命名处理。
+    # ("去这里拿Orange"实测:'这里'的 deictic 被同时标到了 object 上。
+    #  "这个杯子"类真指代 noun_class=杯 ≠ query,不受影响。)
+    oq, nc = data.get("object_query"), data.get("noun_class")
+    if oq and (not nc or nc.strip().lower() == oq.strip().lower()):
+        data["object_deictic"] = False
+        data["noun_class"] = None
+    return data
 
 
 def load_openai_key():
@@ -34,7 +63,7 @@ class CommandParser:
         self.table = table            # 物体名 -> 质心(名字表进提示词,口语->规范名)
         self.model, self.mode, self.key = model, mode, key
         self.say, self.logev = say, logev
-        self.cache_path = Path(cache_path or _DIR / "parse_cache.json")
+        self.cache_path = Path(cache_path or _DIR / "parse_cache_v2.json")
         try:
             self.cache = json.loads(self.cache_path.read_text(encoding="utf-8"))
         except Exception:
@@ -43,23 +72,33 @@ class CommandParser:
     # -------------------------------------------------- LLM
     def _prompt(self, text):
         return (
-            "把这句对机器人说的中文指令解析成 JSON(只输出 JSON)。\n"
-            "机器人技能(action 取值):\n"
-            "- fetch: 去拿某个物体并送回来(需要一个物体目标)\n"
-            "- goto: 只移动过去,不抓取——去某物体旁边,或来用户身边('过来')\n"
+            "把这句对机械狗说的中文指令解析成 JSON(只输出 JSON)。\n"
+            "动作 action:\n"
+            "- fetch: 去拿某个物体(之后可能要送到某处)\n"
+            "- grab: 原地抓取——机器人已在目标面前,不要移动,直接抓。动词是\n"
+            "  '抓/夹'且没说去哪、没说拿来/给我时用它('抓orange''抓这个');\n"
+            "  出现'去/来/给我/带'的一律 fetch\n"
+            "- goto: 只移动过去,不抓取\n"
             "- stop: 让它立刻停下\n"
             "- none: 都不是\n"
-            "场景中已命名的物体(object_query 与 location_hint 只能取其中之一或 null):\n"
+            "场景中已命名的物体:\n"
             f"{'、'.join(sorted(self.table))}\n"
-            "字段规则:\n"
-            "- deictic: 用了'这个/那个/这里/那边'等现场指代时为 true。指代可指物也可指\n"
-            "  地点:'去这里拿X' = deictic true 且 object_query=X\n"
-            "- object_query: 目标物体(fetch=要拿的物;goto=要去的参照物)->\n"
-            "  上表中最匹配的一个;不在表中但明确指名的照抄原文;\n"
-            "  没指名、或说法同时匹配多个而无法确定时为 null\n"
-            "- noun_class: 指代或泛指时的类别词(如 杯、机器人);没有则 null\n"
-            "- location_hint: 顺带提到的地点参照物 -> 上表中的一个;没有则 null\n"
-            "- deliver_to_user: fetch=是否要求送到用户身边;goto=目的地是否就是用户身边\n"
+            "三个槽位各自独立填。用了'这个/那个/这里/那边/这边'等现场指代词时只把\n"
+            "对应 *_deictic 置 true;**指代词本身永远不要写进 *_query**(query 只放\n"
+            "物体名字),也不要猜指代词指什么——指什么由视线决定。\n"
+            "例:'去这里拿Orange' -> place_deictic=true, place_query=null,\n"
+            "object_query=orange, object_deictic=false(Orange 是明确指名,不是指代)。\n"
+            "- object_query/object_deictic/noun_class: 要拿的物体(仅 fetch 用,goto\n"
+            "  一律填 place_*)。指名 -> 上表最匹配的一个;明确指名但不在表中的照抄\n"
+            "  原文;没指名 -> null。'这个杯子' -> object_deictic=true 且 noun_class=杯。\n"
+            "  noun_class 是指代/泛指时的类别词(杯、狗…),没有则 null\n"
+            "- place_query/place_deictic: 在哪里拿 / 要去哪(fetch 的取货地点、goto\n"
+            "  的目的地)。'去这里拿X' -> place_deictic=true;'去桌子那边' ->\n"
+            "  place_query=桌子\n"
+            "- dest_query/dest_deictic: 拿到之后送去哪。'拿到桌子那边' ->\n"
+            "  dest_query=桌子;'拿去那边' -> dest_deictic=true;没说送哪 -> 都空\n"
+            "- to_user: fetch=送到用户身边('拿来/给我/带过来';没说送哪也默认 true,\n"
+            "  除非给了 dest_* 或明确只是拿着不送);goto=目的地是用户('过来')\n"
             f"指令:「{text}」")
 
     def _call_api(self, text):
@@ -98,7 +137,7 @@ class CommandParser:
 
     # -------------------------------------------------- 对外
     def parse(self, text):
-        """返回内部指令 dict(kind: stop/goto/named/deictic/help)或 None(不可解析)。"""
+        """返回槽位 dict(kind: stop/fetch/goto/help + 各槽位)或 None(不可解析)。"""
         data = self.cache.get(text)
         cached = data is not None
         if not cached:
@@ -107,22 +146,19 @@ class CommandParser:
             data = self._call_api(text)
             if data is None:
                 return None
+        data = _sanitize(dict(data))
         self.logev({"topic": "llm_parse", "text": text, "result": data, "cached": cached})
-        if data.get("action") == "stop":
+        act = data.get("action")
+        if act == "stop":
             return {"kind": "stop"}
-        if data.get("action") == "goto":
-            return {"kind": "goto", "query": data.get("object_query"),
-                    "noun": data.get("noun_class") or "",
-                    "deictic": bool(data.get("deictic")),
-                    "to_user": bool(data.get("deliver_to_user"))}
-        if data.get("action") != "fetch":
+        if act not in ("fetch", "grab", "goto"):
             return {"kind": "help"}
-        if data.get("deictic"):
-            return {"kind": "deictic", "noun": data.get("noun_class") or "",
-                    "query": data.get("object_query")}  # 有物名=指代词指地点(去这里拿X)
-        if data.get("object_query"):
-            return {"kind": "named", "query": data["object_query"],
-                    "location": data.get("location_hint")}
-        if data.get("noun_class"):
-            return {"kind": "deictic", "noun": data["noun_class"]}
-        return {"kind": "help"}
+        return {"kind": act,
+                "object": data.get("object_query"),
+                "object_deictic": bool(data.get("object_deictic")),
+                "noun": data.get("noun_class") or "",
+                "place": data.get("place_query"),
+                "place_deictic": bool(data.get("place_deictic")),
+                "dest": data.get("dest_query"),
+                "dest_deictic": bool(data.get("dest_deictic")),
+                "to_user": bool(data.get("to_user"))}

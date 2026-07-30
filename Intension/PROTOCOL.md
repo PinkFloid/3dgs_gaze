@@ -59,6 +59,9 @@ execute 抛异常自动广播 failed、忘发终态自动补 done,不会把对�
 执行丢给工作线程,进度走 5584。拒绝时 `accepted: false` + reason,约定的 reason:
 `busy`(v1 同时只执行一个技能)/ `frame_mismatch` / `unknown_skill` / `bad_params` / `out_of_workspace`。
 意图机侧等回执超时 2s,超时按失败处理。
+(意图机 2026-07-28 起**不做忙闲记账**:收到 `busy` 拒单即提示"本单作废",不排队
+不重试,要打断先发 `stop` 再重下。狗端将来若改为抢占语义(新单取消旧单,参考实现
+`archive/dog_link_preempt.py`),意图机零改动。)
 
 ## 3. 进度广播(狗机 PUB :5584,话题 `skill.status`)
 
@@ -87,8 +90,8 @@ damp/stop + 臂急停)→ 给被中断的 req_id 广播 `stopped`。急停链路
 
 ```bash
 # 1) 狗机同学:python dog_link.py                   # 打印收到的请求+模拟执行
-# 2) 意图机:python Intension/stare_to_grasp.py \
-#        --skill-endpoint tcp://<狗机IP>:5583        # 盯 4.8s → y → 请求发出
+# 2) 意图机:python Intension/brain.py \
+#        --skill-endpoint tcp://<狗机IP>:5583        # 下指令 → y → 请求发出
 # 3) 看狗端终端:请求 JSON + accepted→moving→…→done 的状态流
 # 之后他把 dog_link 里 execute() 的 sleep 换成 unitree_sdk2 调用,协议层零改动
 ```

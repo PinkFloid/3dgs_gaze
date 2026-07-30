@@ -50,7 +50,10 @@ def dispatch(req, endpoint):
 
 
 def status_listener(endpoint, printer, seen, logev):
-    """Print the dog's skill.status broadcasts into our console (daemon thread)."""
+    """Print the dog's skill.status broadcasts into our console (daemon thread).
+
+    抢占语义下大脑不做忙闲记账,seen 只服务显示与回放收尾(等终态)。
+    """
     import msgpack
     import zmq
     sub = zmq.Context.instance().socket(zmq.SUB)
@@ -62,7 +65,7 @@ def status_listener(endpoint, printer, seen, logev):
         rid, state = st.get("req_id", "?"), st.get("state", "?")
         if seen.get(rid) in terminal and state not in terminal:
             logev({"topic": "skill.status", **st, "stale_after_terminal": True})
-            continue  # 终态粘滞:done 之后迟到的 running 不许把状态改回"忙"
+            continue  # 终态粘滞:真实狗端 done 后会晚到一条 running,只进日志不改状态
         seen[rid] = state
         pose = st.get("pose") or {}
         line = f"[狗] {st.get('state', '?'):<10} req={st.get('req_id', '?')}"
@@ -88,12 +91,28 @@ def gaze_events(endpoint):
             yield None
 
 
-def replay_events(path):
-    """回放 jsonl;流放完后继续心跳,让脚本指令与终态等待能收尾。"""
+def replay_events(path, pace=0.0):
+    """回放 jsonl;pace>0 = 按流时间 1/pace 倍实速播放(交互试跑,行为对齐 live),
+    0 = 全速灌入(回归用,指令必须走 --script)。流放完后继续心跳收尾。"""
+    last = None
+    bad = 0
     with open(path, encoding="utf-8") as f:
         for line in f:
             if line.strip():
-                yield json.loads(line)
+                try:
+                    e = json.loads(line)
+                except ValueError:
+                    bad += 1  # 手拼文件接缝的粘行等:跳过坏行,别一行毒死全场
+                    if bad == 1:
+                        print(f"[!] 回放流有坏行,已跳过(首个于第 {bad} 次出现;"
+                              f"检查文件是否缺换行拼接)", flush=True)
+                    continue
+                if pace > 0:
+                    t = float(e.get("t_end", e.get("t_start", 0.0)))
+                    if last is not None and t > last:
+                        time.sleep(min((t - last) / pace, 1.0))
+                    last = t
+                yield e
     while True:
         time.sleep(0.05)
         yield None

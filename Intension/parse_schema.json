@@ -1,14 +1,18 @@
 {
   "type": "object",
   "properties": {
-    "action": {"type": "string", "enum": ["fetch", "goto", "stop", "none"]},
-    "deictic": {"type": "boolean"},
+    "action": {"type": "string", "enum": ["fetch", "grab", "goto", "stop", "none"]},
     "object_query": {"type": ["string", "null"]},
+    "object_deictic": {"type": "boolean"},
     "noun_class": {"type": ["string", "null"]},
-    "location_hint": {"type": ["string", "null"]},
-    "deliver_to_user": {"type": "boolean"}
+    "place_query": {"type": ["string", "null"]},
+    "place_deictic": {"type": "boolean"},
+    "dest_query": {"type": ["string", "null"]},
+    "dest_deictic": {"type": "boolean"},
+    "to_user": {"type": "boolean"}
   },
-  "required": ["action", "deictic", "object_query", "noun_class",
-               "location_hint", "deliver_to_user"],
+  "required": ["action", "object_query", "object_deictic", "noun_class",
+               "place_query", "place_deictic", "dest_query", "dest_deictic",
+               "to_user"],
   "additionalProperties": false
 }

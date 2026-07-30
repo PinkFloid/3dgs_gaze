@@ -3,6 +3,8 @@
 VisitTracker 消费 gaze.intent 的 provisional/final 双流,产出意图无关的
 progress / sustained / released 事件;AttentionBuffer 在其上保留最近 visit
 的富记录,供眼-声绑定查询(fire_dwell<=0 时纯缓冲,不主动触发)。
+PlaceBuffer 是与之平行的落点通道:记"你看的那一点"(物体表面实际落点,
+未命名实例也算),供 place/dest 槽消解。
 """
 
 from __future__ import annotations
@@ -168,3 +170,48 @@ class AttentionBuffer(VisitTracker):
             out = [c for c in out if noun_match(noun, c["object"])]
         out.sort(key=lambda c: c["gap"])
         return out
+
+
+class PlaceBuffer:
+    """落点通道:近期物体注视的世界落点(centroid_world),供 place/dest 槽消解。
+
+    与 AttentionBuffer 刻意分开:object 槽要"物体身份+物体质心"(E1 语义,勿动);
+    place/dest 槽要的是"你看的那一点"——注视打在物体表面的实际落点(物品台的
+    那个角,而不是物品台质心),未命名实例同样算数,不做投票门。
+    只收物体注视(label >= OBJ0):地板/墙/天花板不当地点(地板判定噪声大,
+    且"去哪"看目标处的物体/家具表达更稳)。驻留 >= min_dwell 防扫视噪声。
+    """
+
+    def __init__(self, min_dwell=0.4):
+        self.min_dwell = min_dwell
+        self.recent = []   # 已结账落点 {"t_end","point","object"},升序
+        self.open = None   # 进行中注视(provisional 已满驻留)
+
+    def feed(self, e):
+        """一条 gaze.intent verdict 进来,静默记账(无事件输出)。"""
+        p = e.get("centroid_world")
+        if not p or e.get("object_label", -1) < OBJ0:
+            return
+        t0, t1 = float(e.get("t_start", 0.0)), float(e.get("t_end", 0.0))
+        dur, obj = float(e.get("duration_s", 0.0)), e.get("object", "?")
+        if e.get("provisional"):
+            if dur >= self.min_dwell:
+                self.open = {"t_start": t0, "t_end": t1, "point": list(p), "object": obj}
+        else:
+            if self.open and abs(self.open["t_start"] - t0) < 1e-9:
+                self.open = None
+            if dur >= self.min_dwell:
+                self.recent.append({"t_end": t1, "point": list(p), "object": obj})
+                self.recent = self.recent[-50:]
+
+    def latest(self, t_word, lookback):
+        """说指代词时刻回看:仍在盯的落点最优,其余取最近。返回记录或 None。"""
+        if self.open and t_word - self.open["t_end"] <= lookback:
+            return self.open
+        for r in reversed(self.recent):
+            gap = t_word - r["t_end"]
+            if gap > lookback:
+                return None
+            if gap >= -0.5:
+                return r
+        return None
