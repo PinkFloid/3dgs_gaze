@@ -226,6 +226,15 @@ if $PY hint_select.py --selftest >"$TMP/r15" 2>&1; then
   echo "  [o] 零位/选框/拒抓 三关全过"
 else echo "  [x] hint_select selftest 失败"; cat "$TMP/r15"; FAIL=1; fi
 
+echo "R16 语音标点归一:'停。'走急停旁路,'好。'当确认(转写带标点的实测形)"
+run "$TMP/r16" "$TMP/cup.jsonl" "106.0:停。"
+ck "'停。'发出 stop(不吃 LLM/缓存)" "$TMP/r16" '"skill": "stop"'
+$PY brain.py --llm off --replay "$TMP/named.jsonl" --skill-endpoint off \
+    --map-dir "$TMP/map" --script "103.0:给我找下黄色机器人" --script "104.5:好。" \
+    --log-dir "$TMP/logs/r16b" >"$TMP/r16b" 2>&1
+ck "确认门先出问句" "$TMP/r16b" "y=确认"
+ck "'好。'确认后才派发" "$TMP/r16b" '\[派发\].*黄色机器人'
+
 echo "R12 线格式审计:所有派发的 yaw 必须在 [-π,π]"
 if $PY - "$TMP/logs" <<'EOF'
 import glob, json, math, sys

@@ -13,11 +13,13 @@
 | `把这个拿到物品台那边` | dest=名字:送达目的地显式给出,不送用户 |
 | `过来` / `去凳子那边` / `去那边` | goto:目的地=用户 / 名字 / 注视处落点 |
 | 盯满 4.8s(`--proactive 4.8` 时) | 主动问询:"要我拿来吗?" |
-| `停` | 急停旁路,永不过 LLM,不确认 |
+| `停` / `停下` / `停止` | 急停旁路,永不过 LLM,不确认(标点/大小写归一:转写成"停。"同样命中) |
 
-解析:**除"停"和 y/n 外全部由 LLM 转槽位**(gpt-5-mini 直连,~2s),结果进
-`parse_cache_v2.json` —— 同一句话第二次起 0ms 且完全确定。demo 台词预热一遍即可
-离线跑;`--llm off` = 只走缓存(回归/实验模式)。LLM 只做文本→槽位
+解析:**除"停"和 y/n 外全部由 LLM 转槽位**(gpt-5-mini 直连,~2s),结果
+**过确认门后**才落盘进 `parse_cache_v2.json`(键做标点/大小写归一,转写抖动
+不裂键;没确认的解析只活在本进程内存——确认即人工校验,误判进不了文件)。
+同一句话第二次起 0ms 且完全确定。demo 台词预热 = 跑一遍并确认(或 `--yes`),
+之后离线可用;`--llm off` = 只走缓存(回归/实验模式)。LLM 只做文本→槽位
 (指代词只标记不猜指什么),绑定/几何/确认永远是确定性代码。
 
 两条注意通道(core/attention):**物体通道** AttentionBuffer = 眼-声绑定的
@@ -32,6 +34,9 @@ E1 语义(物体身份+质心,投票门把关);**落点通道** PlaceBuffer = �
 python Intension/brain.py                          # 纯本机,派发只打印
 python Intension/brain.py --skill-endpoint tcp://狗机:5583   # 接真狗/模拟器
 python Intension/brain.py --voice                  # 开麦语音指令(与打字并行)
+#   免屏幕提示音:断句"叮"=听到了 / 升调=等确认(说"好/嗯"即确认) / 双音=已派发或狗done
+#   / 低音=失败取消;词表与缓存键均归一(标点/大小写),转写"好。"照样确认
+#   噪声四闸:能量 --voice-rms / 超长段丢弃 / silero 复核 / 幻听过滤——风扇键盘不触发指令
 python Intension/voice_input.py --once             # 单独试麦:说一句看转写
 python Intension/brain.py --proactive 4.8          # 加开盯视主动问询
 python Intension/brain.py --proactive 3 --proactive-goto --yes  # 看哪去哪(盯满即去物体旁)

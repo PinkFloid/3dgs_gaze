@@ -6,7 +6,7 @@
     去这个地方拿橘子            place=注视处落点(看着目标处的物体/家具说)+ 物名给到位检测
     把这个拿到物品台那边        dest=名字:送达目的地显式给出,不送用户
     过来 / 去凳子那边 / 去那边  goto:用户身边 / 名字 / 注视处落点
-    停                          急停旁路(永不过 LLM)
+    停 / 停下 / 停止            急停旁路(永不过 LLM;标点/大小写归一,"停。"同样命中)
     (--proactive 4.8 加开第三模式:盯满主动问询;
      --proactive 3 --proactive-goto --yes = 看哪去哪,盯满即去注视物体旁;
      狗忙时最新盯视目标入补发槽,状态流报终态后自动补发——先看A再看B=先去A再去B)
@@ -38,16 +38,18 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from agent import CommandParser, load_openai_key            # noqa: E402
+from agent import CommandParser, load_openai_key, norm_cmd  # noqa: E402
 from core.attention import (AttentionBuffer, PlaceBuffer,   # noqa: E402
                             accepted)
 from core.comms import (Printer, dispatch, gaze_events,     # noqa: E402
                         replay_events, status_listener)
 from core.resolve import load_object_table, resolve_named   # noqa: E402
 
-YES_WORDS = {"y", "yes", "是", "好", "嗯", "要", "ok", "行"}
+# 词表匹配一律吃 norm_cmd(去两端标点+lower):语音转写的"好。""停。""Stop!"
+# 才进得了门——尤其急停,带个句号就掉进 2.2s LLM 是不可接受的。
+YES_WORDS = {"y", "yes", "是", "好", "嗯", "要", "ok", "行", "好的", "可以"}
 NO_WORDS = {"n", "no", "不", "不用", "不要", "算了", "否", "取消"}
-STOP_WORDS = {"停", "stop", "s"}
+STOP_WORDS = {"停", "停下", "停止", "停一下", "stop", "s"}
 
 
 def parse_args():
@@ -95,6 +97,9 @@ def parse_args():
                    help="whisper 模型(small 够用;tiny 更快中文略差)")
     p.add_argument("--voice-device", default=None,
                    help="麦克风设备:序号或名字子串(voice_input.py --list 查;缺省=系统默认)")
+    p.add_argument("--voice-rms", type=float, default=200,
+                   help="语音能量闸:低于此 rms 的段当环境底噪丢弃(另有超长段/幻听闸,"
+                        "见 voice_input.py 模块注释)")
     p.add_argument("--yes", action="store_true", help="自动确认(回归测试用)")
     p.add_argument("--log-dir", default=str(Path(__file__).resolve().parent / "logs"))
     return p.parse_args()
@@ -213,6 +218,7 @@ def main() -> int:
     # 「抓XX」原地抓取用它当 target:狗端 Move 段零长度,等效纯 Pick。
     # 状态流有 pose 后(待对齐)换真实位姿,此处即删。
     last_stand = {"tw": None}
+    last_cmd = {"text": None}  # 最近成功解析的原文:确认(y/--yes)后 parser.confirm 落盘
 
     cmd_q = queue.Queue()  # 条目 = (文本, 说完时刻wall|None);None 条目=退出哨兵
     if not args.script:
@@ -234,8 +240,20 @@ def main() -> int:
                     cmd_q.put((line.rstrip("\n"), None))
                 # 管道 EOF 不塞哨兵:stdin 关闭(如重定向跑回放)不该杀事件循环
         threading.Thread(target=stdin_reader, daemon=True).start()
+    notify = lambda kind: None  # 提示音钩子:--voice 时换成 voice_input.chime  # noqa: E731
     if args.voice:  # 语音与打字并行:同一队列同一 handle,t_word=说完时刻回填
-        from voice_input import VoiceReader
+        from voice_input import VoiceReader, chime
+        notify = chime
+        _say = P.say  # 失败/取消行自动低音:语音场景用户看不到终端,
+        # "说了没反应"最像死机;成功(ok)/等确认(ask)在 send/propose 显式发
+
+        def _say_chimed(msg):
+            _say(msg)
+            if msg.startswith(("[×]", "[-]", "[狗] failed", "[狗] stopped")):
+                chime("fail")
+            elif msg.startswith("[狗] done"):
+                chime("ok")  # 狗跑完终态也报音:不看屏幕知道干完没
+        P.say = _say_chimed
 
         def _on_voice(text, t_end, asr_s):
             P.say(f"[语音] 「{text}」 (asr {asr_s:.2f}s)")
@@ -246,7 +264,7 @@ def main() -> int:
         if dev is not None and dev.isdigit():
             dev = int(dev)
         vr = VoiceReader(_on_voice, model=args.voice_model, vocab=table.keys(),
-                         say=P.say, device=dev)
+                         say=P.say, device=dev, min_rms=args.voice_rms)
         threading.Thread(target=vr.run, daemon=True).start()
     scripted = sorted((float(s.split(":", 1)[0]), s.split(":", 1)[1]) for s in args.script)
 
@@ -266,6 +284,7 @@ def main() -> int:
         logev({"topic": "skill.req", **req, "rep": rep})
         P.say(f"[派发] {json.dumps(req, ensure_ascii=False)}")
         P.say(f"       -> {json.dumps(rep, ensure_ascii=False)}")
+        notify("ok" if rep.get("accepted") else "fail")
         if rep.get("accepted"):
             parked["req"] = None
             if req.get("skill") != "stop":
@@ -366,10 +385,14 @@ def main() -> int:
                "t": t_word, "goal": list(tw), "stand": stand, "yaw": yaw,
                "dest": list(dest[0]) if dest else None,
                "hint": params.get("object_hint")})
+        src_text = None if mode == "主动" else last_cmd["text"]  # 主动单没有指令原文
         if args.yes:
             send(req, retry_name=obj if mode == "主动" else None)
+            if src_text:
+                parser.confirm(src_text)
         else:
-            pending = {"req": req, "since": t_word, "mode": mode, "object": obj}
+            pending = {"req": req, "since": t_word, "mode": mode, "object": obj,
+                       "text": src_text}
             pose_txt = f"站位({stand[0]:+.2f},{stand[1]:+.2f}) 朝向{math.degrees(yaw):+.0f}°"
             if not goto:
                 pose_txt += f" 送到{dest[1]}" if dest else "(不送)"
@@ -380,6 +403,7 @@ def main() -> int:
                    else f"[?] 去「{via}」拿「{obj}」{pose_txt} ?" if via
                    else f"[?] 去拿「{obj}」{pose_txt} ?")
             P.say(ask + " y=确认 其他=取消")
+            notify("ask")  # 升调:该说"好/不"了(语音确认走同一 handle)
 
     def proactive_fire(pl):
         """盯满触发的公共闸:命名/pending/抑制期。狗忙不设闸——直发,被拒 busy
@@ -429,28 +453,33 @@ def main() -> int:
     def handle(t_word, text):
         nonlocal pending
         t = "".join(text.split())
-        if not t:
-            return
+        key = norm_cmd(t)  # 词表匹配用归一形:"好。""停。"(语音标点)才进得了门
+        if not key:
+            return  # 空行 / 纯标点(转写噪声)
         refresh_table(force=True)  # 名字消解前跟一次 names.json,拿最新命名
         was_decline = False
         if pending is not None:
             prev, pending = pending, None
-            if t.lower() in YES_WORDS:
+            if key in YES_WORDS:
                 send(prev["req"],
                      retry_name=prev["object"] if prev["mode"] == "主动" else None)
+                if prev.get("text"):  # 点头 = 解析经过人工校验 -> 此刻才落盘
+                    parser.confirm(prev["text"])
                 if prev["mode"] == "主动":  # 执行完还盯着,也别立刻再问
                     suppress[prev["object"]] = t_word + args.suppress
                 return
             if prev["mode"] == "主动":  # 拒绝主动提议 -> 抑制该目标,免得追着问
                 suppress[prev["object"]] = t_word + args.suppress
             P.say("[-] 已取消")
-            if t.lower() in NO_WORDS:
+            if key in NO_WORDS:
                 return
             was_decline = True  # 可能是"取消旧的换新指令":往下试,解析不出就保持安静
-        if t.lower() in STOP_WORDS:  # 急停硬旁路:永不过 LLM
+        if key in STOP_WORDS:  # 急停硬旁路:永不过 LLM
             send_stop()
             return
         cmd = parser.parse(t)
+        if cmd is not None:
+            last_cmd["text"] = t  # 供 propose 记进 pending:确认后按原文落盘
         # kind 词表与旧版对齐:E1 打分认 kind=="deictic"(object 槽走视线的 trial)
         obj_gaze = (cmd is not None and cmd["kind"] in ("fetch", "grab")
                     and (cmd["object_deictic"] or (not cmd["object"] and cmd["noun"])))

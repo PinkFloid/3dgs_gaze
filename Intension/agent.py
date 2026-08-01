@@ -7,6 +7,8 @@ dest(送到哪),每个槽位独立地要么给名字(*_query),要么标指代(*_
 缓存命中 0ms 且完全确定(parse_cache_v2.json;schema 变更即换文件名,
 旧缓存不许毒化新解析);未命中且 mode=='on' 时直连 OpenAI(strict
 json_schema,reasoning minimal);都不行返回 None。
+落盘时机 = 用户确认后(confirm()):确认门就是人工校验,新解析先只进
+内存(本进程内复用),没确认的误判活不过本次进程,不毒化缓存文件。
 """
 
 from __future__ import annotations
@@ -27,6 +29,16 @@ PARSE_SCHEMA = json.loads((_DIR / "parse_schema.json").read_text(encoding="utf-8
 _DEICTIC_WORDS = {"这", "那", "这个", "那个", "这里", "那里", "这边", "那边",
                   "这儿", "那儿", "此处", "这块", "那块", "这个地方", "那个地方",
                   "这个位置", "那个位置"}
+
+# 语音转写带标点/大小写抖动("回来"vs"回来。"),同一句话会裂成多个缓存键:
+# 每个变体首次都付一次 LLM,且解析可能不一致(实测"回来。"被判成 stop)。
+# 归一化 = 去两端标点空白 + lower,统一用于缓存键与 brain 的 停/y/n 词表匹配;
+# LLM 仍吃原文——句中标点("哦,不是,去X")是真实内容,不动。
+_STRIP = " \t\r\n。,、!?;:…~·“”‘’\"'()()《》〈〉【】[].,!?;:~-"
+
+
+def norm_cmd(text: str) -> str:
+    return text.strip(_STRIP).lower()
 
 
 def _sanitize(data):
@@ -65,9 +77,13 @@ class CommandParser:
         self.say, self.logev = say, logev
         self.cache_path = Path(cache_path or _DIR / "parse_cache_v2.json")
         try:
-            self.cache = json.loads(self.cache_path.read_text(encoding="utf-8"))
+            raw = json.loads(self.cache_path.read_text(encoding="utf-8"))
         except Exception:
-            self.cache = {}
+            raw = {}
+        self.cache = {}
+        for k, v in raw.items():  # 旧键就地归一合并;冲突时首见(预热条目)胜
+            self.cache.setdefault(norm_cmd(k), v)
+        self._unsaved = set()  # 只在内存、未过确认门的键:落盘时过滤掉
 
     # -------------------------------------------------- LLM
     def _prompt(self, text):
@@ -101,7 +117,7 @@ class CommandParser:
             "  除非给了 dest_* 或明确只是拿着不送);goto=目的地是用户('过来')\n"
             f"指令:「{text}」")
 
-    def _call_api(self, text):
+    def _call_api(self, text, key):
         t0 = time.time()
         self.say("[LLM] 解析中…")
         body = json.dumps({
@@ -126,24 +142,37 @@ class CommandParser:
         except Exception as e:
             self.say(f"[LLM] 解析失败({type(e).__name__}: {e})")
             return None
-        self.cache[text] = data
-        try:  # 缓存落盘:demo 台词预热一遍后离线可用
-            self.cache_path.write_text(json.dumps(self.cache, ensure_ascii=False, indent=1),
-                                       encoding="utf-8")
-        except Exception:
-            pass
+        self.cache[key] = data      # 先只进内存(本进程复用);confirm() 后才落盘
+        self._unsaved.add(key)
         self.say(f"[LLM] {json.dumps(data, ensure_ascii=False)}  ({time.time() - t0:.1f}s)")
         return data
 
     # -------------------------------------------------- 对外
+    def confirm(self, text):
+        """text 的解析过了确认门(用户点头)-> 落盘。demo 预热 = 跑一遍台词并
+        确认(或 --yes);没确认过的解析永不落地,缓存文件 = 全部人工校验过。"""
+        key = norm_cmd(text)
+        if key not in self._unsaved:
+            return
+        self._unsaved.discard(key)
+        keep = {k: v for k, v in self.cache.items() if k not in self._unsaved}
+        try:
+            self.cache_path.write_text(json.dumps(keep, ensure_ascii=False, indent=1),
+                                       encoding="utf-8")
+        except Exception:
+            pass
+
     def parse(self, text):
         """返回槽位 dict(kind: stop/fetch/goto/help + 各槽位)或 None(不可解析)。"""
-        data = self.cache.get(text)
+        key = norm_cmd(text)
+        if not key:
+            return None  # 纯标点/空白 = 转写噪声
+        data = self.cache.get(key)
         cached = data is not None
         if not cached:
             if self.mode == "off":
                 return None
-            data = self._call_api(text)
+            data = self._call_api(text, key)
             if data is None:
                 return None
         data = _sanitize(dict(data))
