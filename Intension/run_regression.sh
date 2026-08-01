@@ -207,6 +207,25 @@ run "$TMP/r13n" "$TMP/floor.jsonl" "101.0:抓苹果"
 ck "会话内无派发时明确拒绝" "$TMP/r13n" "不知道狗现在站哪"
 ckn "拒绝时不许派发" "$TMP/r13n" '\[派发\]'
 
+echo "R14 实例消歧过线:视线/名字单带 object_hint=选中实例质心;goto/地点透传不带"
+run "$TMP/r14" "$TMP/named.jsonl" "103.0:去狗桌边" "107.0:拿这个"
+EV=$(ls -t "$TMP"/logs/r14/*/events.jsonl | head -1)
+if $PY - "$EV" <<'EOF'
+import json, sys
+reqs = [json.loads(l) for l in open(sys.argv[1], encoding="utf-8")
+        if '"topic": "skill.req"' in l]
+assert len(reqs) == 2, len(reqs)
+assert "object_hint" not in reqs[0]["params"], reqs[0]["params"]        # goto 不带
+h = reqs[1]["params"]["object_hint"]                                    # 拿这个 -> cup 质心
+assert h == [-0.67, -2.26, 0.75], h
+EOF
+then echo "  [o] hint 逐字段正确"; else echo "  [x] hint 校验失败"; FAIL=1; fi
+
+echo "R15 hint 投影选框参考实现自检(交付狗端的 hint_select.py)"
+if $PY hint_select.py --selftest >"$TMP/r15" 2>&1; then
+  echo "  [o] 零位/选框/拒抓 三关全过"
+else echo "  [x] hint_select selftest 失败"; cat "$TMP/r15"; FAIL=1; fi
+
 echo "R12 线格式审计:所有派发的 yaw 必须在 [-π,π]"
 if $PY - "$TMP/logs" <<'EOF'
 import glob, json, math, sys

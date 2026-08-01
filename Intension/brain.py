@@ -89,6 +89,12 @@ def parse_args():
                         "0=全速灌入(回归,指令走 --script)")
     p.add_argument("--script", action="append", default=[],
                    help="回归用脚本指令 '流时间:指令文本',可重复")
+    p.add_argument("--voice", action="store_true",
+                   help="开麦语音指令(faster-whisper CPU;与打字并行,同一条消解路径)")
+    p.add_argument("--voice-model", default="small",
+                   help="whisper 模型(small 够用;tiny 更快中文略差)")
+    p.add_argument("--voice-device", default=None,
+                   help="麦克风设备:序号或名字子串(voice_input.py --list 查;缺省=系统默认)")
     p.add_argument("--yes", action="store_true", help="自动确认(回归测试用)")
     p.add_argument("--log-dir", default=str(Path(__file__).resolve().parent / "logs"))
     return p.parse_args()
@@ -208,7 +214,7 @@ def main() -> int:
     # 状态流有 pose 后(待对齐)换真实位姿,此处即删。
     last_stand = {"tw": None}
 
-    cmd_q = queue.Queue()
+    cmd_q = queue.Queue()  # 条目 = (文本, 说完时刻wall|None);None 条目=退出哨兵
     if not args.script:
         if use_pt:
             def stdin_reader():  # 输入行常驻底部,后台 say/进度全部打在上方
@@ -218,16 +224,30 @@ def main() -> int:
                 with patch_stdout(raw=True):
                     while True:
                         try:
-                            cmd_q.put(ps.prompt("指令> "))
+                            cmd_q.put((ps.prompt("指令> "), None))
                         except (EOFError, KeyboardInterrupt):
                             cmd_q.put(None)  # 哨兵:主循环转成正常退出
                             return
         else:
             def stdin_reader():
                 for line in sys.stdin:
-                    cmd_q.put(line.rstrip("\n"))
+                    cmd_q.put((line.rstrip("\n"), None))
                 # 管道 EOF 不塞哨兵:stdin 关闭(如重定向跑回放)不该杀事件循环
         threading.Thread(target=stdin_reader, daemon=True).start()
+    if args.voice:  # 语音与打字并行:同一队列同一 handle,t_word=说完时刻回填
+        from voice_input import VoiceReader
+
+        def _on_voice(text, t_end, asr_s):
+            P.say(f"[语音] 「{text}」 (asr {asr_s:.2f}s)")
+            logev({"topic": "asr", "text": text, "t_end_wall": t_end, "asr_s": asr_s})
+            cmd_q.put((text, t_end))
+
+        dev = args.voice_device
+        if dev is not None and dev.isdigit():
+            dev = int(dev)
+        vr = VoiceReader(_on_voice, model=args.voice_model, vocab=table.keys(),
+                         say=P.say, device=dev)
+        threading.Thread(target=vr.run, daemon=True).start()
     scripted = sorted((float(s.split(":", 1)[0]), s.split(":", 1)[1]) for s in args.script)
 
     n_req = 0
@@ -314,7 +334,7 @@ def main() -> int:
                 round(ang, 3))
 
     def propose(obj, tw, mode, t_word, goto=False, approach_from=None, dest=None,
-                via=None, raw_pose=False):
+                via=None, raw_pose=False, obj_point=None):
         """唯一技能 grasp:goto=True 时 object_name 置空 = 纯导航(冻结定义)。
         dest = (落点, 标签) 或 None:送达站位从物体那侧接近,停在落点前
         standoff、yaw 朝向落点(dest=用户位置时即"送回你这")。无 dest = 原地 done。
@@ -328,6 +348,12 @@ def main() -> int:
             stand, yaw = stand_pose(tw, approach_from)
         params = {"object_name": None if goto else detect_name(obj),
                   "target_world": [stand[0], stand[1], yaw]}  # 线上三元组=[x,y,yaw]
+        if not goto and obj_point is not None:
+            # 实例消歧过线(坑2):选中实例的板系质心。狗端检测出多只同类时取离
+            # hint 最近的,>0.3m 拒抓(hint_mismatch)。加字段=兼容,旧狗端自动忽略。
+            params["object_hint"] = [round(float(obj_point[0]), 3),
+                                     round(float(obj_point[1]), 3),
+                                     round(float(obj_point[2]) if len(obj_point) > 2 else 0.0, 3)]
         if not goto and dest is not None:
             dstand, dyaw = stand_pose(dest[0], approach_from=tw)
             params["deliver_to"] = [dstand[0], dstand[1], dyaw]
@@ -338,7 +364,8 @@ def main() -> int:
                "intent_summary": f"指令({mode}){'导航至' if goto else '消解为'} {obj}"}
         logev({"topic": "resolution", "mode": mode, "object": obj, "goto": goto,
                "t": t_word, "goal": list(tw), "stand": stand, "yaw": yaw,
-               "dest": list(dest[0]) if dest else None})
+               "dest": list(dest[0]) if dest else None,
+               "hint": params.get("object_hint")})
         if args.yes:
             send(req, retry_name=obj if mode == "主动" else None)
         else:
@@ -487,7 +514,8 @@ def main() -> int:
                     return
                 logev({"topic": "binding", "t_word": t_word, "noun": cmd["noun"],
                        "candidates": cands[:3]})
-                propose(cands[0]["object"], tw, "原地抓", t_word, raw_pose=True)
+                propose(cands[0]["object"], tw, "原地抓", t_word, raw_pose=True,
+                        obj_point=cands[0]["target_world"])
             elif cmd["object"]:  # 名字透传检测器,不查表:眼前的东西可以不在地图里
                 propose(cmd["object"], tw, "原地抓", t_word, raw_pose=True)
             else:
@@ -524,7 +552,8 @@ def main() -> int:
                 logev({"topic": "binding", "t_word": t_word, "noun": cmd["noun"],
                        "candidates": cands[:3]})
                 propose(c["object"], place[0] if place else c["target_world"],
-                        "视线", t_word, dest=dest, via=place[1] if place else None)
+                        "视线", t_word, dest=dest, via=place[1] if place else None,
+                        obj_point=c["target_world"])
                 return
             if cmd["noun"]:
                 name, top = resolve_named(cmd["noun"], table)
@@ -533,7 +562,7 @@ def main() -> int:
                           + (f"(仍去注视处「{place[1]}」检测)" if place else ""))
                     propose(name, place[0] if place else table[name],
                             "名字兜底", t_word, dest=dest,
-                            via=place[1] if place else None)
+                            via=place[1] if place else None, obj_point=table[name])
                     return
                 if top:
                     P.say(f"[×] 「{cmd['noun']}」类有多个且最近没注视——看一眼目标再说,或指名:"
@@ -554,7 +583,8 @@ def main() -> int:
                 P.say(f"[×] 「{cmd['object']}」没有唯一命中,最像的:"
                       + " / ".join(f"{n}({s:.2f})" for s, n in top))
                 return
-            propose(name, table[name], "名字", t_word, dest=dest)
+            propose(name, table[name], "名字", t_word, dest=dest,
+                    obj_point=table[name])
             return
         P.say("我能做:拿取场景里的物体。例:拿一下显示器 / 把这个杯子拿来 / 停")
 
@@ -609,10 +639,13 @@ def main() -> int:
                 P.say(f"[指令] {text}")
                 handle(st, text)
             while not cmd_q.empty():
-                text = cmd_q.get()
-                if text is None:  # 输入端收摊(Ctrl-C/Ctrl-D)-> 正常退出
+                item = cmd_q.get()
+                if item is None:  # 输入端收摊(Ctrl-C/Ctrl-D)-> 正常退出
                     raise KeyboardInterrupt
-                handle(st, text)
+                text, t_said = item
+                # 语音单 t_word 回填到说完时刻:VAD 尾判+转写延迟不歪眼-声回看窗
+                tw = st if t_said is None else max(0.0, st - max(0.0, time.time() - t_said))
+                handle(tw, text)
             if parked["req"] is not None:  # 盯视补发:终态即空闲,晚到 running 被粘滞挡住
                 now = time.time()
                 if now > parked["deadline"]:

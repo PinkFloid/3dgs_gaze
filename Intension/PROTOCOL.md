@@ -44,7 +44,7 @@ execute 抛异常自动广播 failed、忘发终态自动补 done,不会把对�
 
 | skill | params | 语义 |
 |---|---|---|
-| `grasp` | `object_name: str \| null`, `target_world: [x, y, yaw]`, `deliver_to: [x, y, yaw]`(可选) | **唯一技能,两种用法**。`target_world` 三元组 = **狗基座站位** x,y(米)+ 到位朝向 yaw(弧度,板系 +x=0,逆时针正,指向要抓的物体/目的地)。**协议不传高度**——抓取高度狗端自调。站位由意图机沿"用户→目标"方向留 standoff(`--standoff` 默认 0.6m,狗端若自留则意图机设 0)。①`object_name` 有值 = 到站位→转到 yaw→按名检测→抓取,有 `deliver_to`(=送达站位:用户前 0.6m、yaw 朝向用户,意图机已算好)则送达、无则原地 done;②**`object_name` 空(null/"")= 纯导航**,走到站位并转到 yaw,不动臂,进度 `moving→done` |
+| `grasp` | `object_name: str \| null`, `target_world: [x, y, yaw]`, `deliver_to: [x, y, yaw]`(可选), `object_hint: [x, y, z]`(可选) | **唯一技能,两种用法**。`target_world` 三元组 = **狗基座站位** x,y(米)+ 到位朝向 yaw(弧度,板系 +x=0,逆时针正,指向要抓的物体/目的地)。**协议不传高度**——抓取高度狗端自调。站位由意图机沿"用户→目标"方向留 standoff(`--standoff` 默认 0.6m,狗端若自留则意图机设 0)。①`object_name` 有值 = 到站位→转到 yaw→按名检测→抓取,有 `deliver_to`(=送达站位:用户前 0.6m、yaw 朝向用户,意图机已算好)则送达、无则原地 done;②**`object_name` 空(null/"")= 纯导航**,走到站位并转到 yaw,不动臂,进度 `moving→done` |
 | `move_to` | — | 不使用:导航一律用 `object_name=null` 的 grasp 表达(服务器里残留的实现无害) |
 | `stop` | 无 | **急停,最高优先级**,见 §3 |
 | `get_state` | 无 | 回执里带当前位姿与忙闲 |
@@ -119,3 +119,20 @@ damp/stop + 臂急停)→ 给被中断的 req_id 广播 `stopped`。急停链路
    Move(deliver_to 已是算好的送达站位 [x,y,yaw],直接走到并转向即可,无需再留距离)。
 5. `stop` 抢占尚未在真机验证(`/b2_move_path` 需支持 cancel)。
 6. 障碍:直线插值路径不会绕桌子/门,跨房 demo 前确认规划器如何避障。
+7. **`object_hint` 投影选框(同类多实例消歧的最后一米,带干扰物实验前必须)**:
+   意图机已随每单带上选中实例的板系质心 `object_hint:[x,y,z]`(2026-07-31 起)。
+   **推荐实现(2026-07-31 定,与意图机共识)**:抓取相机同画面认桌面 tag →
+   对 tags_world.json 一步 PnP 得 T_board_cam(**不经过基座定位/外参链,狗站哪
+   都不影响精度**)→ hint 投影到图像 → **落在哪个 YOLO 框里抓哪只**。判定规则:
+   点在框内→选之;不在任何框但离最近框心 <半框宽→选之;否则拒抓报
+   `grasp_missed`(detail `hint_mismatch`)——宁可不抓不抓错;无 hint 维持现状。
+   误差预算:桌面 tag PnP(1-2cm)+ 地图质心(cm)≈2-3cm ≪ 球半径,**密排间距
+   也能分**。注意:PnP 用 ITERATIVE(tag 共面,SQPNP 断言崩);桌面 tag 必须
+   经 survey 入 tags_world(现成:id=79 @ (+0.16,-2.73,0.85) rms 2.2mm;
+   最后一次重建时在球桌再贴 1-2 张对角 tag 同场入镜即自动测绘)。
+   备选(tag 不入画时兜底):用基座 tag 标定链把 hint 变换到相机系做 3D 就近
+   匹配,阈值 0.3m。**参考实现已交付:`Intension/hint_select.py`**(load_tags +
+   pick_box 三行接入,含无真机自检 --selftest;输入只需 tags_world.json + 请求里的
+   object_hint + 他自己的相机内参与 YOLO 框——不需要意图机的模型/点云)。
+8. **status/heartbeat 请把 `pose` 填上**(2026-07-30 实测全空):意图机三个等着用的
+   场景——"回来"就近侧接近、原地抓用真实狗位、看狗校验。

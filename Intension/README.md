@@ -31,6 +31,8 @@ E1 语义(物体身份+质心,投票门把关);**落点通道** PlaceBuffer = �
 # 感知(另一终端): python Eye_Tracker/tools/gaze_live.py --publish 5581 ...
 python Intension/brain.py                          # 纯本机,派发只打印
 python Intension/brain.py --skill-endpoint tcp://狗机:5583   # 接真狗/模拟器
+python Intension/brain.py --voice                  # 开麦语音指令(与打字并行)
+python Intension/voice_input.py --once             # 单独试麦:说一句看转写
 python Intension/brain.py --proactive 4.8          # 加开盯视主动问询
 python Intension/brain.py --proactive 3 --proactive-goto --yes  # 看哪去哪(盯满即去物体旁)
 
