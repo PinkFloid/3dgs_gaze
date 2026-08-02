@@ -5,7 +5,10 @@ Run AFTER align_to_charuco.py, on the same dataset. For every ArUco tag seen in
 the capture photos:
   1. Detect the tag's 4 corners (subpixel-refined) in every dataset image.
   2. Triangulate each corner in the world frame using the camera poses +
-     intrinsics from transforms_aligned.json (multi-view DLT, outlier pass).
+     intrinsics from transforms_aligned.json (RANSAC consensus + inlier refit;
+     同一 ID 在场内出现两份 -- 撕下的旧 tag 纸没拿走照样被拍到, 2026-08-02
+     实测 -- 或拍摄中途被挪动时, 最小二乘会被拖到两簇中间全体超阈, 共识
+     自动取主簇 = 存留最久的物理位置).
   3. Fit a rigid transform (no scale -- the tag size is known) from the tag's
      canonical corner layout to the triangulated corners: T_world_tag.
 
@@ -174,17 +177,35 @@ def main() -> int:
     print(f"Tags seen: {sorted(frames_with_tag)} "
           f"(views per tag: {dict(sorted(frames_with_tag.items()))})")
 
-    # Triangulate each corner with one outlier-rejection pass.
+    # Triangulate each corner by RANSAC consensus, then refit on the inliers.
+    # 直接最小二乘对大外点零抵抗:同 ID 双份或中途挪动时解落在两簇中间、
+    # 全体超阈,53-82 个视角也一个角点出不来。取对随机视角对共识最大的主簇。
+    def tri(sub):
+        Ps = [w2c_all[fi][:3, :4] for fi, _ in sub]
+        pts_px = np.array([xy for _, xy in sub]).reshape(-1, 1, 2)
+        pts_norm = cv2.undistortPoints(pts_px, K, dist).reshape(-1, 2)
+        return triangulate_dlt(Ps, pts_norm)
+
+    rng = np.random.default_rng(0)  # 定种子:同一数据重跑同一结果
     corners_world: dict[int, dict[int, np.ndarray]] = {}
-    for (mid, ci), obs in sorted(observations.items()):
-        errors = []
-        for _ in range(2):
+    for (mid, ci), obs_all in sorted(observations.items()):
+        if len(obs_all) < args.min_views:
+            continue
+        best: list = []
+        for _ in range(200):
+            i, j = rng.choice(len(obs_all), 2, replace=False)
+            if obs_all[i][0] == obs_all[j][0]:
+                continue  # 同帧双检测 = 两份物理拷贝同框:零基线,跳过
+            X = tri([obs_all[i], obs_all[j]])
+            inl = [o for o in obs_all
+                   if reproj_error_px(X, w2c_all[o[0]], K, dist, o[1]) <= args.max_reproj_px]
+            if len(inl) > len(best):
+                best = inl
+        obs = best
+        for _ in range(2):  # 主簇上重解 + 一轮收紧
             if len(obs) < args.min_views:
                 break
-            Ps = [w2c_all[fi][:3, :4] for fi, _ in obs]
-            pts_px = np.array([xy for _, xy in obs]).reshape(-1, 1, 2)
-            pts_norm = cv2.undistortPoints(pts_px, K, dist).reshape(-1, 2)
-            X = triangulate_dlt(Ps, pts_norm)
+            X = tri(obs)
             errors = [reproj_error_px(X, w2c_all[fi], K, dist, xy) for fi, xy in obs]
             inliers = [o for o, e in zip(obs, errors) if e <= args.max_reproj_px]
             if len(inliers) == len(obs):

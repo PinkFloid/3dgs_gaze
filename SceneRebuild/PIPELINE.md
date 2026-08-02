@@ -312,6 +312,12 @@ E:\Grasp\                        （Windows / 4090：建图+训练）
 ## 已知坑
 
 **建图侧**
+- **撕下来的旧 tag 纸必须带出房间**：同 ID 双份（墙上一份+地上一份）会让 survey
+  三角化整组失败（2026-08-02 v4 实测，53-82 视角全灭）。survey 已改 RANSAC 取主簇
+  自动免疫，但物理去重才是根治——运行时定位按 ID 查表，看到另一份照样中毒
+- SAM 会把"白纸上摆的一组小物"并成一个实例（部件-整体合并的反噬；v4 实测台面
+  静物全黏进 id25）：`tools/split_instance.py` 按支撑面几何拆分，拆完重命名。
+  纯白物体（白杯贴白纸）可能整个不成形，要入图换有色替代
 - feature_extractor 在同一个 database.db 上每重跑一次就会新建一个相机（即使
   single_camera 1）。model_analyzer 显示 Cameras > 1 时：跑
   `tools\merge_colmap_cameras.py` 合并，再 bundle_adjuster 重收敛畸变（锁焦距/主点），
