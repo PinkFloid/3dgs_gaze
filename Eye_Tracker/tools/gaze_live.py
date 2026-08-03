@@ -114,6 +114,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--stamp-mad-k", type=float, default=3.5,
                    help="Radial MAD multiplier for online stamp outlier rejection.")
     p.add_argument("--stamp-cooldown", type=float, default=5.0)
+    p.add_argument("--stamp-exclude", default="126",
+                   help="不当标定靶的 tag id(逗号分隔)。贴在实验物体旁的 tag(如物品台上的"
+                        " 126)会把'盯球'误判成'盯 tag',用错误假设毒化在线 bias 戳——"
+                        "从戳判定中排除;定位 PnP 与狗端投影选框不受影响。空串=不排除")
     p.add_argument("--bias-tau", type=float, default=45.0,
                    help="Bias stamp decay constant (s): correction fades as the stamp ages, so a "
                         "stale stamp cannot keep pushing gaze off target long after the drift moved "
@@ -578,7 +582,12 @@ def main() -> int:
         if pj.exists():
             sigma0 = float(json.loads(pj.read_text(encoding="utf-8"))["sigma_deg"])
     sigma0 = sigma0 or 1.5
-    bias_est = OnlineBias(tag_centers, np.radians(args.on_tag_deg),
+    excl = {int(x) for x in args.stamp_exclude.split(",") if x.strip().isdigit()}
+    stamp_centers = {i: c for i, c in tag_centers.items() if i not in excl}
+    if excl & set(tag_centers):
+        print(f"bias 戳靶排除 tag {sorted(excl & set(tag_centers))}"
+              "(物体旁的 tag 只作定位/狗端锚,不当标定靶)")
+    bias_est = OnlineBias(stamp_centers, np.radians(args.on_tag_deg),
                           args.stamp_samples, args.stamp_cooldown,
                           bias0=(0.0, 0.0), sigma0=sigma0, tau=args.bias_tau,
                           min_dwell=args.stamp_min_dwell,
