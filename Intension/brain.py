@@ -79,7 +79,7 @@ def parse_args():
     p.add_argument("--skill-endpoint", default=None,
                    help="狗机 REP 端点(如 tcp://192.168.123.164:5583);缺省=干跑只打印")
     p.add_argument("--status-endpoint", default=None)
-    p.add_argument("--frame", default="board/v4")  # 2026-08-02 lab_colmap_v4 重建
+    p.add_argument("--frame", default="board/v5")  # 2026-08-02 lab_colmap_v4 重建
     p.add_argument("--standoff", type=float, default=0.6,
                    help="站位距离:target 发在目标前多少米(步3 搬狗端后设 0)")
     p.add_argument("--detect-names", default=str(Path(__file__).resolve().parent
