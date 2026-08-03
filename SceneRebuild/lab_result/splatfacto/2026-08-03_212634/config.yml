@@ -4,9 +4,9 @@ data: &id003 !!python/object/apply:pathlib.WindowsPath
 - E:\
 - Grasp
 - data
-- lab_colmap_v5
+- lab_colmap_v6
 - transforms_aligned.json
-experiment_name: lab_colmap_v5
+experiment_name: lab_colmap_v6
 gradient_accumulation_steps: {}
 load_checkpoint: null
 load_config: null
@@ -226,7 +226,7 @@ steps_per_eval_all_images: 1000
 steps_per_eval_batch: 0
 steps_per_eval_image: 100
 steps_per_save: 2000
-timestamp: 2026-08-03_193349
+timestamp: 2026-08-03_212634
 use_grad_scaler: false
 viewer: !!python/object:nerfstudio.configs.base_config.ViewerConfig
   camera_frustum_scale: 0.1

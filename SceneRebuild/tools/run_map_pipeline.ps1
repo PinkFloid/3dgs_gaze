@@ -38,12 +38,18 @@ $name = Split-Path $Out -Leaf
 $log = Join-Path $Out "pipeline.log"
 New-Item -ItemType Directory -Force $Out | Out-Null
 
+# 日志一律 UTF-8:Tee-Object 在 PS5.1 写 UTF-16,和别处的 UTF-8 追加混在
+# 一个文件里 = 乱码(2026-08-03 实测)。统一走 Out-File -Encoding utf8。
+function TeeLog {
+    process { "$_" | Out-File -Append -Encoding utf8 $log; $_ }
+}
+
 function Step([string]$title, [scriptblock]$body) {
     $t0 = Get-Date
-    "=== $title  [$($t0.ToString('HH:mm:ss'))] ===" | Tee-Object -Append $log
-    & $body 2>&1 | Tee-Object -Append $log
+    "=== $title  [$($t0.ToString('HH:mm:ss'))] ===" | TeeLog
+    & $body 2>&1 | TeeLog
     if ($LASTEXITCODE -ne 0) { throw "$title 失败(exit $LASTEXITCODE),看 $log" }
-    "--- $title 完成,耗时 $([int]((Get-Date) - $t0).TotalMinutes) min ---" | Tee-Object -Append $log
+    "--- $title 完成,耗时 $([int]((Get-Date) - $t0).TotalMinutes) min ---" | TeeLog
 }
 
 Step "1/7 make_upright" { & $py $tools\make_upright.py $Raw $upright }
@@ -69,7 +75,7 @@ Step "6/7 ns-train splatfacto(30k)" {
 $run = Get-ChildItem "E:\Grasp\outputs\$name\splatfacto" -Directory |
     Sort-Object Name | Select-Object -Last 1
 $ckpt = Get-ChildItem "$($run.FullName)\nerfstudio_models\*.ckpt" | Sort-Object Name | Select-Object -Last 1
-"训练 run:$($run.FullName)" | Tee-Object -Append $log
+"训练 run:$($run.FullName)" | TeeLog
 Step "7/7 export splat + SAM 分割" {
     & $py $tools\export_splat_from_ckpt.py --ckpt $ckpt.FullName --out $Out\splat.ply
     if ($LASTEXITCODE -ne 0) { throw "export 失败" }
@@ -86,4 +92,4 @@ Step "7/7 export splat + SAM 分割" {
  5. brain --frame 升版(Intension/brain.py 默认值),狗端同学对齐同一版本 + 发新 tags_world.json
  6. 拷 Linux 四样:$($run.FullName) / tags_world / transforms_aligned / segmentation_sam
  7. 戴眼镜录视频1 质检(overlay 名字全对才算过)
-"@ | Tee-Object -Append $log
+"@ | TeeLog
