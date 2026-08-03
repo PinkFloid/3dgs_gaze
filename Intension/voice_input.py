@@ -45,18 +45,34 @@ def chime(kind):
         import sounddevice as sd
         if kind not in _TONES:
             def seg(f, ms):
-                t = np.linspace(0.0, ms / 1000.0, int(16 * ms), False)
+                t = np.linspace(0.0, ms / 1000.0, int(48 * ms), False)
                 w = 0.3 * np.sin(2 * np.pi * f * t)
-                n = 160  # 10ms 淡入出防爆音
+                n = 480  # 10ms 淡入出防爆音
                 w[:n] *= np.linspace(0.0, 1.0, n)
                 w[-n:] *= np.linspace(1.0, 0.0, n)
                 return w
             seq = {"heard": [(880, 90)], "ask": [(660, 110), (880, 110)],
                    "ok": [(523, 90), (784, 90)], "fail": [(233, 250)]}[kind]
             _TONES[kind] = np.concatenate([seg(f, ms) for f, ms in seq]).astype(np.float32)
-        sd.play(_TONES[kind], 16000)
+        sd.play(_TONES[kind], 48000)  # 48k=输出设备原生率;16k 播放 ALSA 不认:
+        # sd.play 抛异常被下面吞掉(提示音从没响过),PortAudio 还往 stderr 喷试错日志
     except Exception:
         pass
+
+
+def _open_stream(sd, device, frame16, cb):
+    """48k 硬编开流,3:1 降采样到 16k。固定麦(DJI Rx)与板载 ALSA 都只认 44.1/48k,
+    先试 16k 的探测必失败且 PortAudio 在 C 层往 stderr 喷 paInvalidSampleRate
+    (Python 拦不住,还绕过 prompt_toolkit 直污"指令>"行)。返回 (stream, 降采样因子)。"""
+    return sd.RawInputStream(samplerate=48000, blocksize=frame16 * 3, channels=1,
+                             dtype="int16", callback=cb, device=device), 3
+
+
+def _decimate(pcm: bytes, dec: int) -> bytes:
+    """整数因子降采样:每 dec 点取均值(粗低通防混叠,ASR 足够)。"""
+    x = np.frombuffer(pcm, np.int16).astype(np.float32)
+    n = len(x) // dec * dec
+    return x[:n].reshape(-1, dec).mean(1).astype(np.int16).tobytes()
 
 
 def _sane(text: str) -> bool:
@@ -72,7 +88,7 @@ class VoiceReader:
 
     def __init__(self, on_text, model="small", vocab=(), say=print,
                  aggressiveness=2, silence_s=0.6, min_speech_s=0.3, device=None,
-                 min_rms=200, max_speech_s=12.0):
+                 min_rms=54, max_speech_s=12.0):
         import sounddevice as sd
         import webrtcvad
         from faster_whisper import WhisperModel
@@ -83,7 +99,14 @@ class VoiceReader:
         self.device = device  # None=系统默认;int 序号或名字子串(--list 查)
         t0 = time.time()
         say(f"[语音] 加载 whisper {model}(CPU int8)…")
-        self.model = WhisperModel(model, device="cpu", compute_type="int8")
+        try:  # 先离线:实验现场不联网;hf 的在线版本检查还会撞 socks:// 代理(httpx 不认该 scheme)
+            self.model = WhisperModel(model, device="cpu", compute_type="int8",
+                                      local_files_only=True)
+        except Exception:
+            say(f"[语音] 本地缓存无 {model},联网下载(~460MB 需 https_proxy;"
+                "若报 Unknown scheme for proxy 是 all_proxy=socks:// 所致,"
+                "改 socks5:// 或 unset all_proxy 再跑)")
+            self.model = WhisperModel(model, device="cpu", compute_type="int8")
         say(f"[语音] 就绪({time.time() - t0:.1f}s)。开麦:说话即指令,静音 {silence_s:.1f}s 断句")
 
     def run(self):
@@ -95,13 +118,15 @@ class VoiceReader:
         def cb(indata, frames, t, status):
             q.put(bytes(indata))
 
+        stream, dec = _open_stream(self.sd, self.device, FRAME, cb)
         buf: list[bytes] = []
         ring = collections.deque(maxlen=8)  # 前导 240ms
         voiced, silence = False, 0
-        with self.sd.RawInputStream(samplerate=FR, blocksize=FRAME, channels=1,
-                                    dtype="int16", callback=cb, device=self.device):
+        with stream:
             while True:
                 frame = q.get()
+                if dec > 1:
+                    frame = _decimate(frame, dec)
                 if len(frame) != FRAME * 2:
                     continue
                 is_sp = self.vad.is_speech(frame, FR)
@@ -158,10 +183,15 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--model", default="small")
     ap.add_argument("--once", action="store_true", help="转写一句即退出(试麦)")
-    ap.add_argument("--device", default=None, help="输入设备:序号或名字子串(缺省=系统默认)")
-    ap.add_argument("--min-rms", type=float, default=200,
-                    help="能量闸:低于此 rms 的段当环境底噪丢弃(丢弃时打印实测值)")
+    ap.add_argument("--device", default="Rx",
+                    help="输入设备:序号或名字子串(缺省=DJI 无线麦;序号会随插拔变,--list 查)")
+    ap.add_argument("--min-rms", type=float, default=54,
+                    help="能量闸:低于此 rms 的段当环境底噪丢弃(丢弃时打印实测值;"
+                         "默认=DJI 麦 --meter 校准值,底噪14/说话207 的几何均值,换麦必重跑)")
     ap.add_argument("--list", action="store_true", help="列出音频设备后退出")
+    ap.add_argument("--meter", type=float, default=0.0,
+                    help="电平表 N 秒:每 0.3s 打 rms 条+VAD 判定,前半安静后半说话,"
+                         "结束给 --min-rms 建议值(换麦必跑)")
     args = ap.parse_args()
     if args.list:
         import sounddevice as sd
@@ -170,6 +200,34 @@ def main() -> int:
     dev = args.device
     if dev is not None and dev.isdigit():
         dev = int(dev)
+    if args.meter > 0:  # 不加载模型,纯电平:换麦/调阈值用
+        import sounddevice as sd
+        import webrtcvad
+        vad, FR, FRAME = webrtcvad.Vad(2), 16000, 480
+        vals = []
+        print(f"电平表 {args.meter:.0f}s:前半保持安静(量底噪),后半正常说几句指令")
+        mq: queue.Queue = queue.Queue()
+        st, dec = _open_stream(sd, dev, FRAME, lambda d, f, t, s: mq.put(bytes(d)))
+        with st:
+            t0 = time.time()
+            while time.time() - t0 < args.meter:
+                pcm = b"".join(_decimate(mq.get(), dec) if dec > 1 else mq.get()
+                               for _ in range(10))  # 0.3s
+                x = np.frombuffer(pcm, np.int16).astype(np.float32)
+                rms = float(np.sqrt(np.mean(x ** 2)))
+                sp = sum(vad.is_speech(pcm[i * 960:(i + 1) * 960], FR) for i in range(10))
+                vals.append((rms, sp))
+                print(f"  rms {rms:6.0f}  vad {sp:2d}/10  " + "#" * min(60, int(rms / 50)))
+        quiet = sorted(r for r, s in vals if s <= 2)
+        loud = sorted(r for r, s in vals if s >= 8)
+        if quiet:
+            print(f"底噪中位 rms ≈ {quiet[len(quiet) // 2]:.0f}")
+        if loud:
+            print(f"说话中位 rms ≈ {loud[len(loud) // 2]:.0f}")
+        if quiet and loud:
+            rec = (quiet[len(quiet) // 2] * loud[len(loud) // 2]) ** 0.5
+            print(f"建议 --min-rms / --voice-rms ≈ {rec:.0f}(几何均值;宁低勿高,能量闸只是兜底)")
+        return 0
     got = []
 
     def on_text(text, t_end, asr_s):

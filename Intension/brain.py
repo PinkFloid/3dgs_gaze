@@ -95,11 +95,12 @@ def parse_args():
                    help="开麦语音指令(faster-whisper CPU;与打字并行,同一条消解路径)")
     p.add_argument("--voice-model", default="small",
                    help="whisper 模型(small 够用;tiny 更快中文略差)")
-    p.add_argument("--voice-device", default=None,
-                   help="麦克风设备:序号或名字子串(voice_input.py --list 查;缺省=系统默认)")
-    p.add_argument("--voice-rms", type=float, default=200,
+    p.add_argument("--voice-device", default="Rx",
+                   help="麦克风设备:序号或名字子串(voice_input.py --list 查;缺省=DJI 无线麦。"
+                        "PortAudio 的'系统默认'是板载卡,故显式点名;没插会开麦报错,fail loud)")
+    p.add_argument("--voice-rms", type=float, default=54,
                    help="语音能量闸:低于此 rms 的段当环境底噪丢弃(另有超长段/幻听闸,"
-                        "见 voice_input.py 模块注释)")
+                        "见 voice_input.py 模块注释;默认按 DJI 麦 --meter 校准,换麦必重跑)")
     p.add_argument("--yes", action="store_true", help="自动确认(回归测试用)")
     p.add_argument("--log-dir", default=str(Path(__file__).resolve().parent / "logs"))
     return p.parse_args()
