@@ -546,8 +546,10 @@ def main() -> int:
                        "candidates": cands[:3]})
                 propose(cands[0]["object"], tw, "原地抓", t_word, raw_pose=True,
                         obj_point=cands[0]["target_world"])
-            elif cmd["object"]:  # 名字透传检测器,不查表:眼前的东西可以不在地图里
-                propose(cmd["object"], tw, "原地抓", t_word, raw_pose=True)
+            elif cmd["object"]:  # 名字透传检测器;但名字在表里时把质心当 hint 带上
+                nm, _ = resolve_named(cmd["object"], table)  # (同类多实例的选框锚)
+                propose(nm or cmd["object"], tw, "原地抓", t_word, raw_pose=True,
+                        obj_point=table.get(nm))
             else:
                 P.say("[×] 抓什么?指个名字(抓orange)或看它一眼说「抓这个」")
             return
