@@ -114,6 +114,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--stamp-mad-k", type=float, default=3.5,
                    help="Radial MAD multiplier for online stamp outlier rejection.")
     p.add_argument("--stamp-cooldown", type=float, default=5.0)
+    p.add_argument("--priors", choices=["on", "off"], default="on",
+                   help="可交互性先验(seg目录 priors.json,名字->权重,类内同权):"
+                        "on=启用(有文件才生效);off=消融")
     p.add_argument("--vote-scope", choices=["named", "all"], default="named",
                    help="named=投票候选只含命名物体+背景(未命名碎片不抢票,实验口径);"
                         "all=全实例(旧口径)")
@@ -516,15 +519,22 @@ def live_events(pupil_addr: str, min_conf: float):
 
 # ------------------------------------------------------------ verdict pooling (as gaze_object)
 
-def rank_votes(votes, name_of, object_centroids):
-    total = sum(votes.values())
-    if not votes or total <= 0:
+def rank_votes(votes, name_of, object_centroids, priors=None):
+    """priors: 名字->权重(可交互性先验,类内同权,缺省 1.0)。乘在按名并票后:
+    家具(如 物品台 0.3)要 1/w 倍的原始票才能压过小物;同类实例共享权重,
+    实例间 argmax 公共因子约掉——E1 的实例分辨不受影响,仅抑制跨类漏票。"""
+    if not votes:
         return None
+    priors = priors or {}
     pooled = {}
     for lab, v in votes.items():
-        p = pooled.setdefault(name_of(lab), {"v": 0.0, "labels": []})
-        p["v"] += v
+        nm = name_of(lab)
+        p = pooled.setdefault(nm, {"v": 0.0, "labels": []})
+        p["v"] += v * priors.get(nm, 1.0)
         p["labels"].append(lab)
+    total = sum(p["v"] for p in pooled.values())
+    if total <= 0:
+        return None
     ranked = sorted(pooled.items(), key=lambda kv: -kv[1]["v"])
     best_name, bp = ranked[0]
     best = max(bp["labels"], key=lambda l: votes[l])
@@ -565,6 +575,10 @@ def main() -> int:
     from scipy.spatial import cKDTree
     tree = cKDTree(xyz)
     object_centroids = pooled_centroids_by_name(meta["instances"], names)
+    priors = {}
+    if args.priors == "on" and (seg / "priors.json").exists():
+        priors = json.loads((seg / "priors.json").read_text(encoding="utf-8"))
+        print(f"可交互性先验:{priors}(类内同权;--priors off 关闭,E4 消融用)")
 
     def name_of(lab: int) -> str:
         if lab in bg:
@@ -655,7 +669,7 @@ def main() -> int:
                                    np.asarray(fx["centroid_world"], float),
                                    np.radians(bias_est.sigma_deg), args.span_sigmas,
                                    args.patch, args.hit_eps)
-        rank = rank_votes(votes, name_of, object_centroids)
+        rank = rank_votes(votes, name_of, object_centroids, priors)
         if rank is None:
             return
         fx.update(rank, p_none=round(p_none, 3), sigma_deg=round(bias_est.sigma_deg, 2),

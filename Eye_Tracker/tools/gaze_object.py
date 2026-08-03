@@ -45,6 +45,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--seg-dir", default=None,
                    help="Default: lab_result/segmentation_sam if present, else lab_result/segmentation.")
     p.add_argument("--radius", type=float, default=0.20, help="Sphere mode: vote neighborhood radius (m).")
+    p.add_argument("--priors", choices=["on", "off"], default="on",
+                   help="可交互性先验(priors.json;类内同权);off=消融")
     p.add_argument("--vote-scope", choices=["named", "all"], default="named",
                    help="named=投票候选只含命名物体+背景(与 live 同口径);all=旧口径")
     p.add_argument("--cone", action="store_true", help="Gaze-cone posterior instead of sphere vote.")
@@ -130,6 +132,10 @@ def main() -> int:
         bg = {0: "floor", 1: "ceiling", 2: "wall", 3: "wall", 4: "wall", 5: "wall"}
         print("[!] instances.json 缺 background,按约定 0=floor/1=ceiling/2-5=wall 兜底")
     object_centroids = pooled_centroids_by_name(meta["instances"], names)
+    priors = {}
+    if getattr(args, "priors", "on") == "on" and (seg / "priors.json").exists():
+        priors = json.loads((seg / "priors.json").read_text(encoding="utf-8"))
+        print(f"可交互性先验:{priors}(--priors off 消融)")
 
     def name_of(lab: int) -> str:
         if lab in bg:
@@ -200,10 +206,11 @@ def main() -> int:
         total = sum(votes.values())
         # pool by resolved name: ids hand-merged in names.json (same name on several
         # instances, e.g. a robot SAM splits along color boundaries) vote as one object
-        pooled: dict[str, dict] = {}
+        pooled: dict[str, dict] = {}  # 先验乘在并票处(与 gaze_live 同口径)
         for lab, v in votes.items():
-            p = pooled.setdefault(name_of(lab), {"v": 0.0, "labels": []})
-            p["v"] += v
+            nm = name_of(lab)
+            p = pooled.setdefault(nm, {"v": 0.0, "labels": []})
+            p["v"] += v * priors.get(nm, 1.0)   # 可交互性先验:类内同权,详见 gaze_live.rank_votes
             p["labels"].append(lab)
         ranked = sorted(pooled.items(), key=lambda kv: -kv[1]["v"])
         best_name, bp = ranked[0]
