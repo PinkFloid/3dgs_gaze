@@ -134,7 +134,12 @@ def main() -> int:
         print("(dry-run,未写盘)")
         return 0
     np.savez_compressed(seg / "points.npz", xyz=xyz, label=label)
-    doc = {"instances": inst} if isinstance(doc, dict) else inst
+    # 顶层键(background 名字表等)必须原样保留:v5/v6 实测这里重建 dict 丢键,
+    # gaze_live/gaze_object 读 meta['background'] 当场 KeyError(2026-08-03)。
+    if isinstance(doc, dict):
+        doc["instances"] = inst
+    else:
+        doc = {"instances": inst}
     (seg / "instances.json").write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
     (seg / "names.json").write_text(
         json.dumps(names, ensure_ascii=False, indent=1), encoding="utf-8")
