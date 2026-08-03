@@ -23,7 +23,9 @@ param(
 $ErrorActionPreference = "Continue"
 $e = "C:\Users\18488\anaconda3\envs\nerfstudio"
 $py = "$e\python.exe"
-$tools = "E:\Grasp\tools"
+# 工具一律用本脚本所在目录(repo 单一事实源)。E:\Grasp\tools 是历史副本,
+# 只有部分文件同步过(v5 实测 export_splat_from_ckpt 就不在那边,第 7 步炸)。
+$tools = $PSScriptRoot
 $env:PYTHONUTF8 = "1"
 $env:TORCH_EXTENSIONS_DIR = "E:\Grasp\torch_extensions"   # gsplat JIT 三件套
 $env:CUDA_HOME = $e
