@@ -114,6 +114,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--stamp-mad-k", type=float, default=3.5,
                    help="Radial MAD multiplier for online stamp outlier rejection.")
     p.add_argument("--stamp-cooldown", type=float, default=5.0)
+    p.add_argument("--vote-scope", choices=["named", "all"], default="named",
+                   help="named=投票候选只含命名物体+背景(未命名碎片不抢票,实验口径);"
+                        "all=全实例(旧口径)")
     p.add_argument("--stamp-exclude", default="126",
                    help="不当标定靶的 tag id(逗号分隔)。贴在实验物体旁的 tag(如物品台上的"
                         " 126)会把'盯球'误判成'盯 tag',用错误假设毒化在线 bias 戳——"
@@ -544,14 +547,23 @@ def main() -> int:
     seg = Path(args.seg_dir) if args.seg_dir else SCENE / "lab_result/segmentation_sam"
     z = np.load(seg / "points.npz")
     xyz, label = z["xyz"], z["label"]
-    from scipy.spatial import cKDTree
-    tree = cKDTree(xyz)
     meta = json.loads((seg / "instances.json").read_text(encoding="utf-8"))
     names = json.loads((seg / "names.json").read_text(encoding="utf-8")) if (seg / "names.json").exists() else {}
     bg = {int(k): v for k, v in meta.get("background", {}).items()}
     if not bg:  # 新建图流水线导出的 instances.json 可能丢 background 段(v5 实测):
         bg = {0: "floor", 1: "ceiling", 2: "wall", 3: "wall", 4: "wall", 5: "wall"}
         print("[!] instances.json 缺 background,按约定 0=floor/1=ceiling/2-5=wall 兜底")
+    if args.vote_scope == "named":
+        # 投票候选=命名物体+背景:未命名碎片(桌面切块/tag纸/杂物)不再与小目标
+        # 抢票——网球 6.7cm,σ 冷启动 1.5°,碎片在候选集里就是票仓黑洞。
+        # 背景保留:盯地板/墙仍判 floor/wall,p_none 语义不变。起名后需重启生效。
+        named_ids = np.array(sorted({int(k) for k, v in names.items() if v}), dtype=label.dtype)
+        keep = (label < 10) | np.isin(label, named_ids)
+        print(f"vote scope: named-only(命名 {len(named_ids)} + 背景;"
+              f"剔除未命名碎片高斯 {int((~keep).sum())})")
+        xyz, label = xyz[keep], label[keep]
+    from scipy.spatial import cKDTree
+    tree = cKDTree(xyz)
     object_centroids = pooled_centroids_by_name(meta["instances"], names)
 
     def name_of(lab: int) -> str:

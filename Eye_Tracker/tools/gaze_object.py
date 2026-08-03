@@ -45,6 +45,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--seg-dir", default=None,
                    help="Default: lab_result/segmentation_sam if present, else lab_result/segmentation.")
     p.add_argument("--radius", type=float, default=0.20, help="Sphere mode: vote neighborhood radius (m).")
+    p.add_argument("--vote-scope", choices=["named", "all"], default="named",
+                   help="named=投票候选只含命名物体+背景(与 live 同口径);all=旧口径")
     p.add_argument("--cone", action="store_true", help="Gaze-cone posterior instead of sphere vote.")
     p.add_argument("--ckpt", default=None,
                    help="Cone mode: splat ckpt (default: newest step-*.ckpt under lab_result/).")
@@ -134,6 +136,11 @@ def main() -> int:
             return bg[lab]
         return names.get(str(lab), "") or f"object#{lab}"
 
+    if getattr(args, "vote_scope", "named") == "named":
+        named_ids = np.array(sorted({int(k) for k, v in names.items() if v}), dtype=label.dtype)
+        keep = (label < 10) | np.isin(label, named_ids)
+        print(f"vote scope: named-only(剔除未命名碎片高斯 {int((~keep).sum())})")
+        xyz, label = xyz[keep], label[keep]
     tree = cKDTree(xyz)
     doc = json.loads(Path(args.fixations).expanduser().read_text(encoding="utf-8"))
     fixes = doc["fixations"]
