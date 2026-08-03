@@ -123,7 +123,10 @@ def main() -> int:
     xyz, label = z["xyz"], z["label"]
     meta = json.loads((seg / "instances.json").read_text(encoding="utf-8"))
     names = json.loads((seg / "names.json").read_text(encoding="utf-8")) if (seg / "names.json").exists() else {}
-    bg = {int(k): v for k, v in meta["background"].items()}
+    bg = {int(k): v for k, v in meta.get("background", {}).items()}
+    if not bg:  # 新建图流水线导出的 instances.json 可能丢 background 段(v5 实测):
+        bg = {0: "floor", 1: "ceiling", 2: "wall", 3: "wall", 4: "wall", 5: "wall"}
+        print("[!] instances.json 缺 background,按约定 0=floor/1=ceiling/2-5=wall 兜底")
     object_centroids = pooled_centroids_by_name(meta["instances"], names)
 
     def name_of(lab: int) -> str:
