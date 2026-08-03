@@ -867,5 +867,137 @@
   "dest_query": null,
   "dest_deictic": false,
   "to_user": false
+ },
+ "拿网球1": {
+  "action": "fetch",
+  "object_query": "网球1",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "拿网球一": {
+  "action": "fetch",
+  "object_query": "网球1",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "抓网球1": {
+  "action": "grab",
+  "object_query": "网球1",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "抓网球一": {
+  "action": "grab",
+  "object_query": "网球1",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "拿网球2": {
+  "action": "fetch",
+  "object_query": "网球2",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "拿网球二": {
+  "action": "fetch",
+  "object_query": "网球2",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "抓网球2": {
+  "action": "grab",
+  "object_query": "网球2",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "抓网球二": {
+  "action": "grab",
+  "object_query": "网球2",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "拿网球3": {
+  "action": "fetch",
+  "object_query": "网球3",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "拿网球三": {
+  "action": "fetch",
+  "object_query": "网球3",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "抓网球3": {
+  "action": "grab",
+  "object_query": "网球3",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "抓网球三": {
+  "action": "grab",
+  "object_query": "网球3",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": false
  }
 }
