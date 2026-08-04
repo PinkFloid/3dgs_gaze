@@ -176,6 +176,12 @@ class CommandParser:
             if data is None:
                 return None
         data = _sanitize(dict(data))
+        # grab 是私有约定:只跟"抓/夹"动词。LLM 把「拿一下这个」误判 grab 实测过——
+        # 原地抓需要狗位,拿类动词被拦在那道门上。动词不符一律降级 fetch。
+        if data.get("action") == "grab" and not any(v in key for v in ("抓", "夹")):
+            data["action"] = "fetch"
+            if not data.get("dest_query") and not data.get("dest_deictic"):
+                data["to_user"] = True  # 拿类缺省送回
         self.logev({"topic": "llm_parse", "text": text, "result": data, "cached": cached})
         act = data.get("action")
         if act == "stop":

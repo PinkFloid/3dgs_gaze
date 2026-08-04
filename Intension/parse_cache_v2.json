@@ -197,7 +197,7 @@
   "dest_deictic": false,
   "to_user": false
  },
- "去DeskTag拿Bottle": {
+ "去desktag拿bottle": {
   "action": "fetch",
   "object_query": "Bottle",
   "object_deictic": false,
@@ -219,7 +219,7 @@
   "dest_deictic": false,
   "to_user": true
  },
- "去狗桌旁给我拿一下Bottle": {
+ "去狗桌旁给我拿一下bottle": {
   "action": "fetch",
   "object_query": "Bottle",
   "object_deictic": false,
@@ -252,7 +252,7 @@
   "dest_deictic": false,
   "to_user": false
  },
- "去这里拿Bottle": {
+ "去这里拿bottle": {
   "action": "fetch",
   "object_query": "Bottle",
   "object_deictic": false,
@@ -263,7 +263,7 @@
   "dest_deictic": false,
   "to_user": true
  },
- "去这里拿Bottle给我": {
+ "去这里拿bottle给我": {
   "action": "fetch",
   "object_query": "Bottle",
   "object_deictic": false,
@@ -317,17 +317,6 @@
   "dest_query": null,
   "dest_deictic": false,
   "to_user": true
- },
- "去Desktag": {
-  "action": "goto",
-  "object_query": null,
-  "object_deictic": false,
-  "noun_class": null,
-  "place_query": "Desk Tag",
-  "place_deictic": false,
-  "dest_query": null,
-  "dest_deictic": false,
-  "to_user": false
  },
  "去desktag": {
   "action": "goto",
@@ -428,7 +417,7 @@
   "dest_deictic": false,
   "to_user": true
  },
- "去这里拿Orange": {
+ "去这里拿orange": {
   "action": "fetch",
   "object_query": "orange",
   "object_deictic": true,
@@ -439,7 +428,7 @@
   "dest_deictic": false,
   "to_user": true
  },
- "拿Orange": {
+ "拿orange": {
   "action": "fetch",
   "object_query": "orange",
   "object_deictic": false,
@@ -450,7 +439,7 @@
   "dest_deictic": false,
   "to_user": true
  },
- "去拿Bottle": {
+ "去拿bottle": {
   "action": "fetch",
   "object_query": "Bottle",
   "object_deictic": false,
@@ -461,7 +450,7 @@
   "dest_deictic": false,
   "to_user": true
  },
- "去Bottle所在地拿Orange": {
+ "去bottle所在地拿orange": {
   "action": "fetch",
   "object_query": "Orange",
   "object_deictic": false,
@@ -472,7 +461,7 @@
   "dest_deictic": false,
   "to_user": true
  },
- "去Cup所在地方拿我的Banana": {
+ "去cup所在地方拿我的banana": {
   "action": "fetch",
   "object_query": "Banana",
   "object_deictic": false,
@@ -483,7 +472,7 @@
   "dest_deictic": false,
   "to_user": true
  },
- "去Cup所在地拿我的Banana给我": {
+ "去cup所在地拿我的banana给我": {
   "action": "fetch",
   "object_query": "Banana",
   "object_deictic": false,
@@ -494,7 +483,7 @@
   "dest_deictic": false,
   "to_user": true
  },
- "去Banana所在地给我拿Orange": {
+ "去banana所在地给我拿orange": {
   "action": "fetch",
   "object_query": "Orange",
   "object_deictic": false,
@@ -505,7 +494,7 @@
   "dest_deictic": false,
   "to_user": true
  },
- "去Orange所在地给我拿Apple": {
+ "去orange所在地给我拿apple": {
   "action": "fetch",
   "object_query": "Apple",
   "object_deictic": false,
@@ -516,24 +505,13 @@
   "dest_deictic": false,
   "to_user": true
  },
- "给我去这个地方拿Orange": {
+ "给我去这个地方拿orange": {
   "action": "fetch",
   "object_query": "orange",
   "object_deictic": false,
   "noun_class": null,
   "place_query": null,
   "place_deictic": true,
-  "dest_query": null,
-  "dest_deictic": false,
-  "to_user": true
- },
- "去狗桌边拿一下Orange": {
-  "action": "fetch",
-  "object_query": "orange",
-  "object_deictic": false,
-  "noun_class": null,
-  "place_query": "狗桌边",
-  "place_deictic": false,
   "dest_query": null,
   "dest_deictic": false,
   "to_user": true
@@ -560,17 +538,6 @@
   "dest_deictic": false,
   "to_user": true
  },
- "去狗桌边拿Orange": {
-  "action": "fetch",
-  "object_query": "orange",
-  "object_deictic": false,
-  "noun_class": null,
-  "place_query": "狗桌边",
-  "place_deictic": false,
-  "dest_query": null,
-  "dest_deictic": false,
-  "to_user": true
- },
  "去狗桌边拿orange": {
   "action": "fetch",
   "object_query": "orange",
@@ -582,34 +549,12 @@
   "dest_deictic": false,
   "to_user": true
  },
- "去Desktag拿apple": {
-  "action": "fetch",
-  "object_query": "apple",
-  "object_deictic": false,
-  "noun_class": null,
-  "place_query": "Desk Tag",
-  "place_deictic": false,
-  "dest_query": null,
-  "dest_deictic": false,
-  "to_user": true
- },
  "去desktag拿apple": {
   "action": "fetch",
   "object_query": "apple",
   "object_deictic": false,
   "noun_class": null,
   "place_query": "Desk Tag",
-  "place_deictic": false,
-  "dest_query": null,
-  "dest_deictic": false,
-  "to_user": true
- },
- "拿orange": {
-  "action": "fetch",
-  "object_query": "orange",
-  "object_deictic": false,
-  "noun_class": null,
-  "place_query": null,
   "place_deictic": false,
   "dest_query": null,
   "dest_deictic": false,
@@ -637,7 +582,7 @@
   "dest_deictic": false,
   "to_user": true
  },
- "去狗桌边拿Orange给我": {
+ "去狗桌边拿orange给我": {
   "action": "fetch",
   "object_query": "orange",
   "object_deictic": false,
@@ -649,17 +594,6 @@
   "to_user": true
  },
  "狗桌边拿orange给我": {
-  "action": "fetch",
-  "object_query": "orange",
-  "object_deictic": false,
-  "noun_class": null,
-  "place_query": "狗桌边",
-  "place_deictic": false,
-  "dest_query": null,
-  "dest_deictic": false,
-  "to_user": true
- },
- "去狗桌边拿orange给我": {
   "action": "fetch",
   "object_query": "orange",
   "object_deictic": false,
@@ -813,7 +747,7 @@
   "dest_deictic": false,
   "to_user": false
  },
- "抓Bottle": {
+ "抓bottle": {
   "action": "grab",
   "object_query": "Bottle",
   "object_deictic": false,
@@ -999,5 +933,38 @@
   "dest_query": null,
   "dest_deictic": false,
   "to_user": false
+ },
+ "把这个网球拿来": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": "网球",
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "拿一下这个": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "把这个拿给我": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
  }
 }
