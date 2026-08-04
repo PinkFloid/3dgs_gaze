@@ -92,7 +92,7 @@ class CommandParser:
             "动作 action:\n"
             "- fetch: 去拿某个物体(之后可能要送到某处)\n"
             "- grab: 原地抓取——机器人已在目标面前,不要移动,直接抓。动词是\n"
-            "  '抓/夹'且没说去哪、没说拿来/给我时用它('抓orange''抓这个');\n"
+            "  '抓/夹',或明确说'原地拿/就地拿'时用它('抓orange''原地拿这个');\n"
             "  出现'去/来/给我/带'的一律 fetch\n"
             "- goto: 只移动过去,不抓取\n"
             "- stop: 让它立刻停下\n"
@@ -178,7 +178,8 @@ class CommandParser:
         data = _sanitize(dict(data))
         # grab 是私有约定:只跟"抓/夹"动词。LLM 把「拿一下这个」误判 grab 实测过——
         # 原地抓需要狗位,拿类动词被拦在那道门上。动词不符一律降级 fetch。
-        if data.get("action") == "grab" and not any(v in key for v in ("抓", "夹")):
+        if data.get("action") == "grab" and \
+                not any(v in key for v in ("抓", "夹", "原地", "就地")):
             data["action"] = "fetch"
             if not data.get("dest_query") and not data.get("dest_deictic"):
                 data["to_user"] = True  # 拿类缺省送回
