@@ -81,8 +81,13 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--dictionary", default="DICT_6X6_250")
     p.add_argument("--min-confidence", type=float, default=0.6)
     p.add_argument("--sample-hz", type=float, default=20.0, help="Gaze processing rate (intersections/s).")
-    p.add_argument("--cluster-radius", type=float, default=0.15)
-    p.add_argument("--omega-max", type=float, default=140.0,
+    p.add_argument("--cluster-radius", type=float, default=0.15,
+                   help="聚类半径下坠值(米);--cluster-deg>0 时按角度算,此值仅作参考")
+    p.add_argument("--cluster-deg", type=float, default=1.5,
+                   help="聚类半径按视角算:有效半径=tan(度)x注视距离(下限5cm)。"
+                        "近站紧远站松,与 σ 同缩放——桌面级换球(15-20cm)在 3-5m 能切开,"
+                        "7m 处两球该混(曲线膝盖)。0=回退米制 --cluster-radius")
+    p.add_argument("--omega-max", type=float, default=80.0,
                    help="Split a fixation when consecutive world points exceed this ANGULAR speed "
                         "(deg/s, 0 = off). Angular, not m/s: gaze noise apparent speed scales with "
                         "viewing distance (sqrt(2)*sigma*d/dt ~ 2.2 m/s at sigma=1deg, d=3m, 30Hz), "
@@ -281,8 +286,10 @@ class Localizer:
 class StreamCluster:
     """Incremental world fixation clustering with radius, speed, and gap splits."""
 
-    def __init__(self, radius, min_dur, idle_close, omega_max_deg=140.0, min_jump=0.04):
+    def __init__(self, radius, min_dur, idle_close, omega_max_deg=140.0, min_jump=0.04,
+                 cluster_deg=0.0):
         self.radius = radius
+        self.cluster_deg = np.radians(cluster_deg)  # >0 时半径按角度随注视距离缩放
         self.min_dur = min_dur
         self.idle_close = idle_close
         self.omega_max = np.radians(omega_max_deg)
@@ -329,10 +336,15 @@ class StreamCluster:
                     d_view = max(float(np.linalg.norm(self.pts[-1] - origin)), 0.3)
                     if jump / dt > self.omega_max * d_view:   # v_max = omega * distance
                         closed = self._close()
-        if self.centroid is not None and np.linalg.norm(p - self.centroid) > self.radius:
-            by_radius = self._close()
-            if closed is None:
-                closed = by_radius
+        if self.centroid is not None:
+            eff_r = self.radius
+            if self.cluster_deg > 0:  # 角半径:换球判定与 gaze 噪声同种距离缩放
+                dv = max(float(np.linalg.norm(self.centroid - origin)), 0.3)
+                eff_r = max(0.05, float(np.tan(self.cluster_deg)) * dv)
+            if np.linalg.norm(p - self.centroid) > eff_r:
+                by_radius = self._close()
+                if closed is None:
+                    closed = by_radius
         self.ts.append(t)
         self.pts.append(p)
         self.origins.append(origin)
@@ -624,7 +636,10 @@ def main() -> int:
     loc = Localizer(args, tags)
     poses = RollingPoses()
     cluster = StreamCluster(args.cluster_radius, args.min_fix_dur,
-                            args.idle_close, omega_max_deg=args.omega_max)
+                            args.idle_close, omega_max_deg=args.omega_max,
+                            cluster_deg=args.cluster_deg)
+    print(f"cluster: 角半径 {args.cluster_deg}°(3m={np.tan(np.radians(args.cluster_deg))*3*100:.0f}cm "
+          f"5m={np.tan(np.radians(args.cluster_deg))*5*100:.0f}cm),omega-max {args.omega_max}°/s")
     cjk = CjkText()
 
     pub = None
