@@ -88,7 +88,7 @@ class VoiceReader:
 
     def __init__(self, on_text, model="small", vocab=(), say=print,
                  aggressiveness=2, silence_s=0.6, min_speech_s=0.3, device=None,
-                 min_rms=54, max_speech_s=12.0):
+                 min_rms=54, max_speech_s=12.0, dump_dir=None):
         import sounddevice as sd
         import webrtcvad
         from faster_whisper import WhisperModel
@@ -97,6 +97,12 @@ class VoiceReader:
         self.silence_s, self.min_speech_s = silence_s, min_speech_s
         self.min_rms, self.max_speech_s = min_rms, max_speech_s
         self.device = device  # None=系统默认;int 序号或名字子串(--list 查)
+        # Pupil Capture 不录音频:每条过闸语音段存 WAV(ASR 审计/配音素材)。
+        # 文件名=说完时刻 epoch,与 events.jsonl 的 asr 事件对账。
+        self.dump_dir = dump_dir
+        if dump_dir:
+            from pathlib import Path
+            Path(dump_dir).mkdir(parents=True, exist_ok=True)
         t0 = time.time()
         say(f"[语音] 加载 whisper {model}(CPU int8)…")
         try:  # 先离线:实验现场不联网;hf 的在线版本检查还会撞 socks:// 代理(httpx 不认该 scheme)
@@ -162,6 +168,17 @@ class VoiceReader:
 
     def _transcribe(self, pcm: bytes, t_end: float):
         t0 = time.time()
+        if self.dump_dir:  # 幻听/空转写的段也存:被丢弃的才最需要人耳复核
+            import wave
+            from pathlib import Path
+            try:
+                with wave.open(str(Path(self.dump_dir) / f"utt_{t_end:.2f}.wav"), "wb") as w:
+                    w.setnchannels(1)
+                    w.setsampwidth(2)
+                    w.setframerate(16000)
+                    w.writeframes(pcm)
+            except Exception:
+                pass
         audio = np.frombuffer(pcm, np.int16).astype(np.float32) / 32768.0
         vocab = list(self.vocab)
         prompt = ("机器人指令。词表:" + "、".join(vocab[:40])

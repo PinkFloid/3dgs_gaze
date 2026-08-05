@@ -265,7 +265,8 @@ def main() -> int:
         if dev is not None and dev.isdigit():
             dev = int(dev)
         vr = VoiceReader(_on_voice, model=args.voice_model, vocab=table.keys(),
-                         say=P.say, device=dev, min_rms=args.voice_rms)
+                         say=P.say, device=dev, min_rms=args.voice_rms,
+                         dump_dir=sess / "utt")  # 每条语音段存 WAV(Pupil 不录音)
         threading.Thread(target=vr.run, daemon=True).start()
     scripted = sorted((float(s.split(":", 1)[0]), s.split(":", 1)[1]) for s in args.script)
 
