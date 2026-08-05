@@ -38,10 +38,18 @@ import numpy as np
 # 全部 <0.3s = 短于 VAD 的 min_speech,音箱串回麦克风也凑不成一句"话";
 # 播放非阻塞,出错静默——提示音是增强,没声卡不许影响主流程。
 _TONES: dict = {}
+_CHIME = {"off": False}
+_CHIME_LOCK = threading.Lock()
 
 
 def chime(kind):
+    """输出设备打不开时(默认输出指向没接的 HDMI 等),PortAudio 在 C 层向
+    stderr 喷 ALSA 报错(Python 捕获不到)且每响一次喷一次——播放期间把 fd2
+    按到 /dev/null,失败一次即永久禁用并只报一行。提示音是增强,不许污染主流程。"""
+    if _CHIME["off"]:
+        return
     try:
+        import os
         import sounddevice as sd
         if kind not in _TONES:
             def seg(f, ms):
@@ -54,10 +62,20 @@ def chime(kind):
             seq = {"heard": [(880, 90)], "ask": [(660, 110), (880, 110)],
                    "ok": [(523, 90), (784, 90)], "fail": [(233, 250)]}[kind]
             _TONES[kind] = np.concatenate([seg(f, ms) for f, ms in seq]).astype(np.float32)
-        sd.play(_TONES[kind], 48000)  # 48k=输出设备原生率;16k 播放 ALSA 不认:
-        # sd.play 抛异常被下面吞掉(提示音从没响过),PortAudio 还往 stderr 喷试错日志
+        with _CHIME_LOCK:  # fd2 换装是进程级操作:多线程同时 chime 必须串行
+            devnull = os.open(os.devnull, os.O_WRONLY)
+            old_fd = os.dup(2)
+            try:
+                os.dup2(devnull, 2)
+                sd.play(_TONES[kind], 48000)  # 48k=输出设备原生率
+            finally:
+                os.dup2(old_fd, 2)
+                os.close(old_fd)
+                os.close(devnull)
     except Exception:
-        pass
+        _CHIME["off"] = True
+        print("[语音] 提示音输出设备不可用,已禁用提示音(不影响识别与派发;"
+              "想要提示音:系统默认输出设为有效设备后重启)")
 
 
 def _open_stream(sd, device, frame16, cb):
