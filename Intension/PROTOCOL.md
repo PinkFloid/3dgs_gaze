@@ -34,7 +34,7 @@ execute 抛异常自动广播 failed、忘发终态自动补 done,不会把对�
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `v` | int | 协议版本,当前 1。不认识的版本直接拒绝 |
+| `v` | int | 协议版本,**当前 2**(v1 双收兼容)。不认识的版本直接拒绝 |
 | `req_id` | str | 全局唯一(会话时间戳+序号),后续所有状态用它对账 |
 | `sent_at` | float | 发送方墙钟(epoch 秒)。注意:不要用我日志里的流时间 |
 | `frame` | str | 坐标系标识 = 地图版本号。**不匹配必须拒绝**,见 §4 |
@@ -44,7 +44,7 @@ execute 抛异常自动广播 failed、忘发终态自动补 done,不会把对�
 
 | skill | params | 语义 |
 |---|---|---|
-| `grasp` | `object_name: str \| null`, `target_world: [x, y, yaw]`, `deliver_to: [x, y, yaw]`(可选), `object_hint: [x, y, z]`(可选) | **唯一技能,两种用法**。`target_world` 三元组 = **狗基座站位** x,y(米)+ 到位朝向 yaw(弧度,板系 +x=0,逆时针正,指向要抓的物体/目的地)。**协议不传高度**——抓取高度狗端自调。站位由意图机沿"用户→目标"方向留 standoff(`--standoff` 默认 0.6m,狗端若自留则意图机设 0)。①`object_name` 有值 = 到站位→转到 yaw→按名检测→抓取,有 `deliver_to`(=送达站位:用户前 0.6m、yaw 朝向用户,意图机已算好)则送达、无则原地 done;②**`object_name` 空(null/"")= 纯导航**,走到站位并转到 yaw,不动臂,进度 `moving→done` |
+| `grasp` | `object_name: str \| null`, `target_world: [x, y, yaw]`, `deliver_to: [x, y, yaw]`(可选), `object_hint: [x, y, z]`(可选) | **唯一技能,两种用法**。**v2(2026-08-05 起)**:`target_world` = **目标本体中心** x,y(米)+ **建议接近方位** yaw(弧度,板系 +x=0,逆时针正,从用户/参考侧指向目标;狗端可据此选站位侧,也可忽略)——**站位与避障由狗端自留**(参考实现 STANDOFF 0.6m,沿建议方位后退);`deliver_to` 同语义 = 送达**落点**(用户位置/指定地点)+ 朝向建议。协议仍不传高度。v1(旧,双收):同字段 = 意图机算好的**站位**。①`object_name` 有值 = 站定→按名检测(多候选按 `object_hint` 投影选框,见待对齐 #7)→抓取,有 `deliver_to` 则送达、无则原地 done;②**`object_name` 空 = 纯导航** |
 | `move_to` | — | 不使用:导航一律用 `object_name=null` 的 grasp 表达(服务器里残留的实现无害) |
 | `stop` | 无 | **急停,最高优先级**,见 §3 |
 | `get_state` | 无 | 回执里带当前位姿与忙闲 |
@@ -111,7 +111,8 @@ damp/stop + 臂急停)→ 给被中断的 req_id 广播 `stopped`。急停链路
 
 **待对齐(每条一句话就能定)**:
 1. `yaw` 单位与零轴:意图机发**弧度、板系 +x=0、逆时针正**——狗端确认或换算。
-2. 站位 standoff 由意图机留(`--standoff` 0.6m);狗端若想自己留,告知即可(意图机设 0)。
+2. ~~站位 standoff 由意图机留~~ **已定(2026-08-05,v2)**:站位/避障狗端自留,
+   意图机只发目标本体+建议方位;`dog_link._v2_stance` 是参考实现(沿建议方位退 0.6m)。
 3. **检测类名词表**:`/detect_grasp` 只认检测器类名("苹果"被 goal reject,"orange" 通过)。
    意图机已有映射(`Intension/detect_names.json`,发送前地图名→检测名);
    狗端给一份支持的类名列表,填进这张表即完事。

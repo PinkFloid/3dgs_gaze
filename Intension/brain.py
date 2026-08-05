@@ -81,7 +81,7 @@ def parse_args():
     p.add_argument("--status-endpoint", default=None)
     p.add_argument("--frame", default="board/v6")  # 2026-08-02 lab_colmap_v4 重建
     p.add_argument("--standoff", type=float, default=0.6,
-                   help="站位距离:target 发在目标前多少米(步3 搬狗端后设 0)")
+                   help="[已废弃,仅兼容旧脚本] v2 起站位/避障由狗端自留,此参不再使用")
     p.add_argument("--detect-names", default=str(Path(__file__).resolve().parent
                                                  / "detect_names.json"),
                    help="地图名->检测器类名映射(狗端 /detect_grasp 只认英文类名)")
@@ -310,48 +310,14 @@ def main() -> int:
               "req_id": f"{sess.name}-stop", "frame": args.frame,
               "sent_at": time.time(), "params": {}})
 
-    def stand_pose(goal, approach_from=None):
-        """狗基座站位:绕目标采样 36 个方向,取"离目标最近的合法点"(不进任何
-        已命名实例的 xy 占地),同距时偏向参考方向(缺省=用户侧,站到你视野里);
-        yaw 指向目标(弧度,板系 +x=0,逆时针正)。
-        治"沿用户方向硬退"的病:占地挡在用户侧时绕到目标近边即可 0.6m 达标,
-        不再被桌面小物的虚胖占地顶到臂展外(实测 Bottle 曾被 orange 顶到 1.0m)。
-        (步3 整体搬狗端;在此之前线格式保持 v1:target_world = 站位。)"""
+    def aim(goal, approach_from=None):
+        """v2 线格式:狗端自算站位与避障,brain 只给 目标本体 (x,y) + 建议接近
+        方位 yaw(从参考侧指向目标,板系弧度;狗端可据此选站位侧,也可忽略)。
+        参考侧 = approach_from(缺省=用户位置,再缺省=原点)——"站到你视野里"
+        的语义以建议的形式过线,不再由 brain 硬算站位。"""
         src = approach_from or user_pos["xyz"] or (0.0, 0.0, 0.0)
-        ref = math.atan2(goal[1] - src[1], goal[0] - src[0])  # 站位→目标的参考朝向
-        pad, step, cap = 0.10, 0.05, args.standoff + 0.8
-
-        def blocked(px, py):
-            return next((nm for nm, (x0, y0, x1, y1) in boxes
-                         if x0 - pad <= px <= x1 + pad and y0 - pad <= py <= y1 + pad),
-                        None)
-
-        best = None  # (d, ang):按 0,±10°,±20°… 扫,先命中的同距解即最靠用户侧
-        for k in range(36):
-            dang = (k + 1) // 2 * (math.pi / 18) * (1 if k % 2 else -1)
-            ang = ref + dang
-            ux, uy = math.cos(ang), math.sin(ang)
-            d = args.standoff
-            while d <= cap and blocked(goal[0] - ux * d, goal[1] - uy * d):
-                d += step
-            if d <= cap and (best is None or d < best[0] - 1e-9):
-                best = (d, ang)
-                if d <= args.standoff + 1e-9:
-                    break  # 参考方向就 0.6m 合法:最优解,不用再扫
-        if best is None:
-            P.say("[!] 目标四周一圈占地都躲不开——按参考方向硬发,靠狗端校验兜底")
-            best = (args.standoff, ref)
-        d, ang = best
-        ang = (ang + math.pi) % (2 * math.pi) - math.pi  # ref+偏移可溢出±π:线上必须包角
-        ux, uy = math.cos(ang), math.sin(ang)
-        if d > args.standoff + 1e-9:
-            nm = blocked(goal[0] - ux * args.standoff, goal[1] - uy * args.standoff)
-            P.say(f"[·] 站位避开「{nm or '?'}」占地,距目标 {d:.2f}m")
-        if d > 0.85:
-            P.say(f"[!] 站位距目标 {d:.2f}m,可能超臂展——换个方向看/站再下指令更稳")
-        return ([round(goal[0] - ux * d, 3), round(goal[1] - uy * d, 3),
-                 round(goal[2] if len(goal) > 2 else 0.0, 3)],
-                round(ang, 3))
+        ang = math.atan2(goal[1] - src[1], goal[0] - src[0])
+        return [round(goal[0], 3), round(goal[1], 3)], round(ang, 3)
 
     def propose(obj, tw, mode, t_word, goto=False, approach_from=None, dest=None,
                 via=None, raw_pose=False, obj_point=None):
@@ -362,12 +328,12 @@ def main() -> int:
         确认行写明"去「地点」拿「物」",免得坐标被读成物体在哪。"""
         nonlocal n_req, pending
         n_req += 1
-        if raw_pose:  # tw 已是站位三元组(原地抓):不重算 standoff,原样直发
-            stand, yaw = [round(tw[0], 3), round(tw[1], 3), 0.0], round(float(tw[2]), 3)
+        if raw_pose:  # 原地抓:重发上一单目标三元组——狗端站位计算幂等=原地不动
+            stand, yaw = [round(tw[0], 3), round(tw[1], 3)], round(float(tw[2]), 3)
         else:
-            stand, yaw = stand_pose(tw, approach_from)
+            stand, yaw = aim(tw, approach_from)
         params = {"object_name": None if goto else detect_name(obj),
-                  "target_world": [stand[0], stand[1], yaw]}  # 线上三元组=[x,y,yaw]
+                  "target_world": [stand[0], stand[1], yaw]}  # v2:目标本体+建议方位
         if not goto and obj_point is not None:
             # 实例消歧过线(坑2):选中实例的板系质心。狗端检测出多只同类时取离
             # hint 最近的,>0.3m 拒抓(hint_mismatch)。加字段=兼容,旧狗端自动忽略。
@@ -375,15 +341,16 @@ def main() -> int:
                                      round(float(obj_point[1]), 3),
                                      round(float(obj_point[2]) if len(obj_point) > 2 else 0.0, 3)]
         if not goto and dest is not None:
-            dstand, dyaw = stand_pose(dest[0], approach_from=tw)
-            params["deliver_to"] = [dstand[0], dstand[1], dyaw]
-        req = {"v": 1, "type": "skill.request", "skill": "grasp",
+            dxy, dyaw = aim(dest[0], approach_from=tw)  # 送达落点+朝向建议(自物体侧)
+            params["deliver_to"] = [dxy[0], dxy[1], dyaw]
+        req = {"v": 2, "type": "skill.request", "skill": "grasp",  # v2=目标本体语义
+               # 未升级的狗端会拒 unsupported v——宁可拒收,不许把中心点当站位撞进桌子
                "params": params,
                "req_id": f"{sess.name}-{n_req:03d}", "frame": args.frame,
                "sent_at": time.time(), "t_stream": round(t_word, 3),
                "intent_summary": f"指令({mode}){'导航至' if goto else '消解为'} {obj}"}
         logev({"topic": "resolution", "mode": mode, "object": obj, "goto": goto,
-               "t": t_word, "goal": list(tw), "stand": stand, "yaw": yaw,
+               "t": t_word, "goal": list(tw), "stand": stand, "yaw": yaw, "wire_v": 2,
                "dest": list(dest[0]) if dest else None,
                "hint": params.get("object_hint")})
         src_text = None if mode == "主动" else last_cmd["text"]  # 主动单没有指令原文
@@ -394,7 +361,8 @@ def main() -> int:
         else:
             pending = {"req": req, "since": t_word, "mode": mode, "object": obj,
                        "text": src_text}
-            pose_txt = f"站位({stand[0]:+.2f},{stand[1]:+.2f}) 朝向{math.degrees(yaw):+.0f}°"
+            pose_txt = (f"目标({stand[0]:+.2f},{stand[1]:+.2f}) "
+                        f"接近方位{math.degrees(yaw):+.0f}°(站位狗端定)")
             if not goto:
                 pose_txt += f" 送到{dest[1]}" if dest else "(不送)"
             ask = (f"[?] 你在看「{obj}」——{'过去吗' if goto else '要我拿来吗'}?" if mode == "主动"

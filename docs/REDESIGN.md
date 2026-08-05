@@ -122,7 +122,7 @@ E2 的"到位站位残差 <0.3m"同源指标。
 |---|---|---|---|
 | 1 ✅* | brain 删记账(狗端不改:忙拒=作废提示,wire v1 原样) | --replay 全绿;busy 拒单出作废提示——**2026-07-28 已过**。*抢占 dog_link 已实现并全绿(连环抢占/急停/版本闸)但**未启用**,归档 archive/dog_link_preempt.py:用户裁定狗端零改动,同学做 cancel 时可整体采纳,brain 届时零改动 | — |
 | 2 ✅ | 三槽位 + 落点通道(物体表面落点,无地板)+ schema/缓存升版 | **2026-07-28 已过**:注视物品台"去这个地方拿橘子"/goto 落点/显式 dest/盯地板拒绝/E1 打分兼容 | — |
-| 3 | 站位/避障搬狗端(协议 v2,target/deliver_to 降为落点);tools 出 2D occupancy(splat 地板切片+实例占地)喂规划器 | 假狗:站位不进家具、送达朝向用户 | standoff、deliver_to(站位侧) |
+| 3 ✅* | 站位/避障搬狗端(协议 v2:target/deliver_to=目标本体+建议方位,**2026-08-05 已上线**,dog_link 双版本参考实现,brain 删站位采样器) | 回归全绿(v2 假狗全链) | standoff、deliver_to(站位侧)。*occupancy/A* 仍后置(§7) |
 | 4 | 定位:路线 A 通 → 路线 B 上;frame 真校验 | blend 校验;到位残差 <0.3m | 统一 frame |
 | 5 | get_state 回 detector 词表,brain 启动即对表早警 | 未映射名字启动时报,不再运行时踩 | 名字映射 |
 

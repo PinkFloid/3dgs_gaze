@@ -37,7 +37,9 @@ import zmq
 # ------------------------------------------------------------ 配置(狗机同学按实际改)
 
 MY_SKILLS = ["grasp", "move_to"]
-PROTO_V = 1
+PROTO_V = 2            # v2:grasp 的 target_world/deliver_to = 目标本体+接近方位,站位服务端自留
+ACCEPT_V = (1, 2)      # v1(站位语义)双收,老 harness 不断
+STANDOFF = 0.6         # m,v2 语义下服务端自留的站位距离
 TERMINAL = ("done", "failed", "stopped")
 
 # 板坐标系,米。上真机前收紧到真实可走区域
@@ -184,7 +186,18 @@ def _finish(report, err):
            "emergency stop" if err == "estop" else err)
 
 
-def execute(dog, skill, params, report, should_stop):
+def _v2_stance(pt):
+    """v2 目标本体 [x,y,yaw] -> 站位 [x,y,yaw]:沿建议方位后退 STANDOFF,面向目标。"""
+    x, y, yaw = (float(v) for v in pt)
+    return [x - STANDOFF * math.cos(yaw), y - STANDOFF * math.sin(yaw), yaw]
+
+
+def execute(dog, skill, params, report, should_stop, v=1):
+    if v >= 2 and skill == "grasp":  # v2 -> 内部统一折算成 v1 的站位语义
+        params = dict(params)
+        params["target_world"] = _v2_stance(params["target_world"])
+        if params.get("deliver_to"):
+            params["deliver_to"] = _v2_stance(params["deliver_to"])
     if skill == "move_to":
         goal = (float(params["x"]), float(params["y"]))
         report("moving")
@@ -318,7 +331,7 @@ def main():
                 req.get("intent_summary", ""))
         try:
             execute(dog, req["skill"], req.get("params") or {}, report,
-                    state["stop"].is_set)
+                    state["stop"].is_set, v=int(req.get("v", 1)))
             if not sent["terminal"]:
                 report("done")
         except Exception:
@@ -339,7 +352,7 @@ def main():
         skill = req.get("skill")
         reply = {"v": PROTO_V, "req_id": req.get("req_id", ""),
                  "accepted": True, "reason": ""}
-        if req.get("v") != PROTO_V:
+        if req.get("v") not in ACCEPT_V:
             reply.update(accepted=False, reason=f"unsupported protocol v={req.get('v')}")
         elif skill == "stop":
             state["stop"].set()
