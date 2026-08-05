@@ -344,14 +344,15 @@ def main() -> int:
         if not goto and dest is not None:
             dxy, dyaw = aim(dest[0], approach_from=tw)  # 送达落点+朝向建议(自物体侧)
             params["deliver_to"] = [dxy[0], dxy[1], dyaw]
-        req = {"v": 2, "type": "skill.request", "skill": "grasp",  # v2=目标本体语义
-               # 未升级的狗端会拒 unsupported v——宁可拒收,不许把中心点当站位撞进桌子
+        req = {"v": 1, "type": "skill.request", "skill": "grasp",
+               # 2026-08-05 起线上语义=目标本体+建议方位(站位狗端自留);版本号按用户
+               # 裁定维持 1,双方靠约定同步——切换日后旧语义 server 不可再接单
                "params": params,
                "req_id": f"{sess.name}-{n_req:03d}", "frame": args.frame,
                "sent_at": time.time(), "t_stream": round(t_word, 3),
                "intent_summary": f"指令({mode}){'导航至' if goto else '消解为'} {obj}"}
         logev({"topic": "resolution", "mode": mode, "object": obj, "goto": goto,
-               "t": t_word, "goal": list(tw), "stand": stand, "yaw": yaw, "wire_v": 2,
+               "t": t_word, "goal": list(tw), "stand": stand, "yaw": yaw, "wire_v": 1,
                "dest": list(dest[0]) if dest else None,
                "hint": params.get("object_hint")})
         src_text = None if mode == "主动" else last_cmd["text"]  # 主动单没有指令原文
