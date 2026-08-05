@@ -40,6 +40,16 @@ vid_start_wall = world_ts[0] - synced0 + system0   # 渲染视频 t=0 的墙钟
 vid_dur = float(world_ts[-1] - world_ts[0])
 p2w = lambda t: t - synced0 + system0              # pupil 钟 -> 墙钟
 
+n_frames = len(world_ts)
+fps = (n_frames - 1) / max(vid_dur, 1e-6)
+def w2v(wall):
+    """墙钟 -> 渲染视频时间轴。渲染按恒定 fps 铺帧,真实帧间隔有抖动,
+    线性换算会攒漂移(本录 101s 处 +0.26s)——逐帧插值把每个墙钟时刻
+    映到它真正落在的帧号。"""
+    pupil = wall - system0 + synced0
+    idx = float(np.interp(pupil, world_ts, np.arange(n_frames)))
+    return idx / fps
+
 asr, res, dones = [], [], []
 for ln in (SESS / "events.jsonl").open(encoding="utf-8"):
     e = json.loads(ln)
@@ -55,6 +65,7 @@ for ln in (SESS / "events.jsonl").open(encoding="utf-8"):
 n_total = int((vid_dur + 1.0) * SR)
 voice = np.zeros(n_total, np.float64)
 placed, skipped = [], []
+utts = []            # (t_end, pcm, dur) 给字幕锚定复用
 peak = 1.0
 wavs = sorted((SESS / "utt").glob("utt_*.wav"))
 for w in wavs:
@@ -63,12 +74,14 @@ for w in wavs:
         assert f.getframerate() == SR and f.getnchannels() == 1
         pcm = np.frombuffer(f.readframes(f.getnframes()), np.int16).astype(np.float64)
     dur = len(pcm) / SR
-    off = t_end - dur - vid_start_wall
-    i0 = int(off * SR)
-    if i0 < 0 or i0 + len(pcm) > n_total:
-        skipped.append((w.name, off))
+    off = w2v(t_end - dur)
+    if not (0 <= t_end - dur - vid_start_wall <= vid_dur):
+        skipped.append((w.name, t_end - dur - vid_start_wall))
         continue
-    voice[i0:i0 + len(pcm)] += pcm
+    utts.append((t_end, pcm, dur))
+    i0 = max(int(off * SR), 0)
+    seg = pcm[:max(n_total - i0, 0)]        # 跨视频尾的段截断而不是整段丢
+    voice[i0:i0 + len(seg)] += seg
     peak = max(peak, np.abs(pcm).max())
     placed.append((off, dur, w.name))
 
@@ -87,7 +100,9 @@ def tone(seq):  # 与 voice_input.chime 同配方,采样率换 16k
 
 CHIME = {"heard": tone([(880, 90)]), "ok": tone([(523, 90), (784, 90)])}
 def put(buf, t_wall, kind, amp):
-    i0 = int((t_wall - vid_start_wall) * SR)
+    if not (0 <= t_wall - vid_start_wall <= vid_dur):
+        return
+    i0 = int(w2v(t_wall) * SR)
     c = CHIME[kind] * amp * 32767
     if 0 <= i0 and i0 + len(c) <= n_total:
         buf[i0:i0 + len(c)] += c
@@ -121,20 +136,37 @@ Style: Sys,Noto Sans CJK SC,48,&H0000FF00,&H00000000,&H7F000000,-1,3,1,2,60,60,1
 [Events]
 Format: Layer, Start, End, Style, Text
 """
+def speech_island(pcm):
+    """VAD 段可含数秒环境音(实测「OK」段 9.8s,词在段尾)——字幕锚到
+    段内**最后一节连续语音**:30ms 帧能量 > max(峰值 25%, 底闸),
+    往前回溯到 >0.4s 的静默为界。整段都是话的短指令不受影响。"""
+    fr = int(0.03 * SR)
+    m = len(pcm) // fr
+    if m == 0:
+        return 0.0, len(pcm) / SR
+    e = np.sqrt((pcm[:m * fr].reshape(m, fr) ** 2).mean(1))
+    idx = np.flatnonzero(e > max(e.max() * 0.25, 60.0))
+    if not len(idx):
+        return 0.0, len(pcm) / SR
+    brk = np.flatnonzero(np.diff(idx) > int(0.4 / 0.03))
+    s0 = idx[brk[-1] + 1] if len(brk) else idx[0]
+    return s0 * 0.03, (idx[-1] + 1) * 0.03
+
 lines = []
-utt_dur = {round(float(w.stem.split("_")[1]), 2): wave.open(str(w)).getnframes() / SR
-           for w in wavs}
 for t_end, text in asr:
-    d = utt_dur.get(round(t_end, 2), 1.5)
-    a, b = t_end - d - vid_start_wall, t_end - vid_start_wall + 0.9
-    if b < 0 or a > vid_dur:
-        continue
-    lines.append((a, f"Dialogue: 0,{ts(a)},{ts(min(b, vid_dur))},Speech,"
+    u = min(utts, key=lambda u: abs(u[0] - t_end), default=None)
+    if u is None or abs(u[0] - t_end) > 0.2:
+        continue                                  # 无对应入轨段(录像窗外)
+    seg_start = t_end - u[2]
+    s0, s1 = speech_island(u[1])
+    a = max(w2v(seg_start + s0) - 0.15, 0.0)
+    b = min(w2v(seg_start + s1) + 0.7, vid_dur)
+    lines.append((a, f"Dialogue: 0,{ts(a)},{ts(b)},Speech,"
                      f"{{\\fad(120,120)}}「{text.rstrip('。')}」"))
 for t_wall, obj, mode, goto in res:
-    a = t_wall - vid_start_wall + 0.3
-    if a < 0 or a > vid_dur:
+    if not (0 <= t_wall - vid_start_wall <= vid_dur):
         continue
+    a = w2v(t_wall) + 0.3
     if goto or mode == "导航":
         txt = f"→ {obj} · 已派导航"
     else:
@@ -142,11 +174,12 @@ for t_wall, obj, mode, goto in res:
     lines.append((a, f"Dialogue: 0,{ts(a)},{ts(min(a + 2.8, vid_dur))},Sys,"
                      f"{{\\fad(120,200)}}{txt}"))
 for t_wall, state, rid in dones:
-    a = (t_wall or 0) - vid_start_wall
-    if 0 <= a <= vid_dur:
-        txt = {"done": "✓ 任务完成", "failed": "✗ 失败", "stopped": "⏹ 已急停"}[state]
-        lines.append((a, f"Dialogue: 0,{ts(a)},{ts(min(a + 2.2, vid_dur))},Sys,"
-                         f"{{\\fad(120,200)}}{txt}"))
+    if not (0 <= (t_wall or 0) - vid_start_wall <= vid_dur):
+        continue
+    a = w2v(t_wall)
+    txt = {"done": "✓ 任务完成", "failed": "✗ 失败", "stopped": "⏹ 已急停"}[state]
+    lines.append((a, f"Dialogue: 0,{ts(a)},{ts(min(a + 2.2, vid_dur))},Sys,"
+                     f"{{\\fad(120,200)}}{txt}"))
 lines.sort()
 (OUT / "subs.ass").write_text(hdr + "\n".join(l for _, l in lines) + "\n", encoding="utf-8")
 
