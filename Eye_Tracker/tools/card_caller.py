@@ -9,8 +9,8 @@
 开头口播"开录,先盯墙上 tag 三秒",结尾"再盯 tag 三秒……停录"。
 工作站无扬声器:产物是 .wav + .m4a,拷到手机播放即可(微信传自己/数据线)。
 TTS 默认 Edge 晓晓神经语音(需代理网络,人声级;逐句缓存只请求一次),
---engine espeak 为离线兜底(机器人腔);网球念 一号/二号/三号球(斜位站
-视觉左右会翻,数字名不带方位暗示)。
+--engine espeak 为离线兜底(机器人腔);物名照卡念原名(网球L/M/R…),
+不造别名。
 """
 from __future__ import annotations
 
@@ -116,7 +116,7 @@ def render(key, tts, stare, gap, outdir):
     spoken_title = SPOKEN_TITLE.get(key, title)
     parts = [tts.say(f"{spoken_title}。开始录像。先盯墙上的 tag,三秒。"), sil(sr, 3.2), beep(sr), sil(sr, 1.0)]
     for i, nm in enumerate(seq, 1):
-        parts += [tts.say(f"{i}。{SPOKEN[nm]}。"), sil(sr, stare), beep(sr), sil(sr, gap)]
+        parts += [tts.say(f"{i}。{SPOKEN.get(nm, nm)}。"), sil(sr, stare), beep(sr), sil(sr, gap)]
     parts += [tts.say("最后。再盯墙上的 tag,三秒。"), sil(sr, 3.2), beep(sr),
               tts.say("完成,停止录像。")]
     pcm = np.concatenate(parts)
