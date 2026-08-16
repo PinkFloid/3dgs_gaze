@@ -604,6 +604,17 @@ def main() -> int:
 
     ckpt = Path(args.ckpt) if args.ckpt else max(
         (SCENE / "lab_result").rglob("step-*.ckpt"), key=lambda p: p.stat().st_mtime)
+    # 版本卫兵:分割档记录着它源自哪个 ckpt(4090 侧路径)。拿训练时间戳目录名
+    # 比对——渲染错版 ckpt 时定位(新 tags)与场景(旧高斯)错开,视线全穿模落地,
+    # 2026-08-16 实录 e1 卡 40 条全 floor 才追出来。宁可拒跑,不许静默错版。
+    map_ckpt = json.loads((seg / "instances.json").read_text()).get("ckpt", "")
+    stamp = next((s for s in str(map_ckpt).replace("\\", "/").split("/")
+                  if s[:3] == "202" and "_" in s), None)
+    if stamp and stamp not in str(ckpt):
+        raise SystemExit(
+            f"ckpt 版本与分割档不符:地图源自 …/{stamp}/…,本机选中的是 {ckpt}\n"
+            f"把 4090 上 {map_ckpt} 所在的 splatfacto/{stamp}/ 拷到 "
+            f"SceneRebuild/lab_result/splatfacto/ 下,或 --ckpt 显式指定。")
     splat = SplatDepth(ckpt)
     # gsplat builds its CUDA extension lazily on the first rasterization. Do it
     # before opening the preview so a cold cache is reported as compilation,
