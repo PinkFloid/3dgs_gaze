@@ -21,3 +21,4 @@ SceneRebuild/lab_result/segmentation_sam/instance_viewer_data.js
 SceneRebuild/lab_result/archive_map_v2/
 SceneRebuild/lab_result/archive_map_v3/
 docs/e1_audio/*.wav
+docs/e1_audio/.tts_cache/

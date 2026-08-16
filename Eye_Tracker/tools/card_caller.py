@@ -8,7 +8,8 @@
 节奏(与卡片规则一致):报物名 → 盯 2.8s → 「叮」= 移开 → 1.5s → 下一项;
 开头口播"开录,先盯墙上 tag 三秒",结尾"再盯 tag 三秒……停录"。
 工作站无扬声器:产物是 .wav + .m4a,拷到手机播放即可(微信传自己/数据线)。
-TTS 走系统 libespeak-ng.so(ctypes,离线),网球念 一号/二号/三号球(斜位站
+TTS 默认 Edge 晓晓神经语音(需代理网络,人声级;逐句缓存只请求一次),
+--engine espeak 为离线兜底(机器人腔);网球念 一号/二号/三号球(斜位站
 视觉左右会翻,数字名不带方位暗示)。
 """
 from __future__ import annotations
@@ -22,7 +23,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from e1_cards import CARDS, SPOKEN  # noqa: E402
+from e1_cards import CARDS, SPOKEN, SPOKEN_TITLE  # noqa: E402
 
 LIB = "libespeak-ng.so.1"
 AUDIO_OUTPUT_SYNCHRONOUS = 2
@@ -67,6 +68,35 @@ class TTS:
         return (np.concatenate(_buf) if _buf else np.zeros(1, np.int16)).astype(np.int16)
 
 
+class EdgeTTS:
+    """微软 Edge 神经语音(晓晓)——需网络(走 socks 代理),音质人声级;
+    逐句渲染进 outdir/.tts_cache 缓存,重复短语(数字+物名)只请求一次。"""
+
+    def __init__(self, cache: Path, voice="zh-CN-XiaoxiaoNeural",
+                 proxy="socks5://127.0.0.1:10808", rate="+0%"):
+        import imageio_ffmpeg
+        self.ff = imageio_ffmpeg.get_ffmpeg_exe()
+        self.exe = str(Path(sys.executable).parent / "edge-tts")
+        self.voice, self.proxy, self.rate = voice, proxy, rate
+        self.cache = cache
+        self.cache.mkdir(parents=True, exist_ok=True)
+        self.sr = 24000
+
+    def say(self, text: str) -> np.ndarray:
+        import hashlib
+        import subprocess
+        key = hashlib.md5(f"{self.voice}|{self.rate}|{text}".encode()).hexdigest()[:16]
+        mp3 = self.cache / f"{key}.mp3"
+        if not mp3.exists():
+            subprocess.run([self.exe, "--proxy", self.proxy, "--voice", self.voice,
+                            "--rate", self.rate, "--text", text,
+                            "--write-media", str(mp3)], check=True, timeout=60)
+        out = subprocess.run([self.ff, "-loglevel", "error", "-i", str(mp3),
+                              "-f", "s16le", "-ac", "1", "-ar", str(self.sr), "-"],
+                             check=True, capture_output=True)
+        return np.frombuffer(out.stdout, np.int16)
+
+
 def beep(sr, f=1200, ms=160, amp=0.5):
     t = np.linspace(0, ms / 1000, int(sr * ms / 1000), False)
     w = amp * np.sin(2 * np.pi * f * t)
@@ -83,10 +113,11 @@ def sil(sr, s):
 def render(key, tts, stare, gap, outdir):
     title, seq = CARDS[key]
     sr = tts.sr
-    parts = [tts.say(f"{title}。开始录像。先盯墙上的塔格,三秒。"), sil(sr, 3.2), beep(sr), sil(sr, 1.0)]
+    spoken_title = SPOKEN_TITLE.get(key, title)
+    parts = [tts.say(f"{spoken_title}。开始录像。先盯墙上的 tag,三秒。"), sil(sr, 3.2), beep(sr), sil(sr, 1.0)]
     for i, nm in enumerate(seq, 1):
-        parts += [tts.say(f"{i}。{SPOKEN[nm]}"), sil(sr, stare), beep(sr), sil(sr, gap)]
-    parts += [tts.say("最后。再盯墙上的塔格,三秒。"), sil(sr, 3.2), beep(sr),
+        parts += [tts.say(f"{i}。{SPOKEN[nm]}。"), sil(sr, stare), beep(sr), sil(sr, gap)]
+    parts += [tts.say("最后。再盯墙上的 tag,三秒。"), sil(sr, 3.2), beep(sr),
               tts.say("完成,停止录像。")]
     pcm = np.concatenate(parts)
     wav_p = outdir / f"{key}.wav"
@@ -115,7 +146,11 @@ def main():
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--stare", type=float, default=2.8, help="每项盯看秒数")
     ap.add_argument("--gap", type=float, default=1.5, help="移开间隔秒数")
-    ap.add_argument("--rate", type=int, default=150, help="语速(词/分)")
+    ap.add_argument("--engine", choices=("edge", "espeak"), default="edge",
+                    help="edge=晓晓神经语音(需代理网络,人声级);espeak=离线兜底(机器人腔)")
+    ap.add_argument("--edge-rate", default="+0%", help="edge 语速,如 -10%% / +15%%")
+    ap.add_argument("--proxy", default="socks5://127.0.0.1:10808")
+    ap.add_argument("--rate", type=int, default=150, help="espeak 语速(词/分)")
     ap.add_argument("--outdir", default=str(Path(__file__).resolve().parents[2] / "docs/e1_audio"))
     a = ap.parse_args()
     if a.list:
@@ -126,7 +161,10 @@ def main():
     if not keys:
         ap.error("--card 无效(--list 看卡号)或用 --all")
     outdir = Path(a.outdir); outdir.mkdir(parents=True, exist_ok=True)
-    tts = TTS(rate=a.rate)
+    if a.engine == "edge":
+        tts = EdgeTTS(outdir / ".tts_cache", proxy=a.proxy, rate=a.edge_rate)
+    else:
+        tts = TTS(rate=a.rate)
     for k in keys:
         render(k, tts, a.stare, a.gap, outdir)
 
