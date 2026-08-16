@@ -11,6 +11,10 @@ GL=$ROOT/Eye_Tracker/tools/gaze_live.py
 EV=$ROOT/Eye_Tracker/tools/eval_e1.py
 RUN="conda run --no-capture-output -n nerfstudio python -u"
 
+echo "== 遍0:裸跑(无任何偏置修正)=="
+$RUN "$GL" --replay "$REC" --headless --on-tag-deg 0 \
+    --log "$REC/intents_raw.jsonl" > /dev/null 2>&1
+
 P1LOG=$(mktemp)
 echo "== 遍1:测书签偏置 =="
 $RUN "$GL" --replay "$REC" --headless --stamp-include 79,86 --on-tag-deg 6 \
@@ -25,18 +29,20 @@ if [ -n "$BIAS" ]; then
     $RUN "$GL" --replay "$REC" --headless --stamp-include 79,86 --on-tag-deg 6 \
         --bias-init " $BIAS" --bias-tau 0 --log "$REC/intents_pass2.jsonl" 2>&1 \
         | grep -iE "bias stamp|回灌" || true
-    OK1=$(hits "$REC/intents_pass1.jsonl"); OK2=$(hits "$REC/intents_pass2.jsonl")
-    # 实测两方案各有胜负(偏置整场小幅漂,常数回灌不通吃):双稿取优,来源写明
-    if [ "${OK2:-0}" -gt "${OK1:-0}" ]; then
-        echo "== 取优:回灌稿 ${OK2} > 自然戳稿 ${OK1} -> 采用回灌 =="
-        cp "$REC/intents_pass2.jsonl" "$REC/intents.jsonl"
-    else
-        echo "== 取优:自然戳稿 ${OK1} >= 回灌稿 ${OK2} -> 采用自然戳 =="
-        cp "$REC/intents_pass1.jsonl" "$REC/intents.jsonl"
-    fi
+    OK0=$(hits "$REC/intents_raw.jsonl"); OK1=$(hits "$REC/intents_pass1.jsonl"); OK2=$(hits "$REC/intents_pass2.jsonl")
+    # 8-16 实测:裸跑 51/57 与修正取优持平且 s2 上修正倒扣(墙 tag 偏置对桌面
+    # 视角未必适用)——三稿取优,来源写明;论文最终统一方案等斜位卡裁决
+    echo "== 三稿:裸跑 ${OK0:-0} / 自然戳 ${OK1:-0} / 回灌 ${OK2:-0} =="
+    BEST="$REC/intents_raw.jsonl"; BN=${OK0:-0}; SRC=裸跑
+    if [ "${OK1:-0}" -gt "$BN" ]; then BEST="$REC/intents_pass1.jsonl"; BN=${OK1:-0}; SRC=自然戳; fi
+    if [ "${OK2:-0}" -gt "$BN" ]; then BEST="$REC/intents_pass2.jsonl"; BN=${OK2:-0}; SRC=回灌; fi
+    echo "== 取优:采用${SRC}稿(${BN}) =="
+    cp "$BEST" "$REC/intents.jsonl"
 else
-    echo "[!] 遍1没戳上任何墙 tag(开头结尾都没盯够?)——无修正直接打分"
-    cp "$REC/intents_pass1.jsonl" "$REC/intents.jsonl"
+    OK0=$(hits "$REC/intents_raw.jsonl"); OK1=$(hits "$REC/intents_pass1.jsonl")
+    echo "[!] 没戳上墙 tag;裸跑 ${OK0:-0} vs 自然戳 ${OK1:-0} 取优"
+    if [ "${OK0:-0}" -ge "${OK1:-0}" ]; then cp "$REC/intents_raw.jsonl" "$REC/intents.jsonl"
+    else cp "$REC/intents_pass1.jsonl" "$REC/intents.jsonl"; fi
 fi
 
 echo "== 打分:卡 $CARD =="
