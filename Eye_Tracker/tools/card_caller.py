@@ -117,8 +117,11 @@ def render(key, tts, stare, gap, outdir):
     # 开场留足节奏:实录两卡开头书签都没盯上(用户还在放手机/抬头),窗口 3.2->5s 且先停 2s
     parts = [tts.say(f"{spoken_title}。开始录像。"), sil(sr, 2.0),
              tts.say("现在,盯住墙上的 tag,五秒。"), sil(sr, 5.2), beep(sr), sil(sr, 1.0)]
+    mid = len(seq) // 2   # 卡中场校准:偏置整场在漂,给中段补一个书签锚(8-16 s3 实录挪位)
     for i, nm in enumerate(seq, 1):
         parts += [tts.say(f"{i}。{SPOKEN.get(nm, nm)}。"), sil(sr, stare), beep(sr), sil(sr, gap)]
+        if i == mid:
+            parts += [tts.say("校准。盯住墙上的 tag,三秒。"), sil(sr, 3.4), beep(sr), sil(sr, 1.0)]
     parts += [tts.say("最后。再盯墙上的 tag,三秒。"), sil(sr, 3.2), beep(sr),
               tts.say("完成,停止录像。")]
     pcm = np.concatenate(parts)

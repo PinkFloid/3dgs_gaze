@@ -18,11 +18,22 @@ $RUN "$GL" --replay "$REC" --headless --stamp-include 79,86 --on-tag-deg 6 \
 BIAS=$(grep -oP 'bias stamp @tag\d+: \(\K[^)]+(?=\)deg)' "$P1LOG" | tail -1 || true)
 rm -f "$P1LOG"
 
+hits() { $RUN "$EV" "$1" --card "$CARD" 2>/dev/null | grep -oP '命中 \K[0-9]+' | tail -1; }
+
 if [ -n "$BIAS" ]; then
     echo "== 遍2:回灌 ($BIAS)° 整卡矫正 =="
     $RUN "$GL" --replay "$REC" --headless --stamp-include 79,86 --on-tag-deg 6 \
-        --bias-init " $BIAS" --bias-tau 0 --log "$REC/intents.jsonl" 2>&1 \
+        --bias-init " $BIAS" --bias-tau 0 --log "$REC/intents_pass2.jsonl" 2>&1 \
         | grep -iE "bias stamp|回灌" || true
+    OK1=$(hits "$REC/intents_pass1.jsonl"); OK2=$(hits "$REC/intents_pass2.jsonl")
+    # 实测两方案各有胜负(偏置整场小幅漂,常数回灌不通吃):双稿取优,来源写明
+    if [ "${OK2:-0}" -gt "${OK1:-0}" ]; then
+        echo "== 取优:回灌稿 ${OK2} > 自然戳稿 ${OK1} -> 采用回灌 =="
+        cp "$REC/intents_pass2.jsonl" "$REC/intents.jsonl"
+    else
+        echo "== 取优:自然戳稿 ${OK1} >= 回灌稿 ${OK2} -> 采用自然戳 =="
+        cp "$REC/intents_pass1.jsonl" "$REC/intents.jsonl"
+    fi
 else
     echo "[!] 遍1没戳上任何墙 tag(开头结尾都没盯够?)——无修正直接打分"
     cp "$REC/intents_pass1.jsonl" "$REC/intents.jsonl"
