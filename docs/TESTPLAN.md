@@ -93,6 +93,16 @@ Bottle / orange / apple / cup / 物品台 / 狗桌边 / 黄色机器人 / My Key
 | 下午4 | 看物体,狗门外进屋抓 | E2 单杆 | +门外标定+进门腿顺序派发 | 送达段没好就记到"抓住"为止 |
 | 另约 | 正片两幕:拿这个 / 去我看不到的地方拿XX | 视频5 | 全部(含语音) | 第二幕=named 通道双盲取物,排练后录 |
 
+**冻结的感知配置(2026-08-16 v7 刷新,正式采集期间不许改动)**:地图 v7(球间距实测
+28.6/28.4cm,球排沿 +x;命名 6 物:网球L/M/R+苹果+石榴+香蕉);gaze_live
+`--cluster-deg 1.5 --omega-max 80 --on-tag-deg 0 --vote-scope named
+--stamp-exclude 126,124`(126 台面、124 台下层);priors 注记:v7 未命名物品台,
+{物品台:0.3} 等效空转——可交互先验在 v7 里由 named 词表本身承担,E4 消融口径
+= --vote-scope all;brain 缺省(--frame board/v7,--voice-rms 54 DJI 麦);
+E1 站位:正对 1/2/3/4m(θ 16.3/8.2/5.4/4.1°)+ 4m 斜位 α30/18/15°
+(θ 2.05/1.27/1.05°,遮挡极限 0.96°),细节见 E1_CARDS;消融基线:
+--cluster-deg 0 / --vote-scope all(回放跑,不动采集)。
+
 前一日(8-02)重建死亡清单:球间距尺量、**每球不同名**、香蕉橘子隔开、球桌贴 1-2 张
 对角 tag 同场入镜、低机位一圈、门口入图、align --marker-id-start 0+实测 square-size、
 survey 查新 tag rms、verify blend、录视频1、frame 升版+tags_world 发狗端。

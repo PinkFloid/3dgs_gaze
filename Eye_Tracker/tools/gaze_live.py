@@ -125,7 +125,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--vote-scope", choices=["named", "all"], default="named",
                    help="named=投票候选只含命名物体+背景(未命名碎片不抢票,实验口径);"
                         "all=全实例(旧口径)")
-    p.add_argument("--stamp-exclude", default="126",
+    p.add_argument("--stamp-exclude", default="126,124",  # v7:126 台面、124 台下层
                    help="不当标定靶的 tag id(逗号分隔)。贴在实验物体旁的 tag(如物品台上的"
                         " 126)会把'盯球'误判成'盯 tag',用错误假设毒化在线 bias 戳——"
                         "从戳判定中排除;定位 PnP 与狗端投影选框不受影响。空串=不排除")
