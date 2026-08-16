@@ -132,7 +132,8 @@ def main() -> int:
     names_path.write_text(json.dumps(names, indent=2, ensure_ascii=False), encoding="utf-8")
 
     for inst in sorted(instances, key=lambda i: -i["n_gaussians"])[:20]:
-        c, s = inst["centroid"], inst["size_m"]
+        c = inst["centroid"]
+        s = inst.get("size_m") or [round(h - l, 3) for h, l in zip(inst["bbox_max"], inst["bbox_min"])]
         print(f"  id {inst['id']:>3}: {inst['n_gaussians']:>7} gaussians  "
               f"center ({c[0]:+.2f},{c[1]:+.2f},{c[2]:+.2f})  size {s[0]}x{s[1]}x{s[2]}m")
 

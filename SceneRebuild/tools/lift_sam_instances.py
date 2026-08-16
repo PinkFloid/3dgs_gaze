@@ -471,7 +471,8 @@ def main() -> int:
     names_path.write_text(json.dumps(names, indent=2, ensure_ascii=False), encoding="utf-8")
 
     for inst in instances[:30]:
-        c, sz = inst["centroid"], inst["size_m"]
+        c = inst["centroid"]
+        sz = inst.get("size_m") or [round(h - l, 3) for h, l in zip(inst["bbox_max"], inst["bbox_min"])]
         print(f"  id {inst['id']:>3}: {inst['n_gaussians']:>7} gaussians  {inst['n_views']:>3} views  "
               f"center ({c[0]:+.2f},{c[1]:+.2f},{c[2]:+.2f})  size {sz[0]}x{sz[1]}x{sz[2]}m")
 

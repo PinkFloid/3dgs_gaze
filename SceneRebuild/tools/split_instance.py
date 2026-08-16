@@ -125,7 +125,8 @@ def main() -> int:
     made.sort(key=lambda it: it["centroid"][0])
     print(f"拆出 {len(made)} 个新实例(按板系 x 从小到大):")
     for it in made:
-        c, s = it["centroid"], it["size_m"]
+        c = it["centroid"]
+        s = it.get("size_m") or [round(h - l, 3) for h, l in zip(it["bbox_max"], it["bbox_min"])]
         print(f"  id {it['id']:4d} n={it['n_gaussians']:5d} "
               f"size=({s[0]:.2f},{s[1]:.2f},{s[2]:.2f})m centroid=({c[0]:+.2f},{c[1]:+.2f},{c[2]:+.2f})")
     print(f"  原 {args.id} 余 {len(rem)} 点(纸/托盘沿)")
