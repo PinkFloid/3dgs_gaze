@@ -125,6 +125,13 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--vote-scope", choices=["named", "all"], default="named",
                    help="named=投票候选只含命名物体+背景(未命名碎片不抢票,实验口径);"
                         "all=全实例(旧口径)")
+    p.add_argument("--bias-init", default="",
+                   help="初始视线偏置 'dx,dy'(度,gaze-target)。E1 打分:先无修正跑一遍拿"
+                        "片尾书签戳的量,再 --bias-init 回灌整卡矫正(配 --bias-tau 0 卡内不衰减)")
+    p.add_argument("--stamp-include", default="",
+                   help="戳靶白名单(逗号分隔 tag id;非空时只有这些能当标定靶,优先于 exclude)。"
+                        "E1 回放用 79,86:书签戳只认墙 tag,防地面 tag 撞上穿过桌面的视线"
+                        "(2026-08-16 实录 tag128 中毒)")
     p.add_argument("--stamp-exclude", default="126,124",  # v7:126 台面、124 台下层
                    help="不当标定靶的 tag id(逗号分隔)。贴在实验物体旁的 tag(如物品台上的"
                         " 126)会把'盯球'误判成'盯 tag',用错误假设毒化在线 bias 戳——"
@@ -633,12 +640,22 @@ def main() -> int:
     sigma0 = sigma0 or 1.5
     excl = {int(x) for x in args.stamp_exclude.split(",") if x.strip().isdigit()}
     stamp_centers = {i: c for i, c in tag_centers.items() if i not in excl}
-    if excl & set(tag_centers):
+    incl = {int(x) for x in args.stamp_include.split(",") if x.strip().isdigit()}
+    if incl:  # 白名单优先:E1 卡书签只认墙 tag——地面 tag 会撞上"穿过桌面的视线"
+        stamp_centers = {i: c for i, c in stamp_centers.items() if i in incl}
+        print(f"bias 戳靶白名单 tag {sorted(stamp_centers)}(其余一律不当标定靶)")
+    elif excl & set(tag_centers):
         print(f"bias 戳靶排除 tag {sorted(excl & set(tag_centers))}"
               "(物体旁的 tag 只作定位/狗端锚,不当标定靶)")
+    bias0 = (0.0, 0.0)
+    if args.bias_init:
+        dx, dy = (float(v) for v in args.bias_init.split(","))
+        bias0 = (float(np.tan(np.radians(dx))), float(np.tan(np.radians(dy))))
+        print(f"初始偏置回灌: ({dx:+.2f},{dy:+.2f})deg" +
+              ("" if args.bias_tau <= 0 else f"(注意 tau={args.bias_tau}s 会衰减,建议 --bias-tau 0)"))
     bias_est = OnlineBias(stamp_centers, np.radians(args.on_tag_deg),
                           args.stamp_samples, args.stamp_cooldown,
-                          bias0=(0.0, 0.0), sigma0=sigma0, tau=args.bias_tau,
+                          bias0=bias0, sigma0=sigma0, tau=args.bias_tau,
                           min_dwell=args.stamp_min_dwell,
                           max_sample_gap=args.stamp_max_gap,
                           mad_k=args.stamp_mad_k)
@@ -658,7 +675,7 @@ def main() -> int:
         import zmq
         pub = zmq.Context.instance().socket(zmq.PUB)
         pub.bind(f"tcp://*:{args.publish}")
-    log_f = open(args.log, "a", encoding="utf-8") if args.log else None
+    log_f = open(args.log, "w", encoding="utf-8") if args.log else None  # 每次一条流,追加会把旧流混进打分
 
     if args.replay:
         source = replay_events(Path(args.replay), args.min_confidence)
