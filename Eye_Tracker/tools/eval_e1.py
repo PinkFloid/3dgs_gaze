@@ -70,37 +70,97 @@ def theta_min(origin, target, named):
     return best
 
 
-def run(intents: Path, seq: list[str], map_dir: Path, out_csv: Path | None):
+def episodes(ev, merge_gap=1.2, min_dur=1.0):
+    """final 流 -> 注视段:同物且间隔<merge_gap 合并(一次盯看常被切成数条 final),
+    累计时长<min_dur 的段丢弃(扫视路过的碎片,盯看协议是 2-3s)。
+    每段带票面最高、时长最长的代表 final(取 vote/origin/dist 用)。"""
+    eps = []
+    for e in ev:
+        if eps and eps[-1]["object"] == e["object"] and \
+                e["t_start"] - eps[-1]["t_end"] < merge_gap:
+            ep = eps[-1]
+            ep["t_end"] = e["t_end"]
+            ep["dur"] += e.get("duration_s", 0.0)
+            if e.get("duration_s", 0) > ep["rep"].get("duration_s", 0):
+                ep["rep"] = e
+        else:
+            eps.append({"object": e["object"], "t_start": e["t_start"],
+                        "t_end": e["t_end"], "dur": e.get("duration_s", 0.0),
+                        "rep": e})
+    return [p for p in eps if p["dur"] >= min_dur]
+
+
+def lcs_align(seq, eps):
+    """卡序 × 注视段 最长公共子序列对齐:命中保序;未匹配卡项=缺失,
+    未匹配注视段=多余(用户瞟错/系统误绑,人工核录像)。"""
+    n, m = len(seq), len(eps)
+    L = [[0] * (m + 1) for _ in range(n + 1)]
+    for i in range(n - 1, -1, -1):
+        for j in range(m - 1, -1, -1):
+            L[i][j] = (1 + L[i + 1][j + 1]) if seq[i] == eps[j]["object"] \
+                else max(L[i + 1][j], L[i][j + 1])
+    pairs, i, j = {}, 0, 0
+    while i < n and j < m:
+        if seq[i] == eps[j]["object"]:
+            pairs[i] = j; i += 1; j += 1
+        elif L[i + 1][j] >= L[i][j + 1]:
+            i += 1
+        else:
+            j += 1
+    return pairs
+
+
+def run(intents: Path, seq: list[str], map_dir: Path, out_csv: Path | None,
+        merge_gap=1.2, min_dur=1.0):
     named = load_named(map_dir)
     ev = finals(intents)
-    n = min(len(seq), len(ev))
-    if len(ev) != len(seq):
-        print(f"[!] final 数 {len(ev)} ≠ 卡项数 {len(seq)}:只对前 {n} 项,"
-              f"多余的{'注视' if len(ev) > len(seq) else '卡项'}列在表尾")
-    rows, ok = [], 0
-    for k in range(max(len(seq), len(ev))):
-        want = seq[k] if k < len(seq) else "--"
-        e = ev[k] if k < len(ev) else {}
-        got = e.get("object", "--")
-        hit = want == got
-        ok += hit and k < n
-        th = theta_min(e.get("origin_world"), want, named)
+    eps = episodes(ev, merge_gap, min_dur)
+    pairs = lcs_align(seq, eps)
+    used = set(pairs.values())
+    rows, t0 = [], (eps[0]["t_start"] if eps else 0.0)
+
+    def row(k, want, ep, verdict):
+        e = ep["rep"] if ep else {}
+        th = theta_min(e.get("origin_world"), want if want != "--" else
+                       (ep["object"] if ep else ""), named)
         rows.append({
-            "k": k + 1, "want": want, "got": got,
-            "verdict": "✓" if hit else "✗",
+            "k": k, "want": want, "got": ep["object"] if ep else "--",
+            "verdict": verdict,
+            "dur_s": round(ep["dur"], 1) if ep else "",
             "vote": round(e.get("vote_share", 0.0), 2) if e else "",
             "dist_m": round(e.get("distance_m", 0.0), 2) if e else "",
             "theta_min_deg": round(th, 2) if th is not None else "",
-            "t_end": round(e.get("t_end", 0.0), 2) if e else "",
+            "t": round(ep["t_start"] - t0, 1) if ep else "",
         })
-    w = {"k": 3, "want": 6, "got": 6, "verdict": 3, "vote": 5, "dist_m": 6,
-         "theta_min_deg": 7, "t_end": 10}
+
+    j_extra = 0
+    for i, want in enumerate(seq):
+        j = pairs.get(i)
+        while j is not None and j_extra < j:          # 之前夹着的多余段
+            if j_extra not in used:
+                row("+", "--", eps[j_extra], "＋多余")
+            j_extra += 1
+        if j is None:
+            row(i + 1, want, None, "✗缺失")
+        else:
+            row(i + 1, want, eps[j], "✓")
+            j_extra = j + 1
+    for j in range(j_extra, len(eps)):
+        if j not in used:
+            row("+", "--", eps[j], "＋多余")
+
+    w = {"k": 3, "want": 6, "got": 6, "verdict": 5, "dur_s": 5, "vote": 5,
+         "dist_m": 6, "theta_min_deg": 7, "t": 7}
     print("  ".join(f"{h:>{w[h]}}" for h in rows[0]))
     for r in rows:
         print("  ".join(f"{str(r[h]):>{w[h]}}" for h in r))
-    ths = [r["theta_min_deg"] for r in rows[:n] if r["theta_min_deg"] != ""]
+    ok = len(pairs)
+    miss = len(seq) - ok
+    extra = len(eps) - ok
+    ths = [r["theta_min_deg"] for r in rows if r["verdict"] == "✓" and r["theta_min_deg"] != ""]
     med = f";θ_min 中位 {np.median(ths):.2f}°" if ths else ""
-    print(f"\n{ok}/{n} 对{med}")
+    print(f"\n命中 {ok}/{len(seq)},缺失 {miss},多余注视 {extra}"
+          f"(合并 {len(ev)}→{len(eps)} 段,gap<{merge_gap}s,dur≥{min_dur}s){med}")
     if out_csv:
         import csv
         with out_csv.open("w", newline="", encoding="utf-8") as f:
@@ -108,7 +168,7 @@ def run(intents: Path, seq: list[str], map_dir: Path, out_csv: Path | None):
             cw.writeheader()
             cw.writerows(rows)
         print(f"CSV -> {out_csv}")
-    return ok, n
+    return ok, len(seq)
 
 
 def selftest():
@@ -120,21 +180,33 @@ def selftest():
         {"id": 2, "centroid": [0.3, 0.0, 0.8]},
         {"id": 3, "centroid": [0.0, 1.0, 0.8]},
     ]}))
+    F = dict(provisional=False, vote_share=0.9, origin_world=[0, -3, 1.6], distance_m=3.1)
     ev = [
-        {"object": "网球L", "provisional": False, "vote_share": 0.9,
-         "origin_world": [0, -3, 1.6], "distance_m": 3.1, "t_end": 1.0},
-        {"object": "floor", "provisional": False, "t_end": 1.5},          # 该被丢
-        {"object": "网球M", "provisional": True, "t_end": 1.7},            # 非 final,丢
-        {"object": "苹果", "provisional": False, "vote_share": 0.8,
-         "origin_world": [0, -3, 1.6], "distance_m": 4.0, "t_end": 2.0},
+        {"object": "网球L", "t_start": 0.0, "t_end": 2.0, "duration_s": 2.0, **F},
+        {"object": "floor", "t_start": 2.2, "t_end": 2.6, "duration_s": 0.4,
+         "provisional": False},                                     # 背景,丢
+        {"object": "网球M", "t_start": 2.8, "t_end": 3.0, "duration_s": 0.2,
+         "provisional": True},                                      # 非 final,丢
+        {"object": "网球M", "t_start": 3.0, "t_end": 3.8, "duration_s": 0.8, **F},
+        {"object": "网球M", "t_start": 4.1, "t_end": 5.0, "duration_s": 0.9, **F},  # 与上合并 ->1.7s
+        {"object": "苹果", "t_start": 5.2, "t_end": 5.5, "duration_s": 0.3, **F},   # 扫视碎片,丢
+        {"object": "香蕉", "t_start": 6.0, "t_end": 8.0, "duration_s": 2.0, **F},   # 多余注视
     ]
+    (td / "names.json").write_text(json.dumps(
+        {"1": "网球L", "2": "网球M", "3": "苹果", "4": "香蕉"}))
+    (td / "instances.json").write_text(json.dumps({"instances": [
+        {"id": 1, "centroid": [0.0, 0.0, 0.8]},
+        {"id": 2, "centroid": [0.3, 0.0, 0.8]},
+        {"id": 3, "centroid": [0.0, 1.0, 0.8]},
+        {"id": 4, "centroid": [0.5, 1.0, 0.8]},
+    ]}))
     ij = td / "intents.jsonl"
     ij.write_text("\n".join(json.dumps(e) for e in ev) + "\n")
     seq = [TOKEN.get(t, t) for t in ["L", "网球M"]]
     assert seq == ["网球L", "网球M"]
     ok, n = run(ij, seq, td, None)
-    assert (ok, n) == (1, 2), (ok, n)   # 第2项 want 网球M got 苹果 -> ✗
-    print("selftest OK(floor/provisional 过滤 + 严格按序 + 命中判定)")
+    assert (ok, n) == (2, 2), (ok, n)   # 合并后 L/M 全中,香蕉记多余,苹果碎片被丢
+    print("selftest OK(过滤+同物合并+时长门+LCS 对齐+多余段)")
 
 
 def main():
@@ -144,6 +216,10 @@ def main():
     ap.add_argument("--card", default="", help="卡号 e1-e5/s1-s7(取 e1_cards.py 预注册序列)")
     ap.add_argument("--map-dir", default=str(SCENE / "lab_result/segmentation_sam"))
     ap.add_argument("--csv", default=None, help="逐项结果另存 CSV")
+    ap.add_argument("--merge-gap", type=float, default=1.2,
+                    help="同物 final 间隔小于此秒数合并为一段注视")
+    ap.add_argument("--min-dur", type=float, default=1.0,
+                    help="累计注视短于此秒数的段当扫视碎片丢弃")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:
@@ -159,7 +235,8 @@ def main():
         seq = CARDS[a.card][1]
     else:
         seq = [TOKEN.get(t, t) for t in a.seq.replace(",", " ").split()]
-    run(Path(a.intents), seq, Path(a.map_dir), Path(a.csv) if a.csv else None)
+    run(Path(a.intents), seq, Path(a.map_dir), Path(a.csv) if a.csv else None,
+        merge_gap=a.merge_gap, min_dur=a.min_dur)
 
 
 if __name__ == "__main__":
