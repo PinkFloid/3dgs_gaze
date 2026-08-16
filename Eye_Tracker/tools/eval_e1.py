@@ -141,15 +141,24 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("intents", nargs="?", help="gaze_live --log 落盘的 intents.jsonl")
     ap.add_argument("--seq", default="", help="卡片序列,空格或逗号分隔;L/M/R 是网球简写")
+    ap.add_argument("--card", default="", help="卡号 e1-e5/s1-s7(取 e1_cards.py 预注册序列)")
     ap.add_argument("--map-dir", default=str(SCENE / "lab_result/segmentation_sam"))
     ap.add_argument("--csv", default=None, help="逐项结果另存 CSV")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:
         return selftest()
-    if not a.intents or not a.seq:
-        ap.error("需要 intents.jsonl 与 --seq(或 --selftest)")
-    seq = [TOKEN.get(t, t) for t in a.seq.replace(",", " ").split()]
+    if not a.intents or not (a.seq or a.card):
+        ap.error("需要 intents.jsonl 与 --seq/--card(或 --selftest)")
+    if a.card:
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from e1_cards import CARDS
+        if a.card not in CARDS:
+            ap.error(f"卡号 {a.card} 不存在:{list(CARDS)}")
+        seq = CARDS[a.card][1]
+    else:
+        seq = [TOKEN.get(t, t) for t in a.seq.replace(",", " ").split()]
     run(Path(a.intents), seq, Path(a.map_dir), Path(a.csv) if a.csv else None)
 
 

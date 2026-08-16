@@ -20,3 +20,4 @@ SceneRebuild/lab_result/segmentation_sam/instance_viewer_data.js
 # 地图归档 = 本机留底,不进库(v2/v3 产物在 git 历史里;preview.zip/thumbs 从未跟踪)
 SceneRebuild/lab_result/archive_map_v2/
 SceneRebuild/lab_result/archive_map_v3/
+docs/e1_audio/*.wav
