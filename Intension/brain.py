@@ -493,7 +493,7 @@ def main() -> int:
     chain = {"req": None, "after": None, "deadline": 0.0}  # 链单:grasp done 后补发 place
 
     def handle(t_word, text, words=None):
-        nonlocal pending
+        nonlocal pending, n_req
         t = "".join(text.split())
         key = norm_cmd(t)  # 词表匹配用归一形:"好。""停。"(语音标点)才进得了门
         if not key:
@@ -638,6 +638,43 @@ def main() -> int:
                           "(先看落点再说,或指名「放到纸箱子那边」)")
             propose(obj, tw, mode, t_word, dest=d, via=via, obj_point=obj_point)
 
+        if not obj_gaze and not cmd["object"] and (cmd["dest"] or cmd["dest_deictic"]):
+            # 裸放置:「放到纸箱子」「放到那边」——不带物体,狗手里有什么放什么
+            # (grasp/place 是狗端两个独立方法,单发 place 就是"把手里的放下")
+            if dest is None and dest_defer:
+                r = place_buf.latest(t_dest, args.lookback)
+                if r:
+                    dest = (r["point"], place_label(r))
+            if dest is None:
+                P.say("[×] 放到哪?看一眼落点再说,或指名「放到纸箱子」")
+                return
+            dxy, dyaw = aim(dest[0], approach_from=last_stand["tw"])
+            pparams = {"object_name": None, "target_world": [dxy[0], dxy[1], dyaw]}
+            hit = max((k for k in dmap if dest[1] and k in dest[1]),
+                      key=len, default=None)
+            if hit:
+                pparams["place_name"] = dmap[hit]
+            n_req += 1
+            preq = {"v": 1, "type": "skill.request", "skill": "place",
+                    "params": pparams,
+                    "req_id": f"{sess.name}-{n_req:03d}",
+                    "frame": args.frame, "sent_at": time.time(),
+                    "t_stream": round(t_word, 3),
+                    "intent_summary": f"裸放置 -> {dest[1]}"}
+            logev({"topic": "resolution", "mode": "放置", "object": None,
+                   "goto": False, "t": t_word, "goal": list(dest[0]),
+                   "dest": list(dest[0]), "wire_v": 1, "hint": None})
+            if args.yes:
+                send(preq)
+                if last_cmd["text"]:
+                    parser.confirm(last_cmd["text"])
+            else:
+                pending = {"req": preq, "since": t_word, "mode": "放置",
+                           "object": dest[1], "text": last_cmd["text"], "chain": None}
+                P.say(f"[?] 把手里的放到「{dest[1]}」({dxy[0]:+.2f},{dxy[1]:+.2f})"
+                      " ? y=确认 其他=取消")
+                notify("ask")
+            return
         if obj_gaze:  # object=视线:眼-声窗口绑定(E1 语义;t_obj=指代词出口时刻)
             cands = [c for c in buf.candidates(t_obj, args.lookback, cmd["noun"])
                      if c["object"] in table]  # 只有命名物体可被指代:碎片不进绑定,

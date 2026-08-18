@@ -310,6 +310,12 @@ ck "首单不带 deliver_to 照派 cup" "$TMP/r18" '"object_name": "cup", "targe
 ck "第二单绑最近注视且剔自身落点(dest=apple 点)" "$TMP/r18" '"skill": "place".*"target_world": \[1.5, -2.0'
 ckn "不再有等待机制" "$TMP/r18" "看准位置停"
 
+echo "R20 裸放置:放到纸箱子(不带物体,单发 place;狗手里有什么放什么)"
+run "$TMP/r20" "$TMP/named.jsonl" "107.0:放到纸箱子"
+ck "单发 place 无 grasp" "$TMP/r20" '"skill": "place".*"place_name": "storage box"'
+ckn "不派 grasp" "$TMP/r20" '"skill": "grasp"'
+ck "object_name 空(放手里的)" "$TMP/r20" '"object_name": null, "target_world": \[1.2, -1.0'
+
 echo "R19 链单 e2e:拿到纸箱子那边(grasp done -> 自动补发 place,假狗在环)"
 $PY dog_link.py --fake >"$TMP/dog3.log" 2>&1 & DOG_PID=$!
 sleep 1
