@@ -272,7 +272,7 @@ assert slot_times(cmd, 99.0, None) == (99.0, 99.0, 99.0)   # 退化=句末
 EOF
 then echo "  [o] word_time/slot_times"; else echo "  [x] 逐词时刻"; FAIL=1; fi
 
-echo "R18 放置前向等待:把这个放到那里去(说完再看,盯稳才锁,剔物体自身落点)"
+echo "R18 放置最简版:把这个放到那里去(解不出=不带送达照派,剔物体自身落点)"
 $PY - "$TMP/putwait.jsonl" <<'EOF'
 import json, sys
 def ev(t0, dur, obj, label, c, prov):
@@ -287,18 +287,20 @@ def fx(t0, total, obj, label, c):
         out.append(ev(t0, d, obj, label, c, True)); d += 0.4
     out.append(ev(t0, total, obj, label, c, False))
     return out
-tick = dict(ev(107.0, 0.3, "floor", 3, [1.0, 0.0, 0.0], False),
-            object_centroid_world=None)  # 填充:107 拨钟,指令赶在 apple 注视前生效
-evs = fx(104.0, 2.5, "cup", 11, [-0.67, -2.26, 0.75]) + [tick] \
+def tick(t):  # 拨钟填充:floor 不进任何通道,只让脚本指令在正确时刻生效
+    return dict(ev(t, 0.3, "floor", 3, [1.0, 0.0, 0.0], False),
+                object_centroid_world=None)
+evs = fx(104.0, 2.5, "cup", 11, [-0.67, -2.26, 0.75]) + [tick(107.0), tick(111.2)] \
     + fx(108.0, 0.5, "apple", 13, [1.5, -2.0, 0.8]) \
     + fx(109.5, 1.4, "物品台", 17, [0.4, -2.6, 0.8])
 evs.sort(key=lambda e: e["t_end"])
 open(sys.argv[1], "w").write("\n".join(json.dumps(e, ensure_ascii=False) for e in evs) + "\n")
 EOF
-run "$TMP/r18" "$TMP/putwait.jsonl" "107.0:把这个放到那里去"
-ck "先挂单问落点" "$TMP/r18" "看准位置停"
-ck "0.5s 扫视不锁(apple 不是送达点)" "$TMP/r18" '落点锁定 -> 物品台'
-ck "抓 cup 送物品台落点" "$TMP/r18" '"object_name": "cup".*"deliver_to": \[0.4, -2.6'
+run "$TMP/r18" "$TMP/putwait.jsonl" "107.0:把这个放到那里去" "111.0:把这个放到那里去"
+ck "解不出落点如实说" "$TMP/r18" "没看到要放哪——本单不带送达"
+ck "首单不带 deliver_to 照派 cup" "$TMP/r18" '"object_name": "cup", "target_world": \[[^]]*\], "object_hint": \[[^]]*\]\}'
+ck "第二单绑最近注视且剔自身落点(dest=apple 点)" "$TMP/r18" '"object_name": "物品台".*"deliver_to": \[1.5, -2.0'
+ckn "不再有等待机制" "$TMP/r18" "看准位置停"
 
 echo
 if [ $FAIL -eq 0 ]; then echo "== 全部通过 =="; else echo "== 有失败项 =="; fi

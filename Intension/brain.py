@@ -39,7 +39,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from agent import CommandParser, load_openai_key, norm_cmd  # noqa: E402
-from core.attention import (OBJ0, AttentionBuffer, PlaceBuffer,   # noqa: E402
+from core.attention import (AttentionBuffer, PlaceBuffer,   # noqa: E402
                             accepted)
 from core.comms import (Printer, dispatch, gaze_events,     # noqa: E402
                         replay_events, status_listener)
@@ -115,11 +115,6 @@ def parse_args():
                    help=">0 时开启第三模式:盯满该秒数主动问询(如 4.8);默认关")
     p.add_argument("--proactive-goto", action="store_true",
                    help="主动模式只导航不抓取:盯满即去注视物体旁(看哪去哪)")
-    p.add_argument("--dest-wait", type=float, default=10.0,
-                   help="送达槽前向等待:说了'放到那里'但还没看落点时,等这么多秒"
-                        "(想一下再看;超时作废)")
-    p.add_argument("--dest-dwell", type=float, default=0.8,
-                   help="等待期内认作'刻意落点'的最小驻留——扫一眼不算数")
     p.add_argument("--suppress", type=float, default=30.0,
                    help="主动问询被拒后同目标静默期 (s)")
     p.add_argument("--llm", choices=["on", "off"], default="on",
@@ -472,8 +467,6 @@ def main() -> int:
             return "fail", None, None
         return "none", None, None
 
-    wait_dest = {}  # 送达槽前向等待单(空=无):fire/deadline/t0/desc
-
     def handle(t_word, text, words=None):
         nonlocal pending
         t = "".join(text.split())
@@ -498,9 +491,6 @@ def main() -> int:
             if key in NO_WORDS:
                 return
             was_decline = True  # 可能是"取消旧的换新指令":往下试,解析不出就保持安静
-        if wait_dest:  # 任何新指令(含停)顶掉未决的落点等待:一次只欠一个落点
-            wait_dest.clear()
-            P.say("[-] 上一单的落点等待已取消")
         if key in STOP_WORDS:  # 急停硬旁路:永不过 LLM
             send_stop()
             return
@@ -606,26 +596,18 @@ def main() -> int:
             else:
                 P.say(f"[!] 地点「{cmd['place']}」没认出,退回按物名的地图位置")
         def dispatch_or_wait(obj, tw, mode, via=None, obj_point=None):
-            """dest 已就绪则直接派;纯指示词送达此刻才解(剔 object 自身的落点),
-            解不出则挂单——盯稳一处 ≥dest_dwell 即补发。"""
+            """纯指示词送达此刻才解(剔 object 自身的落点,防"把L放到L");
+            解不出 = 不带送达照派(用户裁定最简版:不等待不追问,同"不知道
+            你在哪就不带送回"的降级模式)。"""
             d = dest
             if dest_defer:
                 r = place_buf.latest(t_dest, args.lookback, exclude_obj=obj)
                 if r:
                     d = (r["point"], place_label(r))
-            if d is not None or not dest_defer:
-                propose(obj, tw, mode, t_word, dest=d, via=via, obj_point=obj_point)
-                return
-            wait_dest.clear()
-            wait_dest.update(
-                t0=t_word, deadline=t_word + args.dest_wait, desc=obj,
-                fire=lambda pt, label: propose(obj, tw, mode, t_word,
-                                               dest=(pt, label), via=via,
-                                               obj_point=obj_point))
-            logev({"topic": "dest_wait", "state": "armed", "t": t_word, "object": obj})
-            P.say(f"[?] 「{obj}」放到哪?看准位置停 {args.dest_dwell:.1f} 秒"
-                  f"(限 {args.dest_wait:.0f}s,说新指令作废)")
-            notify("ask")
+                else:
+                    P.say("[!] 没看到要放哪——本单不带送达"
+                          "(先看落点再说,或指名「放到纸箱子那边」)")
+            propose(obj, tw, mode, t_word, dest=d, via=via, obj_point=obj_point)
 
         if obj_gaze:  # object=视线:眼-声窗口绑定(E1 语义;t_obj=指代词出口时刻)
             cands = [c for c in buf.candidates(t_obj, args.lookback, cmd["noun"])
@@ -693,7 +675,6 @@ def main() -> int:
                           "——注意缓冲、排队与确认已重置")
                     buf = AttentionBuffer(args.merge_gap, args.proactive)
                     place_buf = PlaceBuffer(min_dwell=args.place_dwell)
-                    wait_dest.clear()
                     suppress.clear()
                     parked["req"] = None
                     pending, last_prog = None, None
@@ -702,28 +683,6 @@ def main() -> int:
                 if ow:  # 背景注视也带头位姿:每条 verdict 都在更新用户位置
                     user_pos["xyz"], user_pos["t"] = [round(v, 3) for v in ow], t
                 place_buf.feed(e)  # 落点通道:物体表面落点记账(place/dest 槽用)
-                if wait_dest.get("fire"):  # 送达槽前向等待:锁刻意落点 / 超时作废
-                    t1 = float(e.get("t_end", 0.0))
-                    if t1 > wait_dest["deadline"]:
-                        logev({"topic": "dest_wait", "state": "timeout", "t": t1})
-                        wait_dest.clear()
-                        P.say(f"[×] 等落点超时({args.dest_wait:.0f}s)——本单作废,重说一次吧")
-                        notify("fail")
-                    elif (e.get("centroid_world")
-                          and e.get("object_label", -1) >= OBJ0
-                          and e.get("object") != wait_dest.get("desc")
-                          and float(e.get("t_start", 0.0)) > wait_dest["t0"]
-                          and float(e.get("duration_s", 0.0)) >= args.dest_dwell):
-                        pt = list(e["centroid_world"])
-                        lbl = e.get("object") or ""
-                        if not lbl or lbl.startswith("object#"):
-                            lbl = f"位置({pt[0]:+.1f},{pt[1]:+.1f})"
-                        fire = wait_dest.pop("fire")
-                        logev({"topic": "dest_wait", "state": "resolved", "t": t1,
-                               "point": pt, "label": lbl})
-                        wait_dest.clear()
-                        P.say(f"[·] 落点锁定 -> {lbl}")
-                        fire(pt, lbl)
                 if accepted(e, args.min_vote):
                     for kind, pl in buf.feed(e):
                         if kind == "progress":
