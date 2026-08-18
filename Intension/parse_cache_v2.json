@@ -1032,5 +1032,192 @@
   "dest_query": null,
   "dest_deictic": false,
   "to_user": false
+ },
+ "去网球1": {
+  "action": "goto",
+  "object_query": null,
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": "网球1",
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "去拿网球1": {
+  "action": "fetch",
+  "object_query": "网球1",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "你直接抓那个局就行。就这样表。不是啊,但我怎么让它过去呢?对吧": {
+  "action": "grab",
+  "object_query": "局",
+  "object_deictic": true,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "拿一下苹果": {
+  "action": "grab",
+  "object_query": "苹果",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "拿一下网球3": {
+  "action": "grab",
+  "object_query": "网球3",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "拿一下网球1": {
+  "action": "grab",
+  "object_query": "网球1",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "拿一下网球2": {
+  "action": "grab",
+  "object_query": "网球2",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "去网球2": {
+  "action": "goto",
+  "object_query": null,
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": "网球2",
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "去网球3": {
+  "action": "goto",
+  "object_query": null,
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": "网球3",
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "拿苹果": {
+  "action": "fetch",
+  "object_query": "苹果",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "这个网球1": {
+  "action": "grab",
+  "object_query": "网球1",
+  "object_deictic": true,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "去原来网球1的位置": {
+  "action": "goto",
+  "object_query": null,
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": "网球1",
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "把这个放到那里去": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": true,
+  "to_user": false
+ },
+ "把这个放到那边去": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": true,
+  "to_user": false
+ },
+ "把这个放到这里": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": true,
+  "to_user": false
+ },
+ "放到那里去": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": true,
+  "to_user": false
+ },
+ "把这个放过去": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": true,
+  "to_user": false
  }
 }

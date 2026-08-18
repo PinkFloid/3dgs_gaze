@@ -28,7 +28,7 @@ PARSE_SCHEMA = json.loads((_DIR / "parse_schema.json").read_text(encoding="utf-8
 # 不指望提示词能管住模型。
 _DEICTIC_WORDS = {"这", "那", "这个", "那个", "这里", "那里", "这边", "那边",
                   "这儿", "那儿", "此处", "这块", "那块", "这个地方", "那个地方",
-                  "这个位置", "那个位置"}
+                  "这个位置", "那个位置", "哪里", "哪儿", "什么地方"}
 
 # 语音转写带标点/大小写抖动("回来"vs"回来。"),同一句话会裂成多个缓存键:
 # 每个变体首次都付一次 LLM,且解析可能不一致(实测"回来。"被判成 stop)。
@@ -113,6 +113,8 @@ class CommandParser:
             "  place_query=桌子\n"
             "- dest_query/dest_deictic: 拿到之后送去哪。'拿到桌子那边' ->\n"
             "  dest_query=桌子;'拿去那边' -> dest_deictic=true;没说送哪 -> 都空\n"
+            "  '把这个放到那里去'/'放到哪里去' -> object_deictic=true 且\n"
+            "  dest_deictic=true(放置=fetch+送达,'哪里'是手指方向不是疑问)\n"
             "- to_user: fetch=送到用户身边('拿来/给我/带过来';没说送哪也默认 true,\n"
             "  除非给了 dest_* 或明确只是拿着不送);goto=目的地是用户('过来')\n"
             f"指令:「{text}」")

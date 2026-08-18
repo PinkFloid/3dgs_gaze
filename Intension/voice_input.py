@@ -203,14 +203,19 @@ class VoiceReader:
                   + "、拿这个、抓这个、去这里、过来、回来、停。") if vocab else None
         segs, _ = self.model.transcribe(audio, language="zh", beam_size=1,
                                         initial_prompt=prompt,
+                                        word_timestamps=True,  # 逐词墙钟:指示词各带时刻
                                         vad_filter=True)  # 闸③:silero 复核,专杀幻听源
+        segs = list(segs)
         text = "".join(s.text for s in segs).strip()
         if not text:
             return
         if not _sane(text):  # 闸④:符号占多数 = 对噪声的幻听,不进指令队列
             self.say(f"[语音] 疑似幻听,丢弃「{text[:24]}」")
             return
-        self.on_text(text, t_end, time.time() - t0)
+        t_seg0 = t_end - len(audio) / 16000.0   # 段起点墙钟
+        words = [(w.word.strip(), t_seg0 + w.start, t_seg0 + w.end)
+                 for s in segs for w in (s.words or []) if w.word.strip()]
+        self.on_text(text, t_end, time.time() - t0, words or None)
 
 
 def main() -> int:

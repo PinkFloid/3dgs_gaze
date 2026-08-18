@@ -254,6 +254,52 @@ sys.exit(1 if bad else 0)
 EOF
 then echo "  [o] 全部派发 yaw 已包角"; else echo "  [x] 有越界 yaw"; FAIL=1; fi
 
+echo "R17 逐词时刻:指示词各带墙钟(词表滑窗+顺序约束+无词流退化)"
+if $PY - <<'EOF'
+import sys
+sys.path.insert(0, ".")
+from brain import slot_times, word_time
+words = [("把", 10.0, 10.2), ("这", 10.2, 10.4), ("个", 10.4, 10.6),
+         ("放", 10.6, 10.8), ("到", 10.8, 11.0), ("那", 11.0, 11.2),
+         ("里", 11.2, 11.4), ("去", 11.4, 11.6)]
+t = word_time(words, ("这个", "这"), 99.0)
+assert 10.2 < t < 10.7, t                       # 长词优先,取"这个"中点
+cmd = {"object_deictic": True, "noun": "", "place_deictic": False,
+       "dest_deictic": True}
+to, tp, td = slot_times(cmd, 99.0, words)
+assert 10.2 < to < 10.7 and 11.0 < td < 11.5 and tp == 99.0, (to, tp, td)
+assert slot_times(cmd, 99.0, None) == (99.0, 99.0, 99.0)   # 退化=句末
+EOF
+then echo "  [o] word_time/slot_times"; else echo "  [x] 逐词时刻"; FAIL=1; fi
+
+echo "R18 放置前向等待:把这个放到那里去(说完再看,盯稳才锁,剔物体自身落点)"
+$PY - "$TMP/putwait.jsonl" <<'EOF'
+import json, sys
+def ev(t0, dur, obj, label, c, prov):
+    return {"t_start": t0, "t_end": t0 + dur, "duration_s": round(dur, 3),
+            "centroid_world": c, "origin_world": [2.0, -1.5, 1.4],
+            "object": obj, "object_label": label, "vote_share": 0.9,
+            "object_centroid_world": c, "p_none": 0.05, "sigma_deg": 1.0,
+            "mode": "cone", "provisional": prov, "topic": "gaze.intent"}
+def fx(t0, total, obj, label, c):
+    out, d = [], 0.4
+    while d < total - 1e-9:
+        out.append(ev(t0, d, obj, label, c, True)); d += 0.4
+    out.append(ev(t0, total, obj, label, c, False))
+    return out
+tick = dict(ev(107.0, 0.3, "floor", 3, [1.0, 0.0, 0.0], False),
+            object_centroid_world=None)  # 填充:107 拨钟,指令赶在 apple 注视前生效
+evs = fx(104.0, 2.5, "cup", 11, [-0.67, -2.26, 0.75]) + [tick] \
+    + fx(108.0, 0.5, "apple", 13, [1.5, -2.0, 0.8]) \
+    + fx(109.5, 1.4, "物品台", 17, [0.4, -2.6, 0.8])
+evs.sort(key=lambda e: e["t_end"])
+open(sys.argv[1], "w").write("\n".join(json.dumps(e, ensure_ascii=False) for e in evs) + "\n")
+EOF
+run "$TMP/r18" "$TMP/putwait.jsonl" "107.0:把这个放到那里去"
+ck "先挂单问落点" "$TMP/r18" "看准位置停"
+ck "0.5s 扫视不锁(apple 不是送达点)" "$TMP/r18" '落点锁定 -> 物品台'
+ck "抓 cup 送物品台落点" "$TMP/r18" '"object_name": "cup".*"deliver_to": \[0.4, -2.6'
+
 echo
 if [ $FAIL -eq 0 ]; then echo "== 全部通过 =="; else echo "== 有失败项 =="; fi
 exit $FAIL

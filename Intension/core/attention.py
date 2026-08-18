@@ -204,14 +204,17 @@ class PlaceBuffer:
                 self.recent.append({"t_end": t1, "point": list(p), "object": obj})
                 self.recent = self.recent[-50:]
 
-    def latest(self, t_word, lookback):
-        """说指代词时刻回看:仍在盯的落点最优,其余取最近。返回记录或 None。"""
-        if self.open and t_word - self.open["t_end"] <= lookback:
+    def latest(self, t_word, lookback, exclude_obj=None):
+        """说指代词时刻回看:仍在盯的落点最优,其余取最近。返回记录或 None。
+        exclude_obj:剔除该名物体的落点——"把这个放到那里"里 object 自己的注视
+        也是落点,不剔会把"刚盯过的 L 表面"当送达点(把L放到L)。"""
+        if self.open and t_word - self.open["t_end"] <= lookback and \
+                (exclude_obj is None or self.open.get("object") != exclude_obj):
             return self.open
         for r in reversed(self.recent):
             gap = t_word - r["t_end"]
             if gap > lookback:
                 return None
-            if gap >= -0.5:
+            if gap >= -0.5 and (exclude_obj is None or r.get("object") != exclude_obj):
                 return r
         return None
