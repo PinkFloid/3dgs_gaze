@@ -80,6 +80,7 @@ run "$TMP/r1" "$TMP/named.jsonl" "103.0:把这个机器人拿来" "107.0:拿这�
 ck "类别过滤跳过在盯的 cup -> 黄色机器人" "$TMP/r1" "消解为 黄色机器人"
 ck "拿这个 -> 最近命名物 cup" "$TMP/r1" '"object_name": "cup"'
 ck "带送回 deliver_to" "$TMP/r1" '"deliver_to"'
+ck "送回给人仍是 grasp(递送不撒手)" "$TMP/r1" '"skill": "grasp".*"object_name": "cup"'
 EV=$(ls -t "$TMP"/logs/r1/*/events.jsonl | head -1)
 if $PY eval_binding.py "$EV" --expect 黄色机器人,cup --sep 0.3 --dist 1.7 --n 2 \
       --out "$TMP/e1.csv" | grep -q "对 2 错 0"; then
@@ -108,6 +109,7 @@ ck "抓 cup 且带 deliver_to" "$TMP/r5" '"object_name": "cup".*"deliver_to"'
 echo "R5b 命名送达带检测名:把这个拿到纸箱子那边 -> deliver_name=storage box"
 run "$TMP/r5b" "$TMP/named.jsonl" "107.0:把这个拿到纸箱子那边"
 ck "坐标+检测名双发" "$TMP/r5b" '"deliver_to": \[1.2, -1.0.*"deliver_name": "storage box"'
+ck "地点送达用 place 技能" "$TMP/r5b" '"skill": "place"'
 
 echo "R6 急停旁路:停(永不过 LLM)"
 run "$TMP/r6" "$TMP/cup.jsonl" "106.0:停"

@@ -36,7 +36,7 @@ import zmq
 
 # ------------------------------------------------------------ 配置(狗机同学按实际改)
 
-MY_SKILLS = ["grasp", "move_to"]
+MY_SKILLS = ["grasp", "place", "move_to"]  # place=取了放下(送达为地点/容器)
 PROTO_V = 1            # 版本号维持 1(用户裁定);2026-08-05 起语义=目标本体,双方靠约定同步
 ACCEPT_V = (1, 2)
 STANDOFF = 0.6         # m,v2 语义下服务端自留的站位距离
@@ -193,6 +193,8 @@ def _v2_stance(pt):
 
 
 def execute(dog, skill, params, report, should_stop, v=1):
+    if skill == "place":  # 参考实现:place 与 grasp 同轨(真机在送达点多一步释放)
+        skill = "grasp"
     if skill == "grasp":  # 2026-08-05 起:target/deliver = 目标本体 -> 服务端自留站位
         params = dict(params)
         params["target_world"] = _v2_stance(params["target_world"])

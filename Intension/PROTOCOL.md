@@ -38,13 +38,14 @@ execute 抛异常自动广播 failed、忘发终态自动补 done,不会把对�
 | `req_id` | str | 全局唯一(会话时间戳+序号),后续所有状态用它对账 |
 | `sent_at` | float | 发送方墙钟(epoch 秒)。注意:不要用我日志里的流时间 |
 | `frame` | str | 坐标系标识 = 地图版本号。**不匹配必须拒绝**,见 §4 |
-| `skill` | str | `grasp` / `move_to` / `stop` / `get_state` |
+| `skill` | str | `grasp` / `place` / `move_to` / `stop` / `get_state` |
 | `params` | dict | 按技能,见下表 |
 | `intent_summary` | str | 人读的因果记录,狗端只需要原样进日志 |
 
 | skill | params | 语义 |
 |---|---|---|
 | `grasp` | `object_name: str \| null`, `target_world: [x, y, yaw]`, `deliver_to: [x, y, yaw]`(可选), `object_hint: [x, y, z]`(可选) | **唯一技能,两种用法**。**v2(2026-08-05 起)**:`target_world` = **目标本体中心** x,y(米)+ **建议接近方位** yaw(弧度,板系 +x=0,逆时针正,从用户/参考侧指向目标;狗端可据此选站位侧,也可忽略)——**站位与避障由狗端自留**(参考实现 STANDOFF 0.6m,沿建议方位后退);`deliver_to` 同语义 = 送达**落点**(用户位置/指定地点)+ 朝向建议。协议仍不传高度。(2026-08-05 前的旧语义 = 意图机算好的站位,已废止;线上版本号仍为 1。)①`object_name` 有值 = 站定→按名检测(多候选按 `object_hint` 投影选框,见待对齐 #7)→抓取,有 `deliver_to` 则送达、无则原地 done;②**`object_name` 空 = 纯导航** |
+| `place` | 同 grasp,`deliver_to` 必填,可带 `deliver_name`(检测名,如 "storage box") | **取了放下**(2026-08-18):送达是**地点/容器**时用它——取 object,到送达点**释放**。送达给**人**(拿来给我)仍用 grasp+deliver_to(递到跟前不撒手)。狗端按 `deliver_name` 检测对准(箱被挪也稳),无名则按 `deliver_to` 坐标放 |
 | `move_to` | — | 不使用:导航一律用 `object_name=null` 的 grasp 表达(服务器里残留的实现无害) |
 | `stop` | 无 | **急停,最高优先级**,见 §3 |
 | `get_state` | 无 | 回执里带当前位姿与忙闲 |
