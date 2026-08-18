@@ -7,7 +7,7 @@
 
 ## 前置(逐项打勾再开录)
 
-- [ ] 狗端换 v7 tags_world.json(126 坐标已变,hint 投影依赖)
+- [ ] 狗端换 v8 tags_world.json(新实验室全套重测,hint 投影依赖)
 - [ ] 检测类名台测:网球实际出什么框(apple? sports ball?)→ 改 detect_names;石榴类名同定
 - [ ] hint 三球台测:派「抓网球M」中框;负例(拿走目标)必须拒抓 hint_mismatch
 - [ ] 送达段有/无 → 今天口径:trial 终点 = 送达 / 抓稳(圈一个)
