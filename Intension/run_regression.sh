@@ -80,7 +80,7 @@ run "$TMP/r1" "$TMP/named.jsonl" "103.0:把这个机器人拿来" "107.0:拿这�
 ck "类别过滤跳过在盯的 cup -> 黄色机器人" "$TMP/r1" "消解为 黄色机器人"
 ck "拿这个 -> 最近命名物 cup" "$TMP/r1" '"object_name": "cup"'
 ck "抓取纯单(无送达字段)" "$TMP/r1" '"skill": "grasp", "params": \{"object_name": "cup", "target_world": \[[^]]*\], "object_hint": \[[^]]*\]\}'
-ck "链发放置到用户处" "$TMP/r1" '"skill": "place", "params": \{"object_name": "cup", "target_world": \[2.0, -1.5'
+ck "链发放置到用户处(无 object 字段)" "$TMP/r1" '"skill": "place", "params": \{"target_world": \[2.0, -1.5'
 EV=$(ls -t "$TMP"/logs/r1/*/events.jsonl | head -1)
 if $PY eval_binding.py "$EV" --expect 黄色机器人,cup --sep 0.3 --dist 1.7 --n 2 \
       --out "$TMP/e1.csv" | grep -q "对 2 错 0"; then
@@ -314,7 +314,7 @@ echo "R20 裸放置:放到纸箱子(不带物体,单发 place;狗手里有什么
 run "$TMP/r20" "$TMP/named.jsonl" "107.0:放到纸箱子"
 ck "单发 place 无 grasp" "$TMP/r20" '"skill": "place".*"place_name": "storage box"'
 ckn "不派 grasp" "$TMP/r20" '"skill": "grasp"'
-ck "object_name 空(放手里的)" "$TMP/r20" '"object_name": null, "target_world": \[1.2, -1.0'
+ck "place 参数只有落点" "$TMP/r20" '"params": \{"target_world": \[1.2, -1.0'
 
 echo "R19 链单 e2e:拿到纸箱子那边(grasp done -> 自动补发 place,假狗在环)"
 $PY dog_link.py --fake >"$TMP/dog3.log" 2>&1 & DOG_PID=$!

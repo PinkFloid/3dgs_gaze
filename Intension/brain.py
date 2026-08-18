@@ -402,8 +402,7 @@ def main() -> int:
             # 狗端语义(2026-08-18 定):grasp=纯抓,place=把手里的放到坐标/名字处,
             # 编排在意图机——先派 grasp,状态流报 done 再补发 place(链单)。
             dxy, dyaw = aim(dest[0], approach_from=tw)  # 送达落点+朝向建议(自物体侧)
-            pparams = {"object_name": params["object_name"],  # 手里那件,信息用
-                       "target_world": [dxy[0], dxy[1], dyaw]}
+            pparams = {"target_world": [dxy[0], dxy[1], dyaw]}  # place 只说放到哪
             hit = max((k for k in dmap if dest[1] and k in dest[1]),
                       key=len, default=None)
             if hit:  # 送达点有检测名(纸箱子->storage box):按名放更稳,坐标兜底
@@ -649,7 +648,7 @@ def main() -> int:
                 P.say("[×] 放到哪?看一眼落点再说,或指名「放到纸箱子」")
                 return
             dxy, dyaw = aim(dest[0], approach_from=last_stand["tw"])
-            pparams = {"object_name": None, "target_world": [dxy[0], dxy[1], dyaw]}
+            pparams = {"target_world": [dxy[0], dxy[1], dyaw]}
             hit = max((k for k in dmap if dest[1] and k in dest[1]),
                       key=len, default=None)
             if hit:
