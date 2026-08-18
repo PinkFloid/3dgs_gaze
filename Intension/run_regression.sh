@@ -79,8 +79,8 @@ echo "R1 眼-声绑定:把这个机器人拿来 / 拿这个(类别过滤+最近�
 run "$TMP/r1" "$TMP/named.jsonl" "103.0:把这个机器人拿来" "107.0:拿这个"
 ck "类别过滤跳过在盯的 cup -> 黄色机器人" "$TMP/r1" "消解为 黄色机器人"
 ck "拿这个 -> 最近命名物 cup" "$TMP/r1" '"object_name": "cup"'
-ck "带送回 deliver_to" "$TMP/r1" '"deliver_to"'
-ck "送回给人仍是 grasp(递送不撒手)" "$TMP/r1" '"skill": "grasp".*"object_name": "cup"'
+ck "抓取纯单(无送达字段)" "$TMP/r1" '"skill": "grasp", "params": \{"object_name": "cup", "target_world": \[[^]]*\], "object_hint": \[[^]]*\]\}'
+ck "链发放置到用户处" "$TMP/r1" '"skill": "place", "params": \{"object_name": "cup", "target_world": \[2.0, -1.5'
 EV=$(ls -t "$TMP"/logs/r1/*/events.jsonl | head -1)
 if $PY eval_binding.py "$EV" --expect 黄色机器人,cup --sep 0.3 --dist 1.7 --n 2 \
       --out "$TMP/e1.csv" | grep -q "对 2 错 0"; then
@@ -104,12 +104,12 @@ ck "目的地=碗落点" "$TMP/r4" "导航至 碗那边"
 
 echo "R5 显式送达:把这个拿到物品台那边(不送用户)"
 run "$TMP/r5" "$TMP/named.jsonl" "107.0:把这个拿到物品台那边"
-ck "抓 cup 且带 deliver_to" "$TMP/r5" '"object_name": "cup".*"deliver_to"'
+ck "抓 cup 纯单" "$TMP/r5" '"skill": "grasp".*"object_name": "cup"'
+ck "链发放置到物品台" "$TMP/r5" '"skill": "place".*"target_world": \[-0.73, -2.35'
 
 echo "R5b 命名送达带检测名:把这个拿到纸箱子那边 -> deliver_name=storage box"
 run "$TMP/r5b" "$TMP/named.jsonl" "107.0:把这个拿到纸箱子那边"
-ck "坐标+检测名双发" "$TMP/r5b" '"deliver_to": \[1.2, -1.0.*"deliver_name": "storage box"'
-ck "地点送达用 place 技能" "$TMP/r5b" '"skill": "place"'
+ck "放置单坐标+检测名" "$TMP/r5b" '"skill": "place".*"target_world": \[1.2, -1.0.*"place_name": "storage box"'
 
 echo "R6 急停旁路:停(永不过 LLM)"
 run "$TMP/r6" "$TMP/cup.jsonl" "106.0:停"
@@ -220,10 +220,12 @@ if $PY - "$EV" <<'EOF'
 import json, sys
 reqs = [json.loads(l) for l in open(sys.argv[1], encoding="utf-8")
         if '"topic": "skill.req"' in l]
-assert len(reqs) == 2, len(reqs)
+assert len(reqs) == 3, len(reqs)            # goto + grasp + 链发 place(送回用户)
 assert "object_hint" not in reqs[0]["params"], reqs[0]["params"]        # goto 不带
 h = reqs[1]["params"]["object_hint"]                                    # 拿这个 -> cup 质心
 assert h == [-0.67, -2.26, 0.75], h
+assert reqs[2]["skill"] == "place", reqs[2]                             # 链发放置
+assert "object_hint" not in reqs[2]["params"], reqs[2]["params"]        # 放置不带 hint
 EOF
 then echo "  [o] hint 逐字段正确"; else echo "  [x] hint 校验失败"; FAIL=1; fi
 
@@ -305,8 +307,21 @@ EOF
 run "$TMP/r18" "$TMP/putwait.jsonl" "107.0:把这个放到那里去" "111.0:把这个放到那里去"
 ck "解不出落点如实说" "$TMP/r18" "没看到要放哪——本单不带送达"
 ck "首单不带 deliver_to 照派 cup" "$TMP/r18" '"object_name": "cup", "target_world": \[[^]]*\], "object_hint": \[[^]]*\]\}'
-ck "第二单绑最近注视且剔自身落点(dest=apple 点)" "$TMP/r18" '"object_name": "物品台".*"deliver_to": \[1.5, -2.0'
+ck "第二单绑最近注视且剔自身落点(dest=apple 点)" "$TMP/r18" '"skill": "place".*"target_world": \[1.5, -2.0'
 ckn "不再有等待机制" "$TMP/r18" "看准位置停"
+
+echo "R19 链单 e2e:拿到纸箱子那边(grasp done -> 自动补发 place,假狗在环)"
+$PY dog_link.py --fake >"$TMP/dog3.log" 2>&1 & DOG_PID=$!
+sleep 1
+timeout 90 $PY brain.py --llm off --replay "$TMP/named.jsonl" --yes \
+    --skill-endpoint tcp://127.0.0.1:5583 --map-dir "$TMP/map" \
+    --script "107.0:把这个拿到纸箱子那边" \
+    --log-dir "$TMP/logs/r19" >"$TMP/r19" 2>&1
+ck "链槽入位" "$TMP/r19" "抓到后自动补发放置"
+ck "抓取完成后链发" "$TMP/r19" "抓取完成,补发放置单"
+ck "放置单 place+检测名" "$TMP/r19" '"skill": "place".*"place_name": "storage box"'
+ck "放置单跑到 done" "$TMP/r19" 'done.*req=[0-9-]*-00[0-9]p'
+kill $DOG_PID 2>/dev/null; DOG_PID=
 
 echo
 if [ $FAIL -eq 0 ]; then echo "== 全部通过 =="; else echo "== 有失败项 =="; fi

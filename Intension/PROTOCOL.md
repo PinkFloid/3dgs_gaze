@@ -45,7 +45,7 @@ execute 抛异常自动广播 failed、忘发终态自动补 done,不会把对�
 | skill | params | 语义 |
 |---|---|---|
 | `grasp` | `object_name: str \| null`, `target_world: [x, y, yaw]`, `deliver_to: [x, y, yaw]`(可选), `object_hint: [x, y, z]`(可选) | **唯一技能,两种用法**。**v2(2026-08-05 起)**:`target_world` = **目标本体中心** x,y(米)+ **建议接近方位** yaw(弧度,板系 +x=0,逆时针正,从用户/参考侧指向目标;狗端可据此选站位侧,也可忽略)——**站位与避障由狗端自留**(参考实现 STANDOFF 0.6m,沿建议方位后退);`deliver_to` 同语义 = 送达**落点**(用户位置/指定地点)+ 朝向建议。协议仍不传高度。(2026-08-05 前的旧语义 = 意图机算好的站位,已废止;线上版本号仍为 1。)①`object_name` 有值 = 站定→按名检测(多候选按 `object_hint` 投影选框,见待对齐 #7)→抓取,有 `deliver_to` 则送达、无则原地 done;②**`object_name` 空 = 纯导航** |
-| `place` | 同 grasp,`deliver_to` 必填,可带 `deliver_name`(检测名,如 "storage box") | **取了放下**(2026-08-18):送达是**地点/容器**时用它——取 object,到送达点**释放**。送达给**人**(拿来给我)仍用 grasp+deliver_to(递到跟前不撒手)。狗端按 `deliver_name` 检测对准(箱被挪也稳),无名则按 `deliver_to` 坐标放 |
+| `place` | `target_world: [x,y,yaw]`(放置坐标), `place_name: str`(可选检测名,如 "storage box"), `object_name`(手里那件,信息用) | **把手里的东西放下**(2026-08-18 定):与 grasp 是两个独立方法,**编排在意图机**——带送达的取物 = 先派 grasp(纯抓,无送达字段),状态流报 done 后意图机自动补发 place 链单(req_id 带 p 后缀);grasp failed/stopped/急停/新指令 → 链废弃。狗端有 `place_name` 按名检测对准(箱被挪也稳),否则按坐标放 |
 | `move_to` | — | 不使用:导航一律用 `object_name=null` 的 grasp 表达(服务器里残留的实现无害) |
 | `stop` | 无 | **急停,最高优先级**,见 §3 |
 | `get_state` | 无 | 回执里带当前位姿与忙闲 |
@@ -117,12 +117,10 @@ damp/stop + 臂急停)→ 给被中断的 req_id 广播 `stopped`。急停链路
 3. **检测类名词表**:`/detect_grasp` 只认检测器类名("苹果"被 goal reject,"orange" 通过)。
    意图机已有映射(`Intension/detect_names.json`,发送前地图名→检测名);
    狗端给一份支持的类名列表,填进这张表即完事。
-4. ~~送达段未实现~~ **已实现(2026-08-18)**:狗端支持放置——按**名字**
-   (现有词表仅 "storage box" = 棕色纸箱)或**世界坐标**。意图机侧
-   (2026-08-18 起):`deliver_to=[x,y,yaw]` 坐标恒发;送达点命中检测名词表
-   (detect_names.json,纸箱子→storage box)时**追加 `deliver_name`** 让狗端
-   按名放更稳(箱子被挪也能对准)——`deliver_name` 这个键名待狗端确认,
-   按"未知字段必须忽略"规则先发不碍事,他接了就生效。
+4. ~~送达段未实现~~ **已实现(2026-08-18,skill=place)**:见技能表 place 行。
+   `deliver_to`/`deliver_name` 字段废止——grasp 回归纯抓,送达一律走 place 链单
+   (意图机编排:grasp done → place)。放置目的地词表现仅 "storage box"(棕色纸箱),
+   映射在 detect_names.json(纸箱子→storage box)。
 5. `stop` 抢占尚未在真机验证(`/b2_move_path` 需支持 cancel)。
 6. 障碍:直线插值路径不会绕桌子/门,跨房 demo 前确认规划器如何避障。
 7. **`object_hint` 投影选框(同类多实例消歧的最后一米,带干扰物实验前必须)**:

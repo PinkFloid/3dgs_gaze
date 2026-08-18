@@ -325,9 +325,11 @@ def main() -> int:
     def stream_now():
         return clock["stream"] + (time.time() - clock["wall"])
 
-    def send(req, retry_name=None):
+    def send(req, retry_name=None, chain_req=None):
         """retry_name 非空 = 盯视(主动)单:被拒 busy 进补发槽而不是作废。
-        任何一单被接受都清空补发槽——新意图覆盖旧盯视目标。"""
+        任何一单被接受都清空补发槽——新意图覆盖旧盯视目标。
+        chain_req 非空 = 本单(grasp)done 后要补发的 place 链单;无状态流
+        (干跑)时直接连发两单,有状态流则入链槽等终态。"""
         rep = dispatch(req, args.skill_endpoint)
         logev({"topic": "skill.req", **req, "rep": rep})
         P.say(f"[派发] {json.dumps(req, ensure_ascii=False)}")
@@ -341,6 +343,14 @@ def main() -> int:
                 end = p.get("deliver_to") or p.get("target_world")
                 if end:
                     last_stand["tw"] = list(end)
+            if chain_req is not None:
+                if status_seen is None:  # 干跑/无状态流:等不到 done,放置单直接跟发
+                    P.say("[链] 无状态流(干跑)——放置单直接下发")
+                    send(chain_req)
+                else:
+                    chain.update(req=chain_req, after=req["req_id"],
+                                 deadline=time.time() + 180.0)
+                    P.say(f"[链] 抓到后自动补发放置 -> {chain_req['intent_summary']}")
         elif rep.get("reason") == "busy":
             if retry_name and status_seen is not None:  # 没状态流就无从判空闲,不存
                 fresh = parked["req"] is None or req["req_id"] != parked.get("rid")
@@ -387,19 +397,23 @@ def main() -> int:
             params["object_hint"] = [round(float(obj_point[0]), 3),
                                      round(float(obj_point[1]), 3),
                                      round(float(obj_point[2]) if len(obj_point) > 2 else 0.0, 3)]
+        place_req = None
         if not goto and dest is not None:
+            # 狗端语义(2026-08-18 定):grasp=纯抓,place=把手里的放到坐标/名字处,
+            # 编排在意图机——先派 grasp,状态流报 done 再补发 place(链单)。
             dxy, dyaw = aim(dest[0], approach_from=tw)  # 送达落点+朝向建议(自物体侧)
-            params["deliver_to"] = [dxy[0], dxy[1], dyaw]
-            # 送达点是有检测名的实体(纸箱子->storage box)则带名:狗端按名放更稳
-            # (箱子被挪过也能对准),坐标兜底;键名待与狗端对齐,不认识则被忽略
+            pparams = {"object_name": params["object_name"],  # 手里那件,信息用
+                       "target_world": [dxy[0], dxy[1], dyaw]}
             hit = max((k for k in dmap if dest[1] and k in dest[1]),
                       key=len, default=None)
-            if hit:
-                params["deliver_name"] = dmap[hit]
-        # 送到地点/容器(纸箱子/落点)= 狗端独立技能 place(取了放下);
-        # 送到人(拿来给我,"你这")仍走 grasp+deliver(递到跟前,人来接)
-        skill = "place" if dest and dest[1] not in ("你这", "你这里") else "grasp"
-        req = {"v": 1, "type": "skill.request", "skill": skill,
+            if hit:  # 送达点有检测名(纸箱子->storage box):按名放更稳,坐标兜底
+                pparams["place_name"] = dmap[hit]
+            place_req = {"v": 1, "type": "skill.request", "skill": "place",
+                         "params": pparams,
+                         "req_id": f"{sess.name}-{n_req:03d}p", "frame": args.frame,
+                         "sent_at": 0.0, "t_stream": round(t_word, 3),
+                         "intent_summary": f"链单:送达 {dest[1]}"}
+        req = {"v": 1, "type": "skill.request", "skill": "grasp",
                # 2026-08-05 起线上语义=目标本体+建议方位(站位狗端自留);版本号按用户
                # 裁定维持 1,双方靠约定同步——切换日后旧语义 server 不可再接单
                "params": params,
@@ -412,12 +426,12 @@ def main() -> int:
                "hint": params.get("object_hint")})
         src_text = None if mode == "主动" else last_cmd["text"]  # 主动单没有指令原文
         if args.yes:
-            send(req, retry_name=obj if mode == "主动" else None)
+            send(req, retry_name=obj if mode == "主动" else None, chain_req=place_req)
             if src_text:
                 parser.confirm(src_text)
         else:
             pending = {"req": req, "since": t_word, "mode": mode, "object": obj,
-                       "text": src_text}
+                       "text": src_text, "chain": place_req}
             pose_txt = (f"目标({stand[0]:+.2f},{stand[1]:+.2f}) "
                         f"接近方位{math.degrees(yaw):+.0f}°(站位狗端定)")
             if not goto:
@@ -476,6 +490,8 @@ def main() -> int:
             return "fail", None, None
         return "none", None, None
 
+    chain = {"req": None, "after": None, "deadline": 0.0}  # 链单:grasp done 后补发 place
+
     def handle(t_word, text, words=None):
         nonlocal pending
         t = "".join(text.split())
@@ -488,7 +504,8 @@ def main() -> int:
             prev, pending = pending, None
             if key in YES_WORDS:
                 send(prev["req"],
-                     retry_name=prev["object"] if prev["mode"] == "主动" else None)
+                     retry_name=prev["object"] if prev["mode"] == "主动" else None,
+                     chain_req=prev.get("chain"))
                 if prev.get("text"):  # 点头 = 解析经过人工校验 -> 此刻才落盘
                     parser.confirm(prev["text"])
                 if prev["mode"] == "主动":  # 执行完还盯着,也别立刻再问
@@ -500,6 +517,9 @@ def main() -> int:
             if key in NO_WORDS:
                 return
             was_decline = True  # 可能是"取消旧的换新指令":往下试,解析不出就保持安静
+        if chain["req"] is not None:  # 新指令/急停顶掉未决的放置链:一次只欠一段
+            chain["req"] = None
+            P.say("[-] 上一单的放置链已作废")
         if key in STOP_WORDS:  # 急停硬旁路:永不过 LLM
             send_stop()
             return
@@ -686,6 +706,7 @@ def main() -> int:
                     place_buf = PlaceBuffer(min_dwell=args.place_dwell)
                     suppress.clear()
                     parked["req"] = None
+                    chain["req"] = None
                     pending, last_prog = None, None
                 clock["stream"], clock["wall"] = t, time.time()
                 ow = e.get("origin_world")
@@ -724,6 +745,19 @@ def main() -> int:
                     off = tw - t_said
                     vwords = [(w, a + off, b + off) for w, a, b in vwords]
                 handle(tw, text, vwords)
+            if chain["req"] is not None:  # 放置链:抓取终态裁决
+                stt = status_seen.get(chain["after"]) if status_seen else None
+                if stt == "done":
+                    rq, chain["req"] = chain["req"], None
+                    P.say("[链] 抓取完成,补发放置单")
+                    rq["sent_at"] = time.time()
+                    send(rq)
+                elif stt in ("failed", "stopped"):
+                    P.say(f"[链] 抓取 {stt},放置作废")
+                    chain["req"] = None
+                elif time.time() > chain["deadline"]:
+                    P.say("[链] 等抓取终态超时(180s),放置作废")
+                    chain["req"] = None
             if parked["req"] is not None:  # 盯视补发:终态即空闲,晚到 running 被粘滞挡住
                 now = time.time()
                 if now > parked["deadline"]:
@@ -743,7 +777,7 @@ def main() -> int:
                     suppress[pending["object"]] = st + args.suppress
                 pending = None
             if args.replay and not scripted and pending is None \
-                    and parked["req"] is None and e is None:
+                    and parked["req"] is None and chain["req"] is None and e is None:
                 rid = last_req["id"]  # 等最后一个已接受请求到终态,而不是"暂时没状态"就走
                 if status_seen is None or rid is None or \
                         status_seen.get(rid) in ("done", "failed", "stopped"):
