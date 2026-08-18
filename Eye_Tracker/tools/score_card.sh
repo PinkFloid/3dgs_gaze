@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # score_card.sh <recording_dir> <card_id> -- E1 卡两遍打分一条命令
-#   遍1:无修正回放,拿片尾墙 tag 书签戳的偏置(--stamp-include 79,86 门 6°)
+#   遍1:无修正回放,拿片尾墙 tag 书签戳的偏置(--stamp-include 79 门 6°)
 #   遍2:--bias-init 回灌整卡(--bias-tau 0 不衰减)-> eval_e1 --card 出表
 # 产物:<rec>/intents.jsonl + <rec>/<card>_score.csv;遍1流留 intents_pass1.jsonl 备查
 set -euo pipefail
@@ -17,7 +17,7 @@ $RUN "$GL" --replay "$REC" --headless --on-tag-deg 0 \
 
 P1LOG=$(mktemp)
 echo "== 遍1:测书签偏置 =="
-$RUN "$GL" --replay "$REC" --headless --stamp-include 79,86 --on-tag-deg 6 \
+$RUN "$GL" --replay "$REC" --headless --stamp-include 79 --on-tag-deg 6 \
     --log "$REC/intents_pass1.jsonl" 2>&1 | tee "$P1LOG" | grep -iE "bias stamp|白名单" || true
 BIAS=$(grep -oP 'bias stamp @tag\d+: \(\K[^)]+(?=\)deg)' "$P1LOG" | tail -1 || true)
 rm -f "$P1LOG"
@@ -26,7 +26,7 @@ hits() { $RUN "$EV" "$1" --card "$CARD" 2>/dev/null | grep -oP '命中 \K[0-9]+'
 
 if [ -n "$BIAS" ]; then
     echo "== 遍2:回灌 ($BIAS)° 整卡矫正 =="
-    $RUN "$GL" --replay "$REC" --headless --stamp-include 79,86 --on-tag-deg 6 \
+    $RUN "$GL" --replay "$REC" --headless --stamp-include 79 --on-tag-deg 6 \
         --bias-init " $BIAS" --bias-tau 0 --log "$REC/intents_pass2.jsonl" 2>&1 \
         | grep -iE "bias stamp|回灌" || true
     OK0=$(hits "$REC/intents_raw.jsonl"); OK1=$(hits "$REC/intents_pass1.jsonl"); OK2=$(hits "$REC/intents_pass2.jsonl")

@@ -5,8 +5,9 @@ s1–s7 球卡),传到手机;开录后按播放,它会念"先盯 tag→ 1。苹�
 叮=移开 → 2。……→ 最后再盯 tag → 停录",全程跟声音走就行。物名照卡念原名
 (网球L/网球M/网球R/苹果/石榴/香蕉);记住 L/M/R 是**名字**不是方位,
 斜位站认球本身。
-重生成/调语速:`python Eye_Tracker/tools/card_caller.py --all [--rate 180]`
-(TTS 本机 espeak-ng,不需要扬声器/网络;序列单一事实源 `e1_cards.py`)。
+重生成/调语速:`python Eye_Tracker/tools/card_caller.py --all [--edge-rate -10%]`
+(默认 Edge 晓晓人声,渲染需代理网络;--engine espeak 离线兜底;
+序列单一事实源 `e1_cards.py`;音频含开场 5s 书签窗+卡中场校准)。
 兜底:不用音频就打印大字卡拿手里(举低),盯完一项低头瞟一眼——低头视线落地板,
 打分器把 floor 当背景丢弃,不占序号。
 
@@ -54,10 +55,11 @@ L/R 按正面看(背后是带 tag 的墙);嫌长盯完前 6 项停也行;录像�
 **S6球卡(4 m 斜位B,α≈18°,θ≈1.27°=原 7 m 档)** `L M R R M R R M L M L M L R L`
 **S7球卡(4 m 斜位C,α≈15°,θ≈1.05°,贴遮挡极限;seed 818)** `L L R R M L M R R M L M R M L`
 
-斜位站点怎么找(卷尺三角,左右两侧任选,哪边有空站哪边):
-- **A**:到网球M 拉 4.00 m,同时到**斜向那端的球** 3.75 m(另一端 4.24 m);
-- **B**:到 M 4.00 m,近端球 3.73 m(远端 4.27 m);
-- **C**:到 M 4.00 m,近端球 3.72 m(远端 4.27 m)。
+斜位站点怎么找(卷尺三角,左右两侧任选,哪边有空站哪边;v8 球位重算):
+- **A**:到网球M 拉 4.00 m,同时到**斜向那端的球** 3.76 m(另一端 4.25 m);
+- **B**:到 M 4.00 m,近端球 3.74 m(远端 4.27 m);
+- **C**:到 M 4.00 m,近端球 3.73 m(远端 4.28 m)。
+⚠ 目测斜不出来(s6 实录站成 α58°/θ3.2°,目标 18°/1.27°)——必须拉双卷尺。
 到位后目视核对:三颗球近乎排成一列但**都还能看见**;前球把后球完全挡住 = 站过头,
 把夹角放大一点。⚠ 斜位上 L/M/R 仍按正面命名认**球本身**,别按眼前左右数。
 
@@ -81,9 +83,10 @@ L/R 按正面看(背后是带 tag 的墙);嫌长盯完前 6 项停也行;录像�
 ---
 备查(打分用,不用看):真值对应照 `E1_layout_check.jpg`;
 id:网球L=191 M=192 R=193 苹果=194 石榴=195 香蕉=196;
-回放打分:`gaze_live --replay <rec> --headless --log intents.jsonl --stamp-exclude 126`,
-第 k 个非背景 final 注视对卡上第 k 项;逐项记 verdict/票面/位姿距离。
-自动打分:`python Eye_Tracker/tools/eval_e1.py intents.jsonl --seq "R L M ..." --csv out.csv`
+回放打分(一条命令,三稿取优:裸跑/自然戳/回灌):
+`./Eye_Tracker/tools/score_card.sh <rec目录> <卡号>`
+——内部即 gaze_live 回放(书签白名单 tag79)+ eval_e1;需 v8 ckpt 在本机。
+手动:`python Eye_Tracker/tools/eval_e1.py intents.jsonl --card s1 --csv out.csv`
 ——floor 与 background 一律当背景丢弃(移开时扫到地板不占序号),逐项输出
 verdict/票面/头距/**θ_min**(该球与最近邻球的实际张角,Fig.4 横轴:正对、斜位、
 对角、边走全部落在同一把角度尺上,逐 trial 从头位实算,不靠站位标称值)。
