@@ -80,7 +80,7 @@ run "$TMP/r1" "$TMP/named.jsonl" "103.0:把这个机器人拿来" "107.0:拿这�
 ck "类别过滤跳过在盯的 cup -> 黄色机器人" "$TMP/r1" "消解为 黄色机器人"
 ck "拿这个 -> 最近命名物 cup" "$TMP/r1" '"object_name": "cup"'
 ck "抓取纯单(无送达字段)" "$TMP/r1" '"skill": "grasp", "params": \{"object_name": "cup", "target_world": \[[^]]*\], "object_hint": \[[^]]*\]\}'
-ck "链发放置到用户处(无 object 字段)" "$TMP/r1" '"skill": "place", "params": \{"target_world": \[2.0, -1.5'
+ck "链发送回=导航到用户(不撒手,非 place)" "$TMP/r1" '"skill": "grasp", "params": \{"object_name": null, "target_world": \[2.0, -1.5'
 EV=$(ls -t "$TMP"/logs/r1/*/events.jsonl | head -1)
 if $PY eval_binding.py "$EV" --expect 黄色机器人,cup --sep 0.3 --dist 1.7 --n 2 \
       --out "$TMP/e1.csv" | grep -q "对 2 错 0"; then
@@ -109,7 +109,7 @@ ck "链发放置到物品台" "$TMP/r5" '"skill": "place".*"target_world": \[-0.
 
 echo "R5b 命名送达带检测名:把这个拿到纸箱子那边 -> deliver_name=storage box"
 run "$TMP/r5b" "$TMP/named.jsonl" "107.0:把这个拿到纸箱子那边"
-ck "放置单坐标+检测名" "$TMP/r5b" '"skill": "place".*"target_world": \[1.2, -1.0.*"place_name": "storage box"'
+ck "放置单坐标+检测名(键=object_name)" "$TMP/r5b" '"skill": "place".*"target_world": \[1.2, -1.0.*"object_name": "storage box"'
 
 echo "R6 急停旁路:停(永不过 LLM)"
 run "$TMP/r6" "$TMP/cup.jsonl" "106.0:停"
@@ -224,8 +224,9 @@ assert len(reqs) == 3, len(reqs)            # goto + grasp + 链发 place(送回
 assert "object_hint" not in reqs[0]["params"], reqs[0]["params"]        # goto 不带
 h = reqs[1]["params"]["object_hint"]                                    # 拿这个 -> cup 质心
 assert h == [-0.67, -2.26, 0.75], h
-assert reqs[2]["skill"] == "place", reqs[2]                             # 链发放置
-assert "object_hint" not in reqs[2]["params"], reqs[2]["params"]        # 放置不带 hint
+assert reqs[2]["skill"] == "grasp", reqs[2]                            # 链发送回=纯导航
+assert reqs[2]["params"]["object_name"] is None, reqs[2]                # 不撒手,人来接
+assert "object_hint" not in reqs[2]["params"], reqs[2]["params"]
 EOF
 then echo "  [o] hint 逐字段正确"; else echo "  [x] hint 校验失败"; FAIL=1; fi
 
@@ -312,7 +313,7 @@ ckn "不再有等待机制" "$TMP/r18" "看准位置停"
 
 echo "R20 裸放置:放到纸箱子(不带物体,单发 place;狗手里有什么放什么)"
 run "$TMP/r20" "$TMP/named.jsonl" "107.0:放到纸箱子"
-ck "单发 place 无 grasp" "$TMP/r20" '"skill": "place".*"place_name": "storage box"'
+ck "单发 place 无 grasp" "$TMP/r20" '"skill": "place".*"object_name": "storage box"'
 ckn "不派 grasp" "$TMP/r20" '"skill": "grasp"'
 ck "place 参数只有落点" "$TMP/r20" '"params": \{"target_world": \[1.2, -1.0'
 
@@ -325,7 +326,7 @@ timeout 90 $PY brain.py --llm off --replay "$TMP/named.jsonl" --yes \
     --log-dir "$TMP/logs/r19" >"$TMP/r19" 2>&1
 ck "链槽入位" "$TMP/r19" "抓到后自动补发放置"
 ck "抓取完成后链发" "$TMP/r19" "抓取完成,补发放置单"
-ck "放置单 place+检测名" "$TMP/r19" '"skill": "place".*"place_name": "storage box"'
+ck "放置单 place+检测名" "$TMP/r19" '"skill": "place".*"object_name": "storage box"'
 ck "放置单跑到 done" "$TMP/r19" 'done.*req=[0-9-]*-00[0-9]p'
 kill $DOG_PID 2>/dev/null; DOG_PID=
 

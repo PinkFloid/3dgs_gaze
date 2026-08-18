@@ -399,19 +399,29 @@ def main() -> int:
                                      round(float(obj_point[2]) if len(obj_point) > 2 else 0.0, 3)]
         place_req = None
         if not goto and dest is not None:
-            # 狗端语义(2026-08-18 定):grasp=纯抓,place=把手里的放到坐标/名字处,
-            # 编排在意图机——先派 grasp,状态流报 done 再补发 place(链单)。
+            # 狗端语义(2026-08-18 定):grasp=纯抓,place=把手里的放到坐标处(会放下),
+            # 编排在意图机——先派 grasp,状态流报 done 再补发链单。
             dxy, dyaw = aim(dest[0], approach_from=tw)  # 送达落点+朝向建议(自物体侧)
-            pparams = {"target_world": [dxy[0], dxy[1], dyaw]}  # place 只说放到哪
-            hit = max((k for k in dmap if dest[1] and k in dest[1]),
-                      key=len, default=None)
-            if hit:  # 送达点有检测名(纸箱子->storage box):按名放更稳,坐标兜底
-                pparams["place_name"] = dmap[hit]
-            place_req = {"v": 1, "type": "skill.request", "skill": "place",
-                         "params": pparams,
-                         "req_id": f"{sess.name}-{n_req:03d}p", "frame": args.frame,
-                         "sent_at": 0.0, "t_stream": round(t_word, 3),
-                         "intent_summary": f"链单:送达 {dest[1]}"}
+            if dest[1] in ("你这", "你这里"):
+                # 递给我 ≠ place(Place 会把东西放地上):链发纯导航到用户身边,
+                # 狗到跟前不撒手,人从爪上接——与 8-05 demo 的交接行为一致
+                place_req = {"v": 1, "type": "skill.request", "skill": "grasp",
+                             "params": {"object_name": None,
+                                        "target_world": [dxy[0], dxy[1], dyaw]},
+                             "req_id": f"{sess.name}-{n_req:03d}p", "frame": args.frame,
+                             "sent_at": 0.0, "t_stream": round(t_word, 3),
+                             "intent_summary": "链单:送到你跟前(不撒手)"}
+            else:
+                pparams = {"target_world": [dxy[0], dxy[1], dyaw]}
+                hit = max((k for k in dmap if dest[1] and k in dest[1]),
+                          key=len, default=None)
+                if hit:  # 送达点有检测名:狗端键名统一叫 object_name(放置=目的地名)
+                    pparams["object_name"] = dmap[hit]
+                place_req = {"v": 1, "type": "skill.request", "skill": "place",
+                             "params": pparams,
+                             "req_id": f"{sess.name}-{n_req:03d}p", "frame": args.frame,
+                             "sent_at": 0.0, "t_stream": round(t_word, 3),
+                             "intent_summary": f"链单:送达 {dest[1]}"}
         req = {"v": 1, "type": "skill.request", "skill": "grasp",
                # 2026-08-05 起线上语义=目标本体+建议方位(站位狗端自留);版本号按用户
                # 裁定维持 1,双方靠约定同步——切换日后旧语义 server 不可再接单
@@ -651,8 +661,8 @@ def main() -> int:
             pparams = {"target_world": [dxy[0], dxy[1], dyaw]}
             hit = max((k for k in dmap if dest[1] and k in dest[1]),
                       key=len, default=None)
-            if hit:
-                pparams["place_name"] = dmap[hit]
+            if hit:  # 狗端键名统一 object_name(放置语境=目的地检测名)
+                pparams["object_name"] = dmap[hit]
             n_req += 1
             preq = {"v": 1, "type": "skill.request", "skill": "place",
                     "params": pparams,

@@ -45,7 +45,7 @@ execute 抛异常自动广播 failed、忘发终态自动补 done,不会把对�
 | skill | params | 语义 |
 |---|---|---|
 | `grasp` | `object_name: str \| null`, `target_world: [x, y, yaw]`, `deliver_to: [x, y, yaw]`(可选), `object_hint: [x, y, z]`(可选) | **唯一技能,两种用法**。**v2(2026-08-05 起)**:`target_world` = **目标本体中心** x,y(米)+ **建议接近方位** yaw(弧度,板系 +x=0,逆时针正,从用户/参考侧指向目标;狗端可据此选站位侧,也可忽略)——**站位与避障由狗端自留**(参考实现 STANDOFF 0.6m,沿建议方位后退);`deliver_to` 同语义 = 送达**落点**(用户位置/指定地点)+ 朝向建议。协议仍不传高度。(2026-08-05 前的旧语义 = 意图机算好的站位,已废止;线上版本号仍为 1。)①`object_name` 有值 = 站定→按名检测(多候选按 `object_hint` 投影选框,见待对齐 #7)→抓取,有 `deliver_to` 则送达、无则原地 done;②**`object_name` 空 = 纯导航** |
-| `place` | `target_world: [x,y,yaw]`(放置坐标), `place_name: str`(可选检测名,如 "storage box")——**不带 object 字段**,放的就是手里那件 | **把手里的东西放下**(2026-08-18 定):与 grasp 是两个独立方法,**编排在意图机**——带送达的取物 = 先派 grasp(纯抓,无送达字段),状态流报 done 后意图机自动补发 place 链单(req_id 带 p 后缀);grasp failed/stopped/急停/新指令 → 链废弃。狗端有 `place_name` 按名检测对准(箱被挪也稳),否则按坐标放 |
+| `place` | `target_world: [x,y,yaw]`(放置坐标), `object_name: str`(可选,**放置语境=目的地检测名**,如 "storage box";狗端各技能键名统一叫 object_name)| **把手里的东西放下**(2026-08-18 定):与 grasp 是两个独立方法,**编排在意图机**——放到地点/容器 = grasp done 后链发 place;**送到人(拿来给我)不用 place**(Place 会放地上):链发 `object_name=null` 的 grasp 纯导航到用户身边,狗到跟前**不撒手**,人从爪上接。grasp failed/stopped/急停/新指令 → 链废弃 |
 | `move_to` | — | 不使用:导航一律用 `object_name=null` 的 grasp 表达(服务器里残留的实现无害) |
 | `stop` | 无 | **急停,最高优先级**,见 §3 |
 | `get_state` | 无 | 回执里带当前位姿与忙闲 |
