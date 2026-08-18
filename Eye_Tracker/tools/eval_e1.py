@@ -110,12 +110,25 @@ def lcs_align(seq, eps):
     return pairs
 
 
+def runs_of(seq):
+    """卡序压成连续同名段 [(名, 连击数)]:LL/RR 这类成对项,用户两次盯之间
+    眼睛常不离场,感知只出一段——按段对齐,融合段凭时长顶多项。"""
+    out = []
+    for nm in seq:
+        if out and out[-1][0] == nm:
+            out[-1][1] += 1
+        else:
+            out.append([nm, 1])
+    return out
+
+
 def run(intents: Path, seq: list[str], map_dir: Path, out_csv: Path | None,
-        merge_gap=1.2, min_dur=1.0):
+        merge_gap=1.2, min_dur=1.0, double_dwell=7.0):
     named = load_named(map_dir)
     ev = finals(intents)
     eps = episodes(ev, merge_gap, min_dur)
-    pairs = lcs_align(seq, eps)
+    runs = runs_of(seq)
+    pairs = lcs_align([r[0] for r in runs], eps)
     used = set(pairs.values())
     rows, t0 = [], (eps[0]["t_start"] if eps else 0.0)
 
@@ -134,17 +147,41 @@ def run(intents: Path, seq: list[str], map_dir: Path, out_csv: Path | None,
         })
 
     j_extra = 0
-    for i, want in enumerate(seq):
+    ok = miss = 0
+    kbase = 1
+    for i, (want, k) in enumerate(runs):
         j = pairs.get(i)
         while j is not None and j_extra < j:          # 之前夹着的多余段
             if j_extra not in used:
                 row("+", "--", eps[j_extra], "＋多余")
             j_extra += 1
         if j is None:
-            row(i + 1, want, None, "✗缺失")
+            row(f"{kbase}" + (f"-{kbase + k - 1}" if k > 1 else ""),
+                want + (f"×{k}" if k > 1 else ""), None, "✗缺失")
+            miss += k
         else:
-            row(i + 1, want, eps[j], "✓")
-            j_extra = j + 1
+            # 连击段三种命中形态:融合单段(时长≥门)/ 两段分立(紧邻同名)/ 只到一半
+            credit, jend = 1, j
+            if k > 1:
+                if eps[j]["dur"] >= double_dwell:
+                    credit = k
+                elif (j + 1 < len(eps) and j + 1 not in used
+                      and eps[j + 1]["object"] == want):
+                    credit, jend = k, j + 1
+                    used.add(j + 1)
+            else:
+                credit = 1
+            mark = "✓" * min(credit, 2) + ("(-1)" if credit < k else "")
+            ep_show = dict(eps[j])
+            if jend != j:  # 两段分立:表里合并显示,时长相加
+                ep_show["dur"] = eps[j]["dur"] + eps[jend]["dur"]
+                ep_show["t_end"] = eps[jend]["t_end"]
+            row(f"{kbase}" + (f"-{kbase + k - 1}" if k > 1 else ""),
+                want + (f"×{k}" if k > 1 else ""), ep_show, mark)
+            ok += credit
+            miss += k - credit
+            j_extra = jend + 1
+        kbase += k
     for j in range(j_extra, len(eps)):
         if j not in used:
             row("+", "--", eps[j], "＋多余")
@@ -154,13 +191,13 @@ def run(intents: Path, seq: list[str], map_dir: Path, out_csv: Path | None,
     print("  ".join(f"{h:>{w[h]}}" for h in rows[0]))
     for r in rows:
         print("  ".join(f"{str(r[h]):>{w[h]}}" for h in r))
-    ok = len(pairs)
-    miss = len(seq) - ok
-    extra = len(eps) - ok
-    ths = [r["theta_min_deg"] for r in rows if r["verdict"] == "✓" and r["theta_min_deg"] != ""]
+    extra = len(eps) - len(pairs)
+    ths = [r["theta_min_deg"] for r in rows
+           if r["verdict"].startswith("✓") and r["theta_min_deg"] != ""]
     med = f";θ_min 中位 {np.median(ths):.2f}°" if ths else ""
     print(f"\n命中 {ok}/{len(seq)},缺失 {miss},多余注视 {extra}"
-          f"(合并 {len(ev)}→{len(eps)} 段,gap<{merge_gap}s,dur≥{min_dur}s){med}")
+          f"(合并 {len(ev)}→{len(eps)} 段,gap<{merge_gap}s,dur≥{min_dur}s,"
+          f"连击融合门 {double_dwell}s){med}")
     if out_csv:
         import csv
         with out_csv.open("w", newline="", encoding="utf-8") as f:
@@ -220,6 +257,9 @@ def main():
                     help="同物 final 间隔小于此秒数合并为一段注视")
     ap.add_argument("--min-dur", type=float, default=1.0,
                     help="累计注视短于此秒数的段当扫视碎片丢弃")
+    ap.add_argument("--double-dwell", type=float, default=7.0,
+                    help="卡上连续同名对被融合成一段时,累计注视≥此秒数记满两项"
+                         "(实测单项最长 6.7s、融合对最短 9.0s)")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:
@@ -236,7 +276,7 @@ def main():
     else:
         seq = [TOKEN.get(t, t) for t in a.seq.replace(",", " ").split()]
     run(Path(a.intents), seq, Path(a.map_dir), Path(a.csv) if a.csv else None,
-        merge_gap=a.merge_gap, min_dur=a.min_dur)
+        merge_gap=a.merge_gap, min_dur=a.min_dur, double_dwell=a.double_dwell)
 
 
 if __name__ == "__main__":
