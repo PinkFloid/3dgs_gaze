@@ -24,7 +24,7 @@ import json, sys, pathlib
 objs = {"cup": [-0.67, -2.26, 0.75], "apple": [-0.73, -2.39, 0.75],
         "orange": [-0.38, -2.41, 0.75], "黄色机器人": [2.0, 1.32, 0.4],
         "物品台": [-0.73, -2.35, 0.4], "狗桌边": [-1.86, 0.68, 0.4],
-        "Desk Tag": [-0.77, -2.47, 0.7]}
+        "纸箱子": [1.2, -1.0, 0.3], "Desk Tag": [-0.77, -2.47, 0.7]}
 inst, names = [], {}
 for i, (nm, c) in enumerate(objs.items(), start=1):
     inst.append({"id": i, "centroid": c, "n_gaussians": 100})
@@ -104,6 +104,10 @@ ck "目的地=碗落点" "$TMP/r4" "导航至 碗那边"
 echo "R5 显式送达:把这个拿到物品台那边(不送用户)"
 run "$TMP/r5" "$TMP/named.jsonl" "107.0:把这个拿到物品台那边"
 ck "抓 cup 且带 deliver_to" "$TMP/r5" '"object_name": "cup".*"deliver_to"'
+
+echo "R5b 命名送达带检测名:把这个拿到纸箱子那边 -> deliver_name=storage box"
+run "$TMP/r5b" "$TMP/named.jsonl" "107.0:把这个拿到纸箱子那边"
+ck "坐标+检测名双发" "$TMP/r5b" '"deliver_to": \[1.2, -1.0.*"deliver_name": "storage box"'
 
 echo "R6 急停旁路:停(永不过 LLM)"
 run "$TMP/r6" "$TMP/cup.jsonl" "106.0:停"

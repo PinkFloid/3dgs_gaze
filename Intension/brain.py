@@ -390,6 +390,12 @@ def main() -> int:
         if not goto and dest is not None:
             dxy, dyaw = aim(dest[0], approach_from=tw)  # 送达落点+朝向建议(自物体侧)
             params["deliver_to"] = [dxy[0], dxy[1], dyaw]
+            # 送达点是有检测名的实体(纸箱子->storage box)则带名:狗端按名放更稳
+            # (箱子被挪过也能对准),坐标兜底;键名待与狗端对齐,不认识则被忽略
+            hit = max((k for k in dmap if dest[1] and k in dest[1]),
+                      key=len, default=None)
+            if hit:
+                params["deliver_name"] = dmap[hit]
         req = {"v": 1, "type": "skill.request", "skill": "grasp",
                # 2026-08-05 起线上语义=目标本体+建议方位(站位狗端自留);版本号按用户
                # 裁定维持 1,双方靠约定同步——切换日后旧语义 server 不可再接单

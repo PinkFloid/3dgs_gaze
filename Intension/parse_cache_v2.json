@@ -1219,5 +1219,49 @@
   "dest_query": null,
   "dest_deictic": true,
   "to_user": false
+ },
+ "把这个放到纸箱子那边": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": "纸箱子",
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "把这个放到纸箱子里": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": "纸箱子",
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "把这个拿到纸箱子那边": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": "纸箱子",
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "放到纸箱子里": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": "纸箱子",
+  "dest_deictic": false,
+  "to_user": false
  }
 }
