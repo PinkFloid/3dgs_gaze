@@ -124,7 +124,7 @@ def parse_args():
     p.add_argument("--skill-endpoint", default=None,
                    help="狗机 REP 端点(如 tcp://192.168.123.164:5583);缺省=干跑只打印")
     p.add_argument("--status-endpoint", default=None)
-    p.add_argument("--frame", default="board/v8")  # 2026-08-18 lab_colmap_v8 新实验室(球 191-193)
+    p.add_argument("--frame", default="board/v9")  # 2026-08-20 lab_colmap_v9 重摆道具(球 259/261/263,纸箱子 33+73)
     p.add_argument("--standoff", type=float, default=0.6,
                    help="[已废弃,仅兼容旧脚本] v2 起站位/避障由狗端自留,此参不再使用")
     p.add_argument("--detect-names", default=str(Path(__file__).resolve().parent
