@@ -28,7 +28,7 @@ PARSE_SCHEMA = json.loads((_DIR / "parse_schema.json").read_text(encoding="utf-8
 # 不指望提示词能管住模型。
 _DEICTIC_WORDS = {"这", "那", "这个", "那个", "这里", "那里", "这边", "那边",
                   "这儿", "那儿", "此处", "这块", "那块", "这个地方", "那个地方",
-                  "这个位置", "那个位置"}
+                  "这个位置", "那个位置", "哪里", "哪儿", "什么地方"}
 
 # 语音转写带标点/大小写抖动("回来"vs"回来。"),同一句话会裂成多个缓存键:
 # 每个变体首次都付一次 LLM,且解析可能不一致(实测"回来。"被判成 stop)。
@@ -113,6 +113,8 @@ class CommandParser:
             "  place_query=桌子\n"
             "- dest_query/dest_deictic: 拿到之后送去哪。'拿到桌子那边' ->\n"
             "  dest_query=桌子;'拿去那边' -> dest_deictic=true;没说送哪 -> 都空\n"
+            "  '把这个放到那里去'/'放到哪里去' -> object_deictic=true 且\n"
+            "  dest_deictic=true(放置=fetch+送达,'哪里'是手指方向不是疑问)\n"
             "- to_user: fetch=送到用户身边('拿来/给我/带过来';没说送哪也默认 true,\n"
             "  除非给了 dest_* 或明确只是拿着不送);goto=目的地是用户('过来')\n"
             f"指令:「{text}」")
@@ -178,6 +180,14 @@ class CommandParser:
         data = _sanitize(dict(data))
         # grab 是私有约定:只跟"抓/夹"动词。LLM 把「拿一下这个」误判 grab 实测过——
         # 原地抓需要狗位,拿类动词被拦在那道门上。动词不符一律降级 fetch。
+        if data.get("object_deictic") and "放" in key \
+                and not any(v in key for v in ("拿", "抓", "取", "夹", "递", "带")) \
+                and not any(w in key for w in ("这个", "那个", "这只", "这颗", "这些", "这俩")):
+            # 裸放置句(放到那里去/放到纸箱子)没有物指代词:LLM 标 object_deictic
+            # 会让视线绑定把"盯着的落点"当成要抓的东西(实测 -009 把纸箱子抓走了)
+            data["object_deictic"] = False
+            if not data.get("dest_query") and not data.get("dest_deictic"):
+                data["dest_deictic"] = True  # 放类句必有去处:落点走视线
         if data.get("action") == "grab" and \
                 not any(v in key for v in ("抓", "夹", "原地", "就地")):
             data["action"] = "fetch"

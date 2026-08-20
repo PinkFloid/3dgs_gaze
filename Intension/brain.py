@@ -52,6 +52,51 @@ NO_WORDS = {"n", "no", "不", "不用", "不要", "算了", "否", "取消"}
 STOP_WORDS = {"停", "停下", "停止", "停一下", "stop", "s"}
 
 
+OBJ_DEIX = ("这个", "那个", "这只", "这颗", "这些", "这俩", "这")
+LOC_DEIX = ("这里", "那里", "这边", "那边", "哪里", "哪儿", "这儿", "那儿",
+            "这块", "那块", "什么地方")
+
+
+def word_time(words, vocab, t_default, after=0.0):
+    """逐字流里找词表词的中点墙钟(字符滑窗,跨 token;中文 ASR 常按单字切)。
+    words = [(词, t0, t1), ...];找不到/无词流 -> t_default(退化=句末,今日行为)。"""
+    if not words:
+        return t_default
+    chars = []
+    for w, a, b in words:
+        n = max(len(w), 1)
+        for i, ch in enumerate(w):
+            chars.append((ch, a + (b - a) * i / n, a + (b - a) * (i + 1) / n))
+    txt = "".join(c[0] for c in chars)
+    best = None
+    for v in sorted(vocab, key=len, reverse=True):  # 长词优先:"这个"别被"这"截胡
+        i = txt.find(v)
+        while i != -1:
+            tm = (chars[i][1] + chars[i + len(v) - 1][2]) / 2.0
+            if tm > after and (best is None or tm < best):
+                best = tm
+            i = txt.find(v, i + 1)
+        if best is not None:
+            break
+    return best if best is not None else t_default
+
+
+def slot_times(cmd, t_word, words):
+    """三槽位各取各的时刻:object 用物指示词,place/dest 用地点指示词
+    (两者都有时按出现顺序:先 place 后 dest)。缺词流一律句末。"""
+    t_obj = word_time(words, OBJ_DEIX, t_word) if (
+        cmd.get("object_deictic") or cmd.get("noun")) else t_word
+    t_place = t_dest = t_word
+    if cmd.get("place_deictic") and cmd.get("dest_deictic"):
+        t_place = word_time(words, LOC_DEIX, t_word)
+        t_dest = word_time(words, LOC_DEIX, t_word, after=t_place)
+    elif cmd.get("place_deictic"):
+        t_place = word_time(words, LOC_DEIX, t_word)
+    elif cmd.get("dest_deictic"):
+        t_dest = word_time(words, LOC_DEIX, t_word)
+    return t_obj, t_place, t_dest
+
+
 def parse_args():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -256,10 +301,11 @@ def main() -> int:
                 chime("ok")  # 狗跑完终态也报音:不看屏幕知道干完没
         P.say = _say_chimed
 
-        def _on_voice(text, t_end, asr_s):
+        def _on_voice(text, t_end, asr_s, words=None):
             P.say(f"[语音] 「{text}」 (asr {asr_s:.2f}s)")
-            logev({"topic": "asr", "text": text, "t_end_wall": t_end, "asr_s": asr_s})
-            cmd_q.put((text, t_end))
+            logev({"topic": "asr", "text": text, "t_end_wall": t_end, "asr_s": asr_s,
+                   "words": words})
+            cmd_q.put((text, t_end, words))
 
         dev = args.voice_device
         if dev is not None and dev.isdigit():
@@ -279,9 +325,11 @@ def main() -> int:
     def stream_now():
         return clock["stream"] + (time.time() - clock["wall"])
 
-    def send(req, retry_name=None):
+    def send(req, retry_name=None, chain_req=None):
         """retry_name 非空 = 盯视(主动)单:被拒 busy 进补发槽而不是作废。
-        任何一单被接受都清空补发槽——新意图覆盖旧盯视目标。"""
+        任何一单被接受都清空补发槽——新意图覆盖旧盯视目标。
+        chain_req 非空 = 本单(grasp)done 后要补发的 place 链单;无状态流
+        (干跑)时直接连发两单,有状态流则入链槽等终态。"""
         rep = dispatch(req, args.skill_endpoint)
         logev({"topic": "skill.req", **req, "rep": rep})
         P.say(f"[派发] {json.dumps(req, ensure_ascii=False)}")
@@ -295,6 +343,14 @@ def main() -> int:
                 end = p.get("deliver_to") or p.get("target_world")
                 if end:
                     last_stand["tw"] = list(end)
+            if chain_req is not None:
+                if status_seen is None:  # 干跑/无状态流:等不到 done,放置单直接跟发
+                    P.say("[链] 无状态流(干跑)——放置单直接下发")
+                    send(chain_req)
+                else:
+                    chain.update(req=chain_req, after=req["req_id"],
+                                 deadline=time.time() + 180.0)
+                    P.say(f"[链] 抓到后自动补发放置 -> {chain_req['intent_summary']}")
         elif rep.get("reason") == "busy":
             if retry_name and status_seen is not None:  # 没状态流就无从判空闲,不存
                 fresh = parked["req"] is None or req["req_id"] != parked.get("rid")
@@ -341,9 +397,31 @@ def main() -> int:
             params["object_hint"] = [round(float(obj_point[0]), 3),
                                      round(float(obj_point[1]), 3),
                                      round(float(obj_point[2]) if len(obj_point) > 2 else 0.0, 3)]
+        place_req = None
         if not goto and dest is not None:
+            # 狗端语义(2026-08-18 定):grasp=纯抓,place=把手里的放到坐标处(会放下),
+            # 编排在意图机——先派 grasp,状态流报 done 再补发链单。
             dxy, dyaw = aim(dest[0], approach_from=tw)  # 送达落点+朝向建议(自物体侧)
-            params["deliver_to"] = [dxy[0], dxy[1], dyaw]
+            if dest[1] in ("你这", "你这里"):
+                # 递给我 ≠ place(Place 会把东西放地上):链发纯导航到用户身边,
+                # 狗到跟前不撒手,人从爪上接——与 8-05 demo 的交接行为一致
+                place_req = {"v": 1, "type": "skill.request", "skill": "grasp",
+                             "params": {"object_name": None,
+                                        "target_world": [dxy[0], dxy[1], dyaw]},
+                             "req_id": f"{sess.name}-{n_req:03d}p", "frame": args.frame,
+                             "sent_at": 0.0, "t_stream": round(t_word, 3),
+                             "intent_summary": "链单:送到你跟前(不撒手)"}
+            else:
+                pparams = {"target_world": [dxy[0], dxy[1], dyaw]}
+                hit = max((k for k in dmap if dest[1] and k in dest[1]),
+                          key=len, default=None)
+                if hit:  # 送达点有检测名:狗端键名统一叫 object_name(放置=目的地名)
+                    pparams["object_name"] = dmap[hit]
+                place_req = {"v": 1, "type": "skill.request", "skill": "place",
+                             "params": pparams,
+                             "req_id": f"{sess.name}-{n_req:03d}p", "frame": args.frame,
+                             "sent_at": 0.0, "t_stream": round(t_word, 3),
+                             "intent_summary": f"链单:送达 {dest[1]}"}
         req = {"v": 1, "type": "skill.request", "skill": "grasp",
                # 2026-08-05 起线上语义=目标本体+建议方位(站位狗端自留);版本号按用户
                # 裁定维持 1,双方靠约定同步——切换日后旧语义 server 不可再接单
@@ -357,12 +435,12 @@ def main() -> int:
                "hint": params.get("object_hint")})
         src_text = None if mode == "主动" else last_cmd["text"]  # 主动单没有指令原文
         if args.yes:
-            send(req, retry_name=obj if mode == "主动" else None)
+            send(req, retry_name=obj if mode == "主动" else None, chain_req=place_req)
             if src_text:
                 parser.confirm(src_text)
         else:
             pending = {"req": req, "since": t_word, "mode": mode, "object": obj,
-                       "text": src_text}
+                       "text": src_text, "chain": place_req}
             pose_txt = (f"目标({stand[0]:+.2f},{stand[1]:+.2f}) "
                         f"接近方位{math.degrees(yaw):+.0f}°(站位狗端定)")
             if not goto:
@@ -421,8 +499,10 @@ def main() -> int:
             return "fail", None, None
         return "none", None, None
 
-    def handle(t_word, text):
-        nonlocal pending
+    chain = {"req": None, "after": None, "deadline": 0.0}  # 链单:grasp done 后补发 place
+
+    def handle(t_word, text, words=None):
+        nonlocal pending, n_req
         t = "".join(text.split())
         key = norm_cmd(t)  # 词表匹配用归一形:"好。""停。"(语音标点)才进得了门
         if not key:
@@ -433,7 +513,8 @@ def main() -> int:
             prev, pending = pending, None
             if key in YES_WORDS:
                 send(prev["req"],
-                     retry_name=prev["object"] if prev["mode"] == "主动" else None)
+                     retry_name=prev["object"] if prev["mode"] == "主动" else None,
+                     chain_req=prev.get("chain"))
                 if prev.get("text"):  # 点头 = 解析经过人工校验 -> 此刻才落盘
                     parser.confirm(prev["text"])
                 if prev["mode"] == "主动":  # 执行完还盯着,也别立刻再问
@@ -445,6 +526,9 @@ def main() -> int:
             if key in NO_WORDS:
                 return
             was_decline = True  # 可能是"取消旧的换新指令":往下试,解析不出就保持安静
+        if chain["req"] is not None:  # 新指令/急停顶掉未决的放置链:一次只欠一段
+            chain["req"] = None
+            P.say("[-] 上一单的放置链已作废")
         if key in STOP_WORDS:  # 急停硬旁路:永不过 LLM
             send_stop()
             return
@@ -479,6 +563,7 @@ def main() -> int:
             if user_pos["xyz"] is not None and age > 10.0:
                 P.say(f"[!] 你的定位是 {age:.0f}s 前的——中途走动过的话,先扫一眼 tag 再说")
 
+        t_obj, t_place, t_dest = slot_times(cmd, t_word, words)
         if cmd["kind"] == "goto":  # 目的地 = 用户身边 / 名字 / 视线落点
             if cmd["to_user"] and not cmd["place"] and not cmd["place_deictic"]:
                 if user_pos["xyz"] is None:
@@ -492,7 +577,7 @@ def main() -> int:
                         approach_from=r["point"] if r else None,
                         via=place_label(r) if r else None)
                 return
-            st, pt, label = slot_point(cmd["place_deictic"], cmd["place"], t_word, "目的地")
+            st, pt, label = slot_point(cmd["place_deictic"], cmd["place"], t_place, "目的地")
             if st == "ok":
                 disp = label if label.startswith("位置(") else f"{label}那边"
                 propose(disp, pt, "导航", t_word, goto=True)
@@ -506,7 +591,7 @@ def main() -> int:
                 return
             tw = last_stand["tw"]
             if obj_gaze:
-                cands = [c for c in buf.candidates(t_word, args.lookback, cmd["noun"])
+                cands = [c for c in buf.candidates(t_obj, args.lookback, cmd["noun"])
                          if c["object"] in table]
                 if not cands:
                     P.say(f"[×] 最近 {args.lookback:.0f}s 没有可用注视目标——"
@@ -525,10 +610,13 @@ def main() -> int:
             return
         # ---- fetch:先消解 dest(送到哪),再 place(去哪拿),最后 object(拿什么)
         dest = None
-        if cmd["dest"] or cmd["dest_deictic"]:
-            st, pt, label = slot_point(cmd["dest_deictic"], cmd["dest"], t_word, "送达地")
+        dest_defer = False  # 纯指示词送达:推迟到 object 绑定后再解(剔物体自身落点)
+        if cmd["dest_deictic"] and not cmd["dest"]:
+            dest_defer = True
+        elif cmd["dest"] or cmd["dest_deictic"]:
+            st, pt, label = slot_point(cmd["dest_deictic"], cmd["dest"], t_dest, "送达地")
             if st != "ok":
-                return  # 显式说了送哪却消解不了:宁可不动
+                return  # 显式名字送达消解不了:宁可不动
             dest = (pt, label)
         elif cmd["to_user"]:
             if user_pos["xyz"] is not None:  # 确认时刻的用户位置 = 送回站位的锚
@@ -538,33 +626,84 @@ def main() -> int:
                 P.say("[!] 不知道你在哪(视线流未定位)——本单不带送回,接近方向退化为原点侧")
         place = None
         if cmd["place"] or cmd["place_deictic"]:
-            st, pt, label = slot_point(cmd["place_deictic"], cmd["place"], t_word, "取货地点")
+            st, pt, label = slot_point(cmd["place_deictic"], cmd["place"], t_place, "取货地点")
             if st == "ok":
                 place = (pt, label, cmd["place_deictic"])
             elif cmd["place_deictic"]:
                 return  # 指了"这里"却没有注视落点:没得兜底
             else:
                 P.say(f"[!] 地点「{cmd['place']}」没认出,退回按物名的地图位置")
-        if obj_gaze:  # object=视线:眼-声窗口绑定(E1 语义)
-            cands = [c for c in buf.candidates(t_word, args.lookback, cmd["noun"])
+        def dispatch_or_wait(obj, tw, mode, via=None, obj_point=None):
+            """纯指示词送达此刻才解(剔 object 自身的落点,防"把L放到L");
+            解不出 = 不带送达照派(用户裁定最简版:不等待不追问,同"不知道
+            你在哪就不带送回"的降级模式)。"""
+            d = dest
+            if dest_defer:
+                r = place_buf.latest(t_dest, args.lookback, exclude_obj=obj)
+                if r:
+                    d = (r["point"], place_label(r))
+                else:
+                    P.say("[!] 没看到要放哪——本单不带送达"
+                          "(先看落点再说,或指名「放到纸箱子那边」)")
+            propose(obj, tw, mode, t_word, dest=d, via=via, obj_point=obj_point)
+
+        if not obj_gaze and not cmd["object"] and (cmd["dest"] or cmd["dest_deictic"]):
+            # 裸放置:「放到纸箱子」「放到那边」——不带物体,狗手里有什么放什么
+            # (grasp/place 是狗端两个独立方法,单发 place 就是"把手里的放下")
+            if dest is None and dest_defer:
+                r = place_buf.latest(t_dest, args.lookback)
+                if r:
+                    dest = (r["point"], place_label(r))
+            if dest is None:
+                P.say("[×] 放到哪?看一眼落点再说,或指名「放到纸箱子」")
+                return
+            dxy, dyaw = aim(dest[0], approach_from=last_stand["tw"])
+            pparams = {"target_world": [dxy[0], dxy[1], dyaw]}
+            hit = max((k for k in dmap if dest[1] and k in dest[1]),
+                      key=len, default=None)
+            if hit:  # 狗端键名统一 object_name(放置语境=目的地检测名)
+                pparams["object_name"] = dmap[hit]
+            n_req += 1
+            preq = {"v": 1, "type": "skill.request", "skill": "place",
+                    "params": pparams,
+                    "req_id": f"{sess.name}-{n_req:03d}",
+                    "frame": args.frame, "sent_at": time.time(),
+                    "t_stream": round(t_word, 3),
+                    "intent_summary": f"裸放置 -> {dest[1]}"}
+            logev({"topic": "resolution", "mode": "放置", "object": None,
+                   "goto": False, "t": t_word, "goal": list(dest[0]),
+                   "dest": list(dest[0]), "wire_v": 1, "hint": None})
+            if args.yes:
+                send(preq)
+                if last_cmd["text"]:
+                    parser.confirm(last_cmd["text"])
+            else:
+                pending = {"req": preq, "since": t_word, "mode": "放置",
+                           "object": dest[1], "text": last_cmd["text"], "chain": None}
+                P.say(f"[?] 把手里的放到「{dest[1]}」({dxy[0]:+.2f},{dxy[1]:+.2f})"
+                      " ? y=确认 其他=取消")
+                notify("ask")
+            return
+        if obj_gaze:  # object=视线:眼-声窗口绑定(E1 语义;t_obj=指代词出口时刻)
+            cands = [c for c in buf.candidates(t_obj, args.lookback, cmd["noun"])
                      if c["object"] in table]  # 只有命名物体可被指代:碎片不进绑定,
             # 免得"拿这个"派发 object#38 这种检测器不认的名字(碎片仍参与投票与落点)
             if cands:
                 c = cands[0]
-                logev({"topic": "binding", "t_word": t_word, "noun": cmd["noun"],
+                logev({"topic": "binding", "t_word": t_obj, "noun": cmd["noun"],
                        "candidates": cands[:3]})
-                propose(c["object"], place[0] if place else c["target_world"],
-                        "视线", t_word, dest=dest, via=place[1] if place else None,
-                        obj_point=c["target_world"])
+                dispatch_or_wait(c["object"], place[0] if place else c["target_world"],
+                                 "视线", via=place[1] if place else None,
+                                 obj_point=c["target_world"])
                 return
             if cmd["noun"]:
                 name, top = resolve_named(cmd["noun"], table)
                 if name:  # 地点槽已解出时仍去注视处检测:LLM 错标 deictic 也能落对地方
                     P.say(f"[·] 近期没注视「{cmd['noun']}」,按名字兜底 -> {name}"
                           + (f"(仍去注视处「{place[1]}」检测)" if place else ""))
-                    propose(name, place[0] if place else table[name],
-                            "名字兜底", t_word, dest=dest,
-                            via=place[1] if place else None, obj_point=table[name])
+                    dispatch_or_wait(name, place[0] if place else table[name],
+                                     "名字兜底", via=place[1] if place else None,
+                                     obj_point=table[name])
                     return
                 if top:
                     P.say(f"[×] 「{cmd['noun']}」类有多个且最近没注视——看一眼目标再说,或指名:"
@@ -613,6 +752,7 @@ def main() -> int:
                     place_buf = PlaceBuffer(min_dwell=args.place_dwell)
                     suppress.clear()
                     parked["req"] = None
+                    chain["req"] = None
                     pending, last_prog = None, None
                 clock["stream"], clock["wall"] = t, time.time()
                 ow = e.get("origin_world")
@@ -644,10 +784,26 @@ def main() -> int:
                 item = cmd_q.get()
                 if item is None:  # 输入端收摊(Ctrl-C/Ctrl-D)-> 正常退出
                     raise KeyboardInterrupt
-                text, t_said = item
+                text, t_said, vwords = (item if len(item) == 3 else (*item, None))
                 # 语音单 t_word 回填到说完时刻:VAD 尾判+转写延迟不歪眼-声回看窗
                 tw = st if t_said is None else max(0.0, st - max(0.0, time.time() - t_said))
-                handle(tw, text)
+                if vwords and t_said is not None:  # 词墙钟 -> 流时钟(同一平移量)
+                    off = tw - t_said
+                    vwords = [(w, a + off, b + off) for w, a, b in vwords]
+                handle(tw, text, vwords)
+            if chain["req"] is not None:  # 放置链:抓取终态裁决
+                stt = status_seen.get(chain["after"]) if status_seen else None
+                if stt == "done":
+                    rq, chain["req"] = chain["req"], None
+                    P.say("[链] 抓取完成,补发放置单")
+                    rq["sent_at"] = time.time()
+                    send(rq)
+                elif stt in ("failed", "stopped"):
+                    P.say(f"[链] 抓取 {stt},放置作废")
+                    chain["req"] = None
+                elif time.time() > chain["deadline"]:
+                    P.say("[链] 等抓取终态超时(180s),放置作废")
+                    chain["req"] = None
             if parked["req"] is not None:  # 盯视补发:终态即空闲,晚到 running 被粘滞挡住
                 now = time.time()
                 if now > parked["deadline"]:
@@ -667,7 +823,7 @@ def main() -> int:
                     suppress[pending["object"]] = st + args.suppress
                 pending = None
             if args.replay and not scripted and pending is None \
-                    and parked["req"] is None and e is None:
+                    and parked["req"] is None and chain["req"] is None and e is None:
                 rid = last_req["id"]  # 等最后一个已接受请求到终态,而不是"暂时没状态"就走
                 if status_seen is None or rid is None or \
                         status_seen.get(rid) in ("done", "failed", "stopped"):
