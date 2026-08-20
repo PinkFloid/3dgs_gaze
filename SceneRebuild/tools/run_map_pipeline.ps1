@@ -15,6 +15,7 @@ param(
     [Parameter(Mandatory = $true)][string]$Raw,
     [Parameter(Mandatory = $true)][string]$Out,
     [double]$SquareSize = 0.032,
+    [double]$MarkerSize = 0.024,
     [string]$TagIds = "74-139",
     [string]$TagSizes = "74-89:0.24,90-119:0.1033,120-139:0.2493"
 )
@@ -62,7 +63,7 @@ Step "3/7 ns-process-data" {
 }
 Step "4/7 align_to_charuco" {
     & $py $tools\align_to_charuco.py --dataset $Out `
-        --marker-id-start 0 --square-size $SquareSize --marker-size 0.024
+        --marker-id-start 0 --square-size $SquareSize --marker-size $MarkerSize
 }
 Step "5/7 survey tags" {
     & $py $tools\survey_aruco_tags.py --dataset $Out --tag-ids $TagIds --tag-sizes $TagSizes

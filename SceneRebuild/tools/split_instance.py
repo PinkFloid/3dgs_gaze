@@ -82,6 +82,9 @@ def main() -> int:
         z_cut = args.z_cut
     above = pts[:, 2] > z_cut
     print(f"instance {args.id}: {m.sum()} 点,z_cut={z_cut:.3f},面上凸起 {above.sum()} 点")
+    if not above.any():
+        raise SystemExit("面上没有凸起点:这坨可能本身就是物体(而非支撑面+物体)。"
+                         "用 --z-cut 手动指定更低的切面(如支撑面高度)再试。")
 
     cc = connected_components(pts[above], args.linkage)
     next_id = int(max(max(label.max(), max(by_id)), 0)) + 1
