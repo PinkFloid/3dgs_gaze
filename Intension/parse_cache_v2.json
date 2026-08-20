@@ -1201,7 +1201,7 @@
  "放到那里去": {
   "action": "fetch",
   "object_query": null,
-  "object_deictic": true,
+  "object_deictic": false,
   "noun_class": null,
   "place_query": null,
   "place_deictic": false,
@@ -1428,5 +1428,126 @@
   "dest_query": "纸箱子",
   "dest_deictic": false,
   "to_user": false
+ },
+ "拿一下网球r放到纸箱子": {
+  "action": "fetch",
+  "object_query": "网球R",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": "纸箱子",
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "拿一下网球m到纸箱子": {
+  "action": "fetch",
+  "object_query": "网球M",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": "纸箱子",
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "拿一下网球l给我": {
+  "action": "fetch",
+  "object_query": "网球L",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "把网球l放到纸箱子": {
+  "action": "fetch",
+  "object_query": "网球L",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": "纸箱子",
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "拿网球m到纸箱子": {
+  "action": "fetch",
+  "object_query": "网球M",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": "纸箱子",
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "拿网球l给我": {
+  "action": "fetch",
+  "object_query": "网球L",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "拿网球m放到纸箱子": {
+  "action": "fetch",
+  "object_query": "网球M",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": "纸箱子",
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "拿网球r给我": {
+  "action": "fetch",
+  "object_query": "网球R",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "拿网球r放到纸箱子": {
+  "action": "fetch",
+  "object_query": "网球R",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": "纸箱子",
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "一个是挡住,我还深度挡住。对。所以小小型的人觉得你成功了。所以机器人就要在人底下。把这个放到那里": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": true,
+  "to_user": false
+ },
+ "拿一下石榴": {
+  "action": "fetch",
+  "object_query": "石榴",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
  }
 }

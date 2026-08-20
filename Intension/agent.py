@@ -180,6 +180,14 @@ class CommandParser:
         data = _sanitize(dict(data))
         # grab 是私有约定:只跟"抓/夹"动词。LLM 把「拿一下这个」误判 grab 实测过——
         # 原地抓需要狗位,拿类动词被拦在那道门上。动词不符一律降级 fetch。
+        if data.get("object_deictic") and "放" in key \
+                and not any(v in key for v in ("拿", "抓", "取", "夹", "递", "带")) \
+                and not any(w in key for w in ("这个", "那个", "这只", "这颗", "这些", "这俩")):
+            # 裸放置句(放到那里去/放到纸箱子)没有物指代词:LLM 标 object_deictic
+            # 会让视线绑定把"盯着的落点"当成要抓的东西(实测 -009 把纸箱子抓走了)
+            data["object_deictic"] = False
+            if not data.get("dest_query") and not data.get("dest_deictic"):
+                data["dest_deictic"] = True  # 放类句必有去处:落点走视线
         if data.get("action") == "grab" and \
                 not any(v in key for v in ("抓", "夹", "原地", "就地")):
             data["action"] = "fetch"

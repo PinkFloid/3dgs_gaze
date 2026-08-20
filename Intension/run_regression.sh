@@ -130,6 +130,14 @@ c = CommandParser({}, mode="off", cache_path=p, say=lambda s: None).parse("去�
 assert c["place"] is None and c["place_deictic"], c   # "这里"被清洗成 deictic 标记
 assert c["object"] == "orange", c
 assert not c["object_deictic"] and c["noun"] == "", c  # 指名即指称:漏标 deictic 被纠正
+bad2 = {"放到那里去": {  # 2026-08-18 实测 -009:LLM 给裸放置标了物指代 -> 狗把箱子抓走
+    "action": "fetch", "object_query": None, "object_deictic": True,
+    "noun_class": None, "place_query": None, "place_deictic": False,
+    "dest_query": None, "dest_deictic": True, "to_user": False}}
+p2 = pathlib.Path(tempfile.mkdtemp()) / "cache.json"
+p2.write_text(json.dumps(bad2), encoding="utf-8")
+c2 = CommandParser({}, mode="off", cache_path=p2, say=lambda s: None).parse("放到那里去")
+assert not c2["object_deictic"] and c2["dest_deictic"], c2  # 裸放置:物指代被剥掉
 EOF
 then echo "  [o] 指代词查询被归一化"; else echo "  [x] 指代词查询归一化"; FAIL=1; fi
 
