@@ -22,7 +22,7 @@ from pathlib import Path
 import numpy as np
 
 SCENE = Path(__file__).resolve().parents[2] / "SceneRebuild"
-TOKEN = {"L": "网球L", "M": "网球M", "R": "网球R"}
+TOKEN = {"L": "球L", "M": "球M", "R": "球R"}  # v9 改名 网球X->球X(旧卡 CSV 已归档)
 DROP = {"", "floor", "background", "none", None}
 
 
@@ -211,7 +211,7 @@ def run(intents: Path, seq: list[str], map_dir: Path, out_csv: Path | None,
 def selftest():
     import tempfile
     td = Path(tempfile.mkdtemp())
-    (td / "names.json").write_text(json.dumps({"1": "网球L", "2": "网球M", "3": "苹果"}))
+    (td / "names.json").write_text(json.dumps({"1": "球L", "2": "球M", "3": "苹果"}))
     (td / "instances.json").write_text(json.dumps({"instances": [
         {"id": 1, "centroid": [0.0, 0.0, 0.8]},
         {"id": 2, "centroid": [0.3, 0.0, 0.8]},
@@ -219,18 +219,18 @@ def selftest():
     ]}))
     F = dict(provisional=False, vote_share=0.9, origin_world=[0, -3, 1.6], distance_m=3.1)
     ev = [
-        {"object": "网球L", "t_start": 0.0, "t_end": 2.0, "duration_s": 2.0, **F},
+        {"object": "球L", "t_start": 0.0, "t_end": 2.0, "duration_s": 2.0, **F},
         {"object": "floor", "t_start": 2.2, "t_end": 2.6, "duration_s": 0.4,
          "provisional": False},                                     # 背景,丢
-        {"object": "网球M", "t_start": 2.8, "t_end": 3.0, "duration_s": 0.2,
+        {"object": "球M", "t_start": 2.8, "t_end": 3.0, "duration_s": 0.2,
          "provisional": True},                                      # 非 final,丢
-        {"object": "网球M", "t_start": 3.0, "t_end": 3.8, "duration_s": 0.8, **F},
-        {"object": "网球M", "t_start": 4.1, "t_end": 5.0, "duration_s": 0.9, **F},  # 与上合并 ->1.7s
+        {"object": "球M", "t_start": 3.0, "t_end": 3.8, "duration_s": 0.8, **F},
+        {"object": "球M", "t_start": 4.1, "t_end": 5.0, "duration_s": 0.9, **F},  # 与上合并 ->1.7s
         {"object": "苹果", "t_start": 5.2, "t_end": 5.5, "duration_s": 0.3, **F},   # 扫视碎片,丢
         {"object": "香蕉", "t_start": 6.0, "t_end": 8.0, "duration_s": 2.0, **F},   # 多余注视
     ]
     (td / "names.json").write_text(json.dumps(
-        {"1": "网球L", "2": "网球M", "3": "苹果", "4": "香蕉"}))
+        {"1": "球L", "2": "球M", "3": "苹果", "4": "香蕉"}))
     (td / "instances.json").write_text(json.dumps({"instances": [
         {"id": 1, "centroid": [0.0, 0.0, 0.8]},
         {"id": 2, "centroid": [0.3, 0.0, 0.8]},
@@ -239,8 +239,8 @@ def selftest():
     ]}))
     ij = td / "intents.jsonl"
     ij.write_text("\n".join(json.dumps(e) for e in ev) + "\n")
-    seq = [TOKEN.get(t, t) for t in ["L", "网球M"]]
-    assert seq == ["网球L", "网球M"]
+    seq = [TOKEN.get(t, t) for t in ["L", "球M"]]
+    assert seq == ["球L", "球M"]
     ok, n = run(ij, seq, td, None)
     assert (ok, n) == (2, 2), (ok, n)   # 合并后 L/M 全中,香蕉记多余,苹果碎片被丢
     print("selftest OK(过滤+同物合并+时长门+LCS 对齐+多余段)")
