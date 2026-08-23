@@ -55,6 +55,8 @@ STOP_WORDS = {"停", "停下", "停止", "停一下", "stop", "s"}
 OBJ_DEIX = ("这个", "那个", "这只", "这颗", "这些", "这俩", "这")
 LOC_DEIX = ("这里", "那里", "这边", "那边", "哪里", "哪儿", "这儿", "那儿",
             "这块", "那块", "什么地方")
+DEST_FWD = 3.0  # dest 槽词后前看窗 (s):"说完'那里'目光才指过去"是实测常态,
+# ASR 迟到 1-2s 使流早已跑到句后,回头消解就能捡到——不是等待机制(R18 裁定不等)
 
 
 def word_time(words, vocab, t_default, after=0.0):
@@ -478,12 +480,13 @@ def main() -> int:
             return f"位置({p[0]:+.1f},{p[1]:+.1f})"
         return o
 
-    def slot_point(deictic, query, t_word, role):
+    def slot_point(deictic, query, t_word, role, fwd=0.6):
         """place/dest 槽公共消解。指代词在场 = 视线优先(说"这里"时看哪就是哪),
-        名字只做兜底;纯名字则只按名字。
+        名字只做兜底;纯名字则只按名字。fwd=词后前看窗(dest 槽给 DEST_FWD:
+        说完才看过去是常态)。
         返回 (状态, 落点, 标签):状态 ok=拿到 / fail=给了但消解不了 / none=没给。"""
         if deictic:
-            r = place_buf.latest(t_word, args.lookback)
+            r = place_buf.latest(t_word, args.lookback, fwd=fwd)
             if r:
                 return "ok", r["point"], place_label(r)
         if query:
@@ -508,6 +511,12 @@ def main() -> int:
         if not key:
             return  # 空行 / 纯标点(转写噪声)
         refresh_table(force=True)  # 名字消解前跟一次 names.json,拿最新命名
+
+        def void_chain():  # 只有真动作单/急停才顶掉未决放置链:闲聊、转写噪声、
+            # 解析失败一概不碰——实测「我擦完蛋了吗?」把等发的送达链顶没了(-230149)
+            if chain["req"] is not None:
+                chain["req"] = None
+                P.say("[-] 上一单的放置链已作废")
         was_decline = False
         if pending is not None:
             prev, pending = pending, None
@@ -526,10 +535,8 @@ def main() -> int:
             if key in NO_WORDS:
                 return
             was_decline = True  # 可能是"取消旧的换新指令":往下试,解析不出就保持安静
-        if chain["req"] is not None:  # 新指令/急停顶掉未决的放置链:一次只欠一段
-            chain["req"] = None
-            P.say("[-] 上一单的放置链已作废")
         if key in STOP_WORDS:  # 急停硬旁路:永不过 LLM
+            void_chain()
             send_stop()
             return
         cmd = parser.parse(t)
@@ -549,6 +556,7 @@ def main() -> int:
                 P.say("[×] 解析不可用(缓存未命中且 LLM 不可达)")
             return
         if cmd["kind"] == "stop":
+            void_chain()
             send_stop()
             return
         if cmd["kind"] == "help":
@@ -556,6 +564,7 @@ def main() -> int:
                 P.say("我能做:拿取场景里的物体。例:拿一下显示器 / 把这个杯子拿来"
                       " / 去这个地方拿橘子 / 停")
             return
+        void_chain()  # 到这儿才是真动作单(fetch/grab/goto):一次只欠一段
         def user_pos_stale():
             """定位新鲜度:>10s 没有带头位姿的视线事件 = 你可能已走动(定位空窗)。
             幽灵位置比没有位置更糟——狗会认真地走去你不在的地方。"""
@@ -614,7 +623,8 @@ def main() -> int:
         if cmd["dest_deictic"] and not cmd["dest"]:
             dest_defer = True
         elif cmd["dest"] or cmd["dest_deictic"]:
-            st, pt, label = slot_point(cmd["dest_deictic"], cmd["dest"], t_dest, "送达地")
+            st, pt, label = slot_point(cmd["dest_deictic"], cmd["dest"], t_dest,
+                                       "送达地", fwd=DEST_FWD)
             if st != "ok":
                 return  # 显式名字送达消解不了:宁可不动
             dest = (pt, label)
@@ -639,7 +649,8 @@ def main() -> int:
             你在哪就不带送回"的降级模式)。"""
             d = dest
             if dest_defer:
-                r = place_buf.latest(t_dest, args.lookback, exclude_obj=obj)
+                r = place_buf.latest(t_dest, args.lookback, exclude_obj=obj,
+                                     fwd=DEST_FWD)
                 if r:
                     d = (r["point"], place_label(r))
                 else:
@@ -651,7 +662,7 @@ def main() -> int:
             # 裸放置:「放到纸箱子」「放到那边」——不带物体,狗手里有什么放什么
             # (grasp/place 是狗端两个独立方法,单发 place 就是"把手里的放下")
             if dest is None and dest_defer:
-                r = place_buf.latest(t_dest, args.lookback)
+                r = place_buf.latest(t_dest, args.lookback, fwd=DEST_FWD)
                 if r:
                     dest = (r["point"], place_label(r))
             if dest is None:

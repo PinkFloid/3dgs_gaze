@@ -199,8 +199,11 @@ class VoiceReader:
                 pass
         audio = np.frombuffer(pcm, np.int16).astype(np.float32) / 32768.0
         vocab = list(self.vocab)
+        # 高频指令短语也进热词:偏置解码——"拿一下"实测被听成"麻衣下/那一下",
+        # 光给物体名压不住动词错字
         prompt = ("机器人指令。词表:" + "、".join(vocab[:40])
-                  + "、拿这个、抓这个、去这里、过来、回来、停。") if vocab else None
+                  + "、拿一下这个、把这个拿来、抓这个、去这里拿、"
+                  "放到那里、放回、过来、回来、停。") if vocab else None
         segs, _ = self.model.transcribe(audio, language="zh", beam_size=1,
                                         initial_prompt=prompt,
                                         word_timestamps=True,  # 逐词墙钟:指示词各带时刻

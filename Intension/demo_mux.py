@@ -169,6 +169,8 @@ for t_wall, obj, mode, goto in res:
     a = w2v(t_wall) + 0.3
     if goto or mode == "导航":
         txt = f"→ {obj} · 已派导航"
+    elif mode == "放置":  # 裸放置:没有 object(手里有什么放什么),别打 None
+        txt = "→ 手里的放到注视处 · 已派放置"
     else:
         txt = f"→ {obj}({mode})· 已派抓取"
     lines.append((a, f"Dialogue: 0,{ts(a)},{ts(min(a + 2.8, vid_dur))},Sys,"

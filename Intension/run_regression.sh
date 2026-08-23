@@ -222,7 +222,8 @@ ck "会话内无派发时明确拒绝" "$TMP/r13n" "不知道狗现在站哪"
 ckn "拒绝时不许派发" "$TMP/r13n" '\[派发\]'
 
 echo "R14 实例消歧过线:视线/名字单带 object_hint=选中实例质心;goto/地点透传不带"
-run "$TMP/r14" "$TMP/named.jsonl" "103.0:去狗桌边" "107.0:拿这个"
+# 「给我拿下这个」= 明说送回(8-20 起「拿X」不默认送回,链单要靠"给我"触发)
+run "$TMP/r14" "$TMP/named.jsonl" "103.0:去狗桌边" "107.0:给我拿下这个"
 EV=$(ls -t "$TMP"/logs/r14/*/events.jsonl | head -1)
 if $PY - "$EV" <<'EOF'
 import json, sys
@@ -325,18 +326,112 @@ ck "单发 place 无 grasp" "$TMP/r20" '"skill": "place".*"object_name": "storag
 ckn "不派 grasp" "$TMP/r20" '"skill": "grasp"'
 ck "place 参数只有落点" "$TMP/r20" '"params": \{"target_world": \[1.2, -1.0'
 
-echo "R19 链单 e2e:拿到纸箱子那边(grasp done -> 自动补发 place,假狗在环)"
+echo "R19 链单 e2e:拿到纸箱子那边(grasp done -> 自动补发 place,假狗在环;"
+echo "    中途一句闲聊不许把链顶掉——实测「我擦完蛋了吗?」作废过送达链)"
 $PY dog_link.py --fake >"$TMP/dog3.log" 2>&1 & DOG_PID=$!
 sleep 1
 timeout 90 $PY brain.py --llm off --replay "$TMP/named.jsonl" --yes \
     --skill-endpoint tcp://127.0.0.1:5583 --map-dir "$TMP/map" \
-    --script "107.0:把这个拿到纸箱子那边" \
+    --script "107.0:把这个拿到纸箱子那边" --script "107.3:呃这是句闲话" \
     --log-dir "$TMP/logs/r19" >"$TMP/r19" 2>&1
 ck "链槽入位" "$TMP/r19" "抓到后自动补发放置"
+ck "闲聊过闸(解析不可用)" "$TMP/r19" "解析不可用"
+ckn "闲聊不作废链" "$TMP/r19" "放置链已作废"
 ck "抓取完成后链发" "$TMP/r19" "抓取完成,补发放置单"
 ck "放置单 place+检测名" "$TMP/r19" '"skill": "place".*"object_name": "storage box"'
 ck "放置单跑到 done" "$TMP/r19" 'done.*req=[0-9-]*-00[0-9]p'
 kill $DOG_PID 2>/dev/null; DOG_PID=
+
+echo "R22 逐词回看的时间旅行:ASR 迟到 2s,词时刻的注视不被此刻的注视顶掉"
+if $PY - <<'EOF'
+import sys
+sys.path.insert(0, ".")
+from core.attention import AttentionBuffer, PlaceBuffer
+# -230149 实测时间线:说「这个」(t=811.99) 时盯球L(811.91-813.86),
+# 说「那里」(t=813.91) 后 0.8s 目光才到纸箱子;ASR 816.3 才交卷。
+def ev(t0, t1, obj, c, prov):
+    return {"t_start": t0, "t_end": t1, "duration_s": round(t1 - t0, 3),
+            "object": obj, "object_label": 42, "vote_share": 0.9,
+            "object_centroid_world": c, "centroid_world": c,
+            "provisional": prov, "mode": "cone"}
+STREAM = [ev(811.91, 812.56, "球L", [0.85, 0.36, 0.78], True),
+          ev(811.91, 813.86, "球L", [0.85, 0.36, 0.78], False),
+          ev(814.70, 815.00, "纸箱子", [-0.54, 1.01, 0.76], True),
+          ev(814.70, 815.30, "纸箱子", [-0.54, 1.01, 0.76], False),
+          ev(815.70, 816.45, "纸箱子", [-0.54, 1.01, 0.76], True)]
+buf, pb = AttentionBuffer(0.6), PlaceBuffer(0.4)
+for e in STREAM:
+    buf.feed(e); pb.feed(e)
+c = buf.candidates(811.99, 4.0)                     # 「这个」时刻
+assert c and c[0]["object"] == "球L", c              # 旧实现:纸箱子 gap 0 抢走
+r = pb.latest(813.91, 4.0, exclude_obj="球L", fwd=3.0)   # 「那里」时刻(dest 窗)
+assert r and r["object"] == "纸箱子", r              # 旧实现:漏纸箱子拿到球L
+assert pb.latest(813.91, 4.0, exclude_obj="球L") is None  # 默认窗 0.6 够不到词后 0.8
+c = buf.candidates(816.4, 4.0)                      # 句末时刻(无词流退化)
+assert c[0]["object"] == "纸箱子", c                 # 正盯着的仍最优,行为=今天
+assert buf.candidates(805.0, 4.0) == []             # 词时刻远在所有注视前:不许绑
+EOF
+then echo "  [o] 词时刻绑定不倒置(object=球L dest=纸箱子)"; else echo "  [x] 时间旅行"; FAIL=1; fi
+
+echo "R21 槽位纠偏(纯解析,喂 LLM 实测过的错标,不联网)"
+if $PY - <<'EOF'
+import sys
+sys.path.insert(0, ".")
+from agent import CommandParser, norm_cmd
+T = {"球L": [0, 0, 0], "纸箱子": [1, 1, 0], "白杯1": [2, 2, 0], "白杯2": [3, 3, 0]}
+def p(text, **llm):
+    d = {"action": "fetch", "object_query": None, "object_deictic": False,
+         "noun_class": None, "place_query": None, "place_deictic": False,
+         "dest_query": None, "dest_deictic": False, "to_user": False}
+    c = CommandParser(T, mode="off", cache_path="/dev/null")
+    c.cache = {norm_cmd(text): {**d, **llm}}
+    return c.parse(text)
+# 「放回球L」被判成去抓球L(实测 grab/球L):名字必须搬到 dest,object 清空
+r = p("放回网球L", action="grab", object_query="球L")
+assert r["object"] is None and r["dest"] == "球L" and r["kind"] == "fetch", r
+# 送达地填了句外词(实测用户说漏嘴的"place"):挑对得上物体表的候选
+r = p("放回网球L的位置 也就是place 位置是网球L", object_query="球L",
+      place_query="网球L的位置", dest_query="place")
+assert r["object"] is None and r["dest"] == "球L", r
+# 「把X放到Y」照旧:两槽都在,object 不许被吃掉
+r = p("把网球L放到纸箱子里", object_query="球L", dest_query="纸箱子")
+assert r["object"] == "球L" and r["dest"] == "纸箱子", r
+# 物指代词在场仍走视线:不许被裸放置规则清成 false
+r = p("把这个放到那里去", object_deictic=True, dest_deictic=True)
+assert r["object_deictic"] and r["dest_deictic"], r
+# 同音错字"那一下"=拿一下:指了名却被标 deictic -> 按指名处理
+r = p("那一下白杯1", object_query="白杯1", object_deictic=True, noun_class="杯")
+assert r["object"] == "白杯1" and not r["object_deictic"] and not r["noun"], r
+r = p("拿那个杯子", object_query="白杯1", object_deictic=True, noun_class="杯")
+assert r["object_deictic"] and r["noun"] == "杯", r      # 真指代词在场,不动
+# 「过来」的目的地是人:place 槽任何填法都归一到 to_user
+r = p("过来", action="goto", place_query="用户")
+assert r["to_user"] and not r["place"] and not r["place_deictic"], r
+r = p("回来一下", action="goto", place_deictic=True, to_user=True)
+assert r["to_user"] and not r["place_deictic"], r
+r = p("去纸箱子那边", action="goto", place_query="纸箱子")
+assert r["place"] == "纸箱子" and not r["to_user"], r    # 有地名,不许改写
+# 句首动词听岔确定性纠字:「麻衣下这个」与「拿一下这个」同一个缓存键
+assert norm_cmd("麻衣下这个。") == norm_cmd("拿一下这个") == "拿一下这个", \
+    norm_cmd("麻衣下这个。")
+# 「拿一下X」=过去拿住,不默认送回(用户裁定 8-20);旧缓存的 to_user=true 也纠
+r = p("拿一下网球L", object_query="球L", to_user=True)
+assert r["object"] == "球L" and not r["to_user"], r
+r = p("拿一下网球L给我", object_query="球L", to_user=False)   # LLM 漏标也补上
+assert r["to_user"], r
+r = p("把这个杯子拿来", object_deictic=True, noun_class="杯", to_user=True)
+assert r["to_user"] and r["object_deictic"], r               # 明说"拿来"才送
+r = p("拿球M放到纸箱子", object_query="球M", dest_query="纸箱子", to_user=False)
+assert r["dest"] == "纸箱子" and not r["to_user"], r          # 有送达地不送人
+r = p("去物品台拿一下苹果不需要给我", object_query="苹果", place_query="物品台")
+assert not r["to_user"], r                                   # 否定的"给我"不算
+# 光杆"给我/拿过来":手里的送来 = goto 到用户身边(不撒手)
+r = p("给我", to_user=True)
+assert r["kind"] == "goto" and r["to_user"], r
+r = p("拿过来")
+assert r["kind"] == "goto" and r["to_user"], r
+EOF
+then echo "  [o] 裸放置/同音指代/过来/听岔纠字 四类纠偏"; else echo "  [x] 槽位纠偏"; FAIL=1; fi
 
 echo
 if [ $FAIL -eq 0 ]; then echo "== 全部通过 =="; else echo "== 有失败项 =="; fi

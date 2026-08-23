@@ -150,22 +150,40 @@ class AttentionBuffer(VisitTracker):
             self.recent = self.recent[-50:]
         return out
 
-    def candidates(self, t_word, lookback, noun=""):
-        """说指代词时刻往前看:仍在盯的目标排最前,其余按离开时间近排序。"""
+    def candidates(self, t_word, lookback, noun="", fwd=0.6):
+        """说指代词时刻的注视目标:那一刻正盯着的排最前(gap 0),其余按与
+        t_word 的时间距离升序——往回最多 lookback,往后最多 fwd(眼比嘴慢
+        半拍的小宽限,PUT_DESIGN §3 的 [t−lookback, t+0.6])。
+        逐词时刻下 t_word 是过去的某一刻(ASR 晚到 1-2s,流已跑到句后):
+        老实现拿"处理那一刻还开着的 visit"当 gap 0、又把 t_end 晚于 t_word
+        的已结账 visit 一刀切掉,说「这个」之后才看的落点(纸箱子)会顶掉
+        说话瞬间正盯着的目标(球L)——双指示词放置 object/dest 整个倒置
+        (实测 -230149 拿纸箱子送球L)。现按注视区间与 t_word 的关系算。"""
+        def gap_of(r):  # 注视区间 vs t_word:含=0 / 词前=离开多久 / 词后=多久才看
+            if r["t_start"] - 1e-9 <= t_word <= r["t_end"] + 1e-9:
+                return 0.0
+            if r["t_end"] < t_word:
+                g = t_word - r["t_end"]
+                return g if g <= lookback else None
+            g = r["t_start"] - t_word
+            return g if g <= fwd else None
+
         out = []
         if self.visit is not None:
             v, last = self.visit, self.visit["last"]
-            out.append({"object": v["object"],
-                        "gap": max(0.0, t_word - v["t_last_end"]),
-                        "dwell_s": self._dwell(),
-                        "vote": float(last.get("vote_share", 0.0)),
-                        "target_world": last.get("object_centroid_world")})
+            g = gap_of({"t_start": v["t_start"], "t_end": v["t_last_end"]})
+            if g is not None:
+                out.append({"object": v["object"], "t_start": v["t_start"],
+                            "t_end": v["t_last_end"], "gap": round(g, 3),
+                            "dwell_s": self._dwell(),
+                            "vote": float(last.get("vote_share", 0.0)),
+                            "target_world": last.get("object_centroid_world")})
         for r in reversed(self.recent):
-            gap = t_word - r["t_end"]
-            if gap > lookback:
-                break
-            if gap >= -0.5:
-                out.append({**r, "gap": max(0.0, gap)})
+            if r["t_end"] < t_word - lookback:
+                break                          # recent 升序,再往前只会更旧
+            g = gap_of(r)
+            if g is not None:
+                out.append({**r, "gap": round(g, 3)})
         if noun:
             out = [c for c in out if noun_match(noun, c["object"])]
         out.sort(key=lambda c: c["gap"])
@@ -201,20 +219,34 @@ class PlaceBuffer:
             if self.open and abs(self.open["t_start"] - t0) < 1e-9:
                 self.open = None
             if dur >= self.min_dwell:
-                self.recent.append({"t_end": t1, "point": list(p), "object": obj})
+                self.recent.append({"t_start": t0, "t_end": t1,
+                                    "point": list(p), "object": obj})
                 self.recent = self.recent[-50:]
 
-    def latest(self, t_word, lookback, exclude_obj=None):
-        """说指代词时刻回看:仍在盯的落点最优,其余取最近。返回记录或 None。
+    def latest(self, t_word, lookback, exclude_obj=None, fwd=0.6):
+        """说指代词时刻的落点:那一刻正盯着的最优(距离 0),其余取与 t_word
+        时间距离最近的——往回 lookback,往后 fwd。返回记录或 None。
+        fwd:dest 槽传 3.0——「说完'那里'目光才指过去」是实测常态(-230149:
+        词后 0.8s 才看向纸箱子),ASR 迟到使流早已到位,不需要等待机制也
+        捡得到(R18 裁定不等待;宽限外/流没到的仍如实报没看到)。
+        距离并列取更晚的:眼睛最终停在哪,哪就是本意。
         exclude_obj:剔除该名物体的落点——"把这个放到那里"里 object 自己的注视
         也是落点,不剔会把"刚盯过的 L 表面"当送达点(把L放到L)。"""
-        if self.open and t_word - self.open["t_end"] <= lookback and \
-                (exclude_obj is None or self.open.get("object") != exclude_obj):
-            return self.open
-        for r in reversed(self.recent):
-            gap = t_word - r["t_end"]
-            if gap > lookback:
-                return None
-            if gap >= -0.5 and (exclude_obj is None or r.get("object") != exclude_obj):
-                return r
-        return None
+        best, bd = None, None
+        for r in self.recent + ([self.open] if self.open else []):
+            if exclude_obj is not None and r.get("object") == exclude_obj:
+                continue
+            t0 = r.get("t_start", r["t_end"])
+            if t0 - 1e-9 <= t_word <= r["t_end"] + 1e-9:
+                d = 0.0
+            elif r["t_end"] < t_word:
+                d = t_word - r["t_end"]
+                if d > lookback:
+                    continue
+            else:
+                d = t0 - t_word
+                if d > fwd:
+                    continue
+            if bd is None or d <= bd:  # <=:并列时后来者(更晚/仍在盯)胜
+                best, bd = r, d
+        return best
