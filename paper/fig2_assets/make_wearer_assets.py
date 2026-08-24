@@ -132,10 +132,15 @@ def make_wave():
     w = wave.open(str(pick_p))
     x = np.frombuffer(w.readframes(w.getnframes()), np.int16) / 32768.0
     t = np.arange(len(x)) / w.getframerate()
-    fig, ax = plt.subplots(figsize=(10.0, 1.8), dpi=200)  # Fig.2 波形槽 5.5:1
-    ax.plot(t, x, lw=.5, color="#2c3e50")
-    ax.set_xlim(0, t[-1]); ax.set_ylim(-1, 1)
-    ax.set_yticks([])
+    # 裸波形:无标题无轴(文字由 Fig.2 里的矢量字承担),线加粗、幅值拉满
+    fig, ax = plt.subplots(figsize=(10.0, 1.3), dpi=200)
+    ax.plot(t, x, lw=1.8, color="#2c3e50")
+    amp = max(1e-3, np.abs(x).max())
+    ax.set_xlim(0, t[-1]); ax.set_ylim(-1.05 * amp, 1.05 * amp)
+    ax.axis("off")
+    fig.subplots_adjust(0, 0, 1, 1)
+    fig.savefig(HERE / "speech_wave_bare.png")
+    ax.axis("on"); ax.set_yticks([])
     ax.set_xlabel("t (s)", fontsize=13)
     en = {"拿一下这个": "bring me that one", "把这个放到那里去": "put this over there",
           "放到纸箱子": "put it in the box", "拿一下球": "fetch the ball"}
