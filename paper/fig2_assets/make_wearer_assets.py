@@ -70,7 +70,7 @@ def make_cluster():
           "苹果粉": "apple-p", "苹果红": "apple-r", "橘子": "orange",
           "香蕉": "banana", "水瓶": "bottle"}
     finals = [e for e in finals if e["object"] != "纸箱子"]   # 箱子远在图外,裁掉保比例
-    fig, ax = plt.subplots(figsize=(4.6, 3.0), dpi=200)
+    fig, ax = plt.subplots(figsize=(5.4, 3.6), dpi=200)   # Fig.2 槽位 1.5:1(左字右图)
     seen = set()
     for e in finals:
         c = e["centroid_world"]
@@ -88,15 +88,14 @@ def make_cluster():
     ax.add_patch(plt.Circle((c[0], c[1]), 3 * r, fill=False,
                             color="#222", lw=1.3, ls="--"))
     ax.annotate("one fixation\n(3σ spread)", (c[0] + 3 * r, c[1]),
-                textcoords="offset points", xytext=(6, -16), fontsize=7)
+                textcoords="offset points", xytext=(6, -22), fontsize=12)
     ax.set_aspect("equal")
     ax.set_xlim(0.55, 1.48); ax.set_ylim(0.12, 0.85)
-    ax.set_xlabel("x (m)", fontsize=8); ax.set_ylabel("y (m)", fontsize=8)
-    ax.set_title("gaze landings in map frame (card C1; × = instance centroid)",
-                 fontsize=8)
-    ax.tick_params(labelsize=7)
+    ax.set_xlabel("x (m)", fontsize=15); ax.set_ylabel("y (m)", fontsize=15)
+    # 标题不画:槽位框自带标题(缩到 3.9cm 宽,字号按比例给足)
+    ax.tick_params(labelsize=12)
     ax.grid(alpha=.25)
-    ax.legend(fontsize=6, loc="center left", bbox_to_anchor=(1.01, 0.5),
+    ax.legend(fontsize=11, loc="center left", bbox_to_anchor=(1.01, 0.5),
               frameon=False, handletextpad=.2)
     fig.tight_layout()
     fig.savefig(HERE / "wearer_cluster.png", bbox_inches="tight")
@@ -133,16 +132,16 @@ def make_wave():
     w = wave.open(str(pick_p))
     x = np.frombuffer(w.readframes(w.getnframes()), np.int16) / 32768.0
     t = np.arange(len(x)) / w.getframerate()
-    fig, ax = plt.subplots(figsize=(4.6, 1.5), dpi=200)
-    ax.plot(t, x, lw=.4, color="#2c3e50")
+    fig, ax = plt.subplots(figsize=(10.0, 1.8), dpi=200)  # Fig.2 波形槽 5.5:1
+    ax.plot(t, x, lw=.5, color="#2c3e50")
     ax.set_xlim(0, t[-1]); ax.set_ylim(-1, 1)
     ax.set_yticks([])
-    ax.set_xlabel("t (s)", fontsize=7)
+    ax.set_xlabel("t (s)", fontsize=13)
     en = {"拿一下这个": "bring me that one", "把这个放到那里去": "put this over there",
           "放到纸箱子": "put it in the box", "拿一下球": "fetch the ball"}
     key = next((v for k, v in en.items() if txt.startswith(k)), txt)
-    ax.set_title(f'utterance: "{key}"  (16 kHz)', fontsize=8)
-    ax.tick_params(labelsize=7)
+    ax.set_title(f'utterance: "{key}"  (16 kHz)', fontsize=14)
+    ax.tick_params(labelsize=12)
     for s in ("top", "right", "left"):
         ax.spines[s].set_visible(False)
     fig.tight_layout()
