@@ -84,3 +84,18 @@
 
 对照:SHOOTLIST.md(拍摄方针与通用三条)/ E2_CARDS.md(trial 卡与失败七分类)/
 E1_RESULTS.md(θ 台账与缺口)/ EXPERIMENT_PLAN.md(总设计)。
+
+## 拍完之后:结算与写作分工(2026-08-24 定)
+
+| 阶段 | 日期 | 用户 | Claude | 狗端同学 |
+|---|---|---|---|---|
+| ① 数据结算 | 08-26 | 填卡+push;Linux 跑 score_card→collect_e1、重跑 make_wearer_assets;push 一条 events.jsonl 样例 | collect_e2.py→Table I(含四段时延/lastmeter 残差);plot_fig4 刷新 | 给 lastmeter 日志 |
+| ② E4 消融 | 08-27~28 | Linux 按清单批跑 replay | 六开关跑法清单/脚本骨架→Table II | — |
+| ③ 图完稿 | 08-28~30 | 挑照片、验收 | Fig.1 拼版/Fig.2 收尾/Fig.3 底图+标注/Fig.5 拼版(含 col2 锥+票型叠加)/Fig.4 终稿,全部导 PDF | — |
+| ④ 正文与提交 | 08-30~09-15 | 标题、措辞裁定、导师内审、最终提交 | TBD 清零、结构性改写(θ阶梯段/N集合/walking句/prior披露/σ-遮挡结论)、语言 pass、版面 | **III-D 机器人小节(死线 09-03)** |
+
+节点:09-06 全文零 TBD 初稿发导师;09-08~12 内审改稿+润色+投稿视频(demo 正片+字幕);
+09-13~14 PaperPlaza 提交与格式检查;09-15 截稿(留 ~3 天余量)。
+
+风险三条:①III-D 唯一卡他人——08-25 当面定死线;②E4 位精确回放 08-27 先冒烟一轮
+(一个开关对比实录,别 9 月才发现 drift);③导师审阅周期不可控——09-06 别滑。
