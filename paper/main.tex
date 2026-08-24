@@ -1,0 +1,991 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%2345678901234567890123456789012345678901234567890123456789012345678901234567890
+%        1         2         3         4         5         6         7         8
+
+\documentclass[letterpaper, 10 pt, conference]{ieeeconf}  % Comment this line out if you need a4paper
+
+%\documentclass[a4paper, 10pt, conference]{ieeeconf}      % Use this line for a4 paper
+
+\IEEEoverridecommandlockouts                              % This command is only needed if
+                                                          % you want to use the \thanks command
+
+\overrideIEEEmargins                                      % Needed to meet printer requirements.
+
+%In case you encounter the following error:
+%Error 1010 The PDF file may be corrupt (unable to open PDF file) OR
+%Error 1000 An error occurred while parsing a contents stream. Unable to analyze the PDF file.
+%This is a known problem with pdfLaTeX conversion filter. The file cannot be opened with acrobat reader
+%Please use one of the alternatives below to circumvent this error by uncommenting one or the other
+%\pdfobjcompresslevel=0
+%\pdfminorversion=4
+
+% See the \addtolength command later in the file to balance the column lengths
+% on the last page of the document
+
+% The following packages can be found on http://www.ctan.org
+%\usepackage{graphics} % for pdf, bitmapped graphics files
+%\usepackage{epsfig} % for postscript graphics files
+%\usepackage{mathptmx} % assumes new font selection scheme installed
+%\usepackage{times} % assumes new font selection scheme installed
+%\usepackage{amsmath} % assumes amsmath package installed
+%\usepackage{amssymb}  % assumes amsmath package installed
+
+\usepackage{graphicx}
+\usepackage{xcolor}
+\newcommand{\TBD}[1]{\textbf{\color{red}[TBD-#1]}}
+
+\title{\LARGE \bf XXXXX
+
+}
+
+
+\author{
+}
+
+
+\begin{document}
+
+
+
+\maketitle
+\thispagestyle{empty}
+\pagestyle{empty}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ================================================================
+% ABSTRACT(回填首页)
+% ================================================================
+\begin{abstract}
+We present a multimodal command interface in which speech and gaze
+jointly control a quadruped mobile manipulator. A head-worn eye
+tracker and the robot share a persistent, metric instance map built
+on 3D Gaussian Splatting; the wearer's gaze is cast into this shared
+world model as a query over labeled object instances, so spoken
+deictic references are grounded directly in 3D space rather than in
+any camera image. Gaze thus resolves the ambiguity that language
+alone cannot: the referent may be one of many identical objects,
+unmarked, and outside the robot's line of sight. Resolution combines
+world-frame fixation clustering, cone-posterior voting over labeled
+Gaussians with online accuracy stamps, an eye--voice binding window,
+and last-meter re-projection into the grasp camera. Across 157
+pre-registered trials, top-1 resolution accuracy is 98.6\% at
+angular separations above 2.5$^\circ$ --- identical, unmarked
+instances included --- and degrades where the calibrated
+1$^\circ$ gaze cone predicts, approaching chance below
+1$^\circ$; end-to-end fetch succeeds in
+\TBD{E2-headline} of \TBD{E2-K} trials, with success statistically
+indistinguishable whether or not the target is in the robot's view.
+\end{abstract}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{INTRODUCTION}
+
+Fetch-and-carry is the canonical service task of a mobile manipulator,
+and speech is its natural interface. But ask a robot to fetch ``the
+tennis ball'' when three identical ones lie on the table, and language
+hits a structural wall: description --- class, color, size --- cannot
+separate instances that satisfy every description equally. The request
+is a one-in-$N$ lottery, for any channel that refers by properties.
+Picking one requires an \emph{index} --- \emph{which one}, not
+\emph{what kind} --- and humans already have one: when a speaker says
+``\emph{that} one,'' their eyes are on the referent around the word
+itself (the eye--voice span~\cite{eyevoicespan}).
+
+Robot systems accept this index only inside their own viewport.
+Existing gaze-commanded manipulation resolves reference in the robot's
+current camera --- searching the live view for the attended
+object~\cite{famhri,gamma2026,rueppel2025} --- or instruments objects
+with fiducial tags~\cite{ibotassistant}.
+Either way, what can be referred to collapses to what the robot
+perceives right now. Human deictic reference does not work this way:
+``that one'' designates an individual in the shared world, whether or
+not any robot is looking. Reference is world-centric; the systems are
+robot-centric.
+
+We restore the venue. The room is reconstructed once as a 3D Gaussian
+Splatting (3DGS) map, segmented into instances, and named; the wearer's
+eye tracker and the robot localize against the same surveyed fiducials,
+so a fixation becomes a query over \emph{world instances} --- not over
+anybody's image --- and the robot (a Unitree B2 quadruped with a Z1
+arm) enters, grasps, and delivers on the answer in the same coordinates
+(Fig.~1). 3DGS is the representation because the venue demands four
+things at once --- continuous geometry for $1^\circ$-precision ray
+queries, instance-level structure, semantic association of 2D evidence
+to persistent 3D labels, and persistent online querying; Sec.~III
+grounds this choice against point clouds, meshes, and implicit fields.
+Two consequences follow, and we test both: the referent needs to be in
+no camera's view --- in our experiments the robot starts outside the
+room, behind a doorway, with no line of sight to the target (E3) ---
+and unmarked identical instances become separable in principle ---
+gaze supplies the index that description cannot (E1).
+
+The claim has a quantitative signature. If resolution is a geometric
+query over the world model, accuracy among identical instances is
+governed by the \emph{angular separation} of the competitors as seen
+from the user, against the calibrated gaze noise
+($\sigma\!\approx\!1^\circ$: about 5\,cm at 3\,m, commensurate with
+balls 0.25\,m apart). We therefore measure accuracy as a function of
+angular separation and ask whether it falls where $\sigma$ predicts
+(E1, Fig.~4). Holding the $1^\circ$ budget end-to-end is the system's
+engineering substance; Sec.~IV introduces each mechanism by the
+measured failure of the naive design it replaced.
+
+Our contributions are:
+\begin{itemize}
+\item a \textbf{world-centric resolution architecture}: one
+persistent metric 3DGS instance map, mapped and named once, that a
+head-worn eye tracker queries and a quadruped executes in --- so the
+referent may be unmarked, identical to its neighbors, and outside
+every camera's view (Sec.~III; tested in E1, E3);
+\item the \textbf{pipeline that holds the $1^\circ$ gaze budget
+end-to-end}: world-frame fixation clustering, cone-posterior voting
+over labeled Gaussians, an eye--voice binding window, and last-meter
+re-projection into the grasp camera --- each mechanism introduced by
+the measured failure of the naive design it replaced (Sec.~IV;
+ablated bit-exactly in E4);
+\item a \textbf{falsifiable geometric account of gaze
+disambiguation}: accuracy among identical instances as a function of
+their angular separation, with the calibrated cone width predicting
+where it falls --- established on a pre-registered real-robot
+protocol, all runs recorded, none excluded (E1--E2, Fig.~4).
+\end{itemize}
+
+\section{RELATED WORK}
+
+\subsection{Gaze-Guided Manipulation: the Index in a Viewport}
+Multimodal deixis for machines dates to
+Put-That-There~\cite{bolt1980}, and gaze has long served as a readout
+of manipulation intent~\cite{belardinelli2024,huang2015} and a
+control channel for assistive arms~\cite{fischerjanzen2024}. Its
+current robotic form pairs a wearable tracker with speech or a
+foundation model and resolves the referent in a \emph{current image}:
+MR-headset gaze over a shared table with clarification
+dialogue~\cite{rosen2020}; headset gaze calibrated into the robot's
+frame to cluster the live point
+cloud~\cite{weber2022,weber2023}; glasses gaze matched into the
+robot's camera by features~\cite{famhri} or grounded by a
+VLM~\cite{gamma2026}; robot-explored tabletop
+graphs~\cite{glancesay}; egocentric keyframes~\cite{edith}; live
+feeds from distributed cameras~\cite{rueppel2025}; class matching
+from a headset ray~\cite{raycastgrasp2025}; semantic gaze histories
+over tagged objects~\cite{semanticscanpath}. Speech-plus-gaze can
+even disambiguate duplicates --- within the robot's 2D
+view~\cite{humanoids2023}; gaze-conditioned policies handle lookalike
+targets --- within the robot's current
+observation~\cite{gaze2act2025}; and when the referent is \emph{not}
+in view, the remedy on offer is to move the camera until it
+is~\cite{yuguchi2019}. Across all of these, the referable world is
+the currently perceived world: the human's index is accepted only
+inside a viewport. We accept it in a persistent world model, so the
+referent need not be in the \emph{robot's} view at all.
+
+\subsection{Map-Mediated Mobile Manipulation: the Human Outside the Map}
+A second line equips the robot with persistent semantic memory and
+fetches from it: CLIP voxel maps scanned by phone~\cite{okrobot2024},
+online-updated point-feature memories~\cite{dynamem2024},
+open-vocabulary scene graphs~\cite{dovsg}, instance-level Gaussian
+scene graphs that relocalize and update across
+sessions~\cite{dgsgmind}, task-relevant Gaussians gathered during
+search~\cite{helios}, robot-built language-embedded
+splats~\cite{legs}, multi-robot semantic splats that even ingest
+eyewear streams --- with gaze unused~\cite{hammer}, and full-home
+semantic maps queried by voice for quadruped
+fetch~\cite{beyondcybathlon}. These systems establish map-mediated
+fetch --- for \emph{descriptions}. The query is language, or a hand:
+drag-and-drop in a scanned dollhouse~\cite{holospot}, skeletal
+pointing read by the robot's own camera against a prior
+map~\cite{miel}. The human is never a \emph{resident} of the map ---
+absent from its frame entirely, or a transient skeleton in the
+robot's view --- and descriptive queries inherit the one-in-$N$ wall:
+OK-Robot reports lookalike instances as a standing failure mode, with
+user confirmation as the fallback~\cite{okrobot2024}; clarification
+dialogue, the generic remedy, can only ask for more properties ---
+exactly what identical instances lack~\cite{ingress2020,hatori2018}.
+We keep the persistent map and change who inhabits it: the wearer is
+localized in the same metric frame as the robot, and the query is the
+gaze index itself.
+
+\subsection{World-Frame Gaze: Measurement, Not Reference}
+Casting wearable gaze into prebuilt reconstructions is established
+--- as an instrument. Attention analytics localize the tracker and
+intersect the ray: SLAM-localized gaze in RGB-D point
+clouds~\cite{wang2018}, spatio-temporal gaze fields in dense
+maps~\cite{attention4d}, semantic 3D fixation
+mapping~\cite{semanticfovea}; a fixed arm has even answered
+world-frame gaze, by pointing a laser at the fixated
+surface~\cite{kogkas2017}. Egocentric datasets now ship every
+ingredient side by side --- aligned trajectories, 3D gaze,
+word-timestamped speech, multi-session splats --- composed into
+nothing~\cite{aea2024}. These lines validate our geometry --- wearer
+pose plus gaze ray against a metric model --- but not the referential
+contract: no instance identity, no calibrated uncertainty, no actor
+on the answering end resolving \emph{which one}. Going world-frame
+also pays a methodological dividend: fixation detection under
+locomotion otherwise needs inertial sensing and learned
+classifiers~\cite{kothari2020}; in world coordinates it reduces to
+clustering.
+
+\subsection{Quantifying the Index: Selection Psychometrics and the Eye--Voice Span}
+That gaze selection degrades in angular units is established on
+screens and in headsets: success collapses psychometrically as
+targets shrink toward tracker noise~\cite{schuetz2020}, calibrated
+bivariate error models drive probabilistic selection among close
+targets~\cite{evain2016,wei2023}, speech corrects gaze among crowded
+ones~\cite{miniotas2006}, and Bayesian accumulation over candidates
+is standard~\cite{bayesgaze2021} --- for labeled 2D targets,
+distinguishable by content, with no world behind them. Natural
+pointing, for comparison, resolves several degrees at
+best~\cite{breuer2010}; wearable trackers hold $\sim$1$^\circ$ as
+calibrated precision, not as free-motion
+accuracy~\cite{onkhar2024}. On the temporal side, speakers fixate
+the referent before naming it~\cite{eyevoicespan,meyer1998} --- a
+lead that survives unconstrained egocentric
+recording~\cite{lookandtell2025} --- and interfaces have bound gaze
+to speech by fixed windows for two
+decades~\cite{kaur2003,prasov2010,khan2026}, most recently by
+word-timestamped fixation selection in a live-view robot
+system~\cite{famhri}. Both halves are prior art we build on, not
+claims we make. The composition is the claim: selection among
+\emph{unmarked, physically identical} instances, in world
+coordinates, with accuracy measured against angular separation and
+predicted by an independently calibrated noise model (E1).
+
+\subsection{Nearest Neighbors}
+Two systems attack our conjunction most directly. iBotAssistant
+couples wearable gaze and speech to a mobile manipulator that
+retrieves and delivers --- but gaze returns an AprilTag identity, so
+every referable object is instrumented, and localization rides on a
+conventional navigation map rather than a shared instance
+map~\cite{ibotassistant}. IntenBot realizes the closest information
+flow --- headset deixis, a scene-graph memory, out-of-room targets
+--- but its multi-room fetching is executed by a virtual robot, the
+physical deployment is an armless base that only navigates, and gaze
+is routinely supplemented by pointing~\cite{intenbot}. EgoSpot shares
+our embodiment and shared-frame geometry, as mode-based teleoperation
+toward a surface point rather than resolution of a spoken deictic to
+an instance~\cite{egospot}. Perceptual anchoring has, separately,
+fused gaze-wearable and robot streams into one object memory ---
+without deixis or retrieval~\cite{sorensen2024}. To our knowledge, no
+prior system resolves a spoken deictic by wearable gaze alone, in a
+persistent metric instance map, to an unmarked target outside the
+robot's view at command time, and then grasps and delivers it with a
+mobile manipulator in one continuous physical trial --- and none, on
+any substrate, has measured whether identical instances separate at
+the rate calibrated gaze noise predicts.
+
+
+
+%================================================================
+%================================================================
+\section{SYSTEM}
+%================================================================
+% Fig.2 三栏架构图在此引用;III-A 引 Fig.3 平面图。
+
+A reference venue shared by a human and a robot (Fig.~2) puts four
+requirements on the map. \emph{Continuous geometry}: a fixation is a
+$\sim$1$^\circ$ cone, and ray queries at that precision tolerate
+neither holes nor phantom surfaces. \emph{Instance-level structure}:
+referents are individuals, so the primitives must group into nameable
+instances. \emph{Semantic association}: 2D evidence must lift into
+persistent 3D labels, so that gaze can vote per instance.
+\emph{Persistent querying}: metric, localizable by both agents, and
+fast enough to answer online --- a depth query renders in
+\TBD{timing-depth} and a full cone verdict in \TBD{timing-cone}.
+% 旧值:3ms / 4-6ms @TITAN X(宪法§8);建议在现工作站复测一次
+3DGS meets all four in one representation: Gaussians render depth
+along any ray (accumulated opacity doubling as an honest ``no
+surface'' signal) while remaining discrete, labelable primitives that
+masks lift onto and votes pool over. Point clouds offer primitives
+without continuous coverage; meshes are brittle to lift labels onto;
+implicit fields offer continuity without primitives.
+
+\subsection{Mapping and the Instance Registry (once, offline)}
+The room (Fig.~3) is photographed with a phone and reconstructed by
+COLMAP with calibrated intrinsics locked (plane-dominant indoor
+scenes leave a focal/depth gauge ambiguity that self-calibration
+resolves poorly). A ChArUco board defines the metric world: board
+corners are triangulated and a similarity transform aligns the
+reconstruction to the \emph{board frame} (metric, $z$-up, floor at
+$z\!\approx\!0$; residual \TBD{map-board-rms}).
+% 旧值:v2 0.48mm;v6 重建后复测
+A 3DGS model is trained with every pose-normalization step disabled,
+so the splat lives in the board frame. Wall fiducials are surveyed
+into the same frame by per-corner triangulation
+(\TBD{map-tag-rms}); online localization later solves PnP
+% 旧值:桌面 tag id79 2.2mm
+directly against these surveyed corners, so \emph{physical tag size
+never enters the online chain}. Fiducials are infrastructure for
+localizing \emph{cameras} --- the wearer's and the robot's --- never
+for identifying referents: no object in the registry carries a
+marker.
+
+Instances are lifted from 2D: SAM masks are back-projected through
+rendered depth and snapped to Gaussians, turning each mask into a
+Gaussian-ID set; masks agree across views by ID-set IoU (same-frame
+edges are banned --- SAM's part/whole ladder would weld distinct
+objects through transitive closure); containment-based merging and a
+voxel split finish the instances. The discipline throughout:
+\emph{2D proposes, 3D adjudicates}. A human names instances once;
+naming merges (the name is the primary key across the whole stack).
+The registry of referable objects is closed-world: named instances
+plus background classes. A static interactability prior $\pi$
+(one weight per name, class-uniform, fixed before capture; furniture
+down-weighted) is defined here and used in Sec.~IV-C.
+The map used in our experiments registers \TBD{map-images} images and
+yields \TBD{map-instances} instances, \TBD{map-named} of them named;
+the end-to-end geometric chain (calibration $\times$ survey $\times$
+localization $\times$ map) verifies at \TBD{chain-deg}.
+% 旧值:~0.1°(verify blend 0.93px);v6 复测
+
+\subsection{Wearer State}
+The tracker's fisheye world camera is localized per frame: ArUco
+corners detected on the raw image, undistorted corner-wise, and
+passed to planar PnP against the surveyed corners. A pose is
+accepted through three gates (room and height bounds; mean
+reprojection $\le$0.006 normalized $\approx$5\,px; jumps $>$1\,m
+within 0.25\,s rejected, with forced re-acceptance after five
+straight rejections) and interpolated across gaps up to 1\,s. The
+head pose doubles as the user's position: every fixation carries it,
+delivery anchors on it at confirmation time, and a pose older than
+10\,s raises a staleness warning rather than a silent guess.
+
+\subsection{Command Channel}
+The command channel turns speech into structure and nothing more: an
+LLM parses each transcribed utterance into an action $\in$ \{fetch,
+go-to, stop\} and three reference slots (object / place /
+destination), each filled by a \emph{name} or flagged as a
+\emph{deictic} --- deictics are never guessed. Transcription is
+continuous (open microphone, energy gate, every utterance archived
+as audio). A deterministic hygiene layer scrubs deictic tokens that
+leak into name fields and demotes verb-inconsistent actions. Parses
+are cached; an entry persists only after the user confirms the
+command it produced, so the cache stays human-audited. The emergency
+stop word bypasses the LLM entirely (normalized word-table match).
+
+\subsection{Robot Execution}
+% ================= [此小节由狗端同学撰写] =====================
+% 需覆盖:B2+Z1 硬件;狗端定位(同一套测绘 tag);导航;到位按名检测;
+% 抓取;送达;急停实现。最后一米的"选哪只"规则在 IV-E(意图侧冻结),
+% 这里写它的机器人侧实现(抓取相机、hint 经自身位姿投影、检测框匹配;
+% 桌前位姿来源写清——新设计无桌面 tag)。
+The robot consumes board-frame task orders: \texttt{target} = the
+referent's centroid plus a suggested approach bearing (standoff and
+obstacle avoidance are the robot's own), \texttt{object\_hint} = the
+resolved instance centroid (Sec.~IV-E), and an optional delivery
+point. It acknowledges within 100\,ms and reports progress on a
+status stream. \TBD{robot-subsection}
+
+\subsection{Design Discipline}
+Resolution logic is deterministic end to end; the LLM sits in no fast
+loop (parse-time only, cache-first); every event --- gaze verdicts,
+commands, bindings, dispatches, robot statuses --- is appended to a
+session log. Any live session replays bit-exactly, which is the basis
+of the offline ablations (E4).
+
+
+%================================================================
+\section{REFERENCE RESOLUTION}
+%================================================================
+\emph{Notation.} $T_{WC}(t)=(R(t),\,\mathbf{o}(t))$ is the head pose
+in the board frame; $\mathbf{g}(t)\in\mathbb{R}^2$ the gaze sample on
+the undistorted normalized plane; $\beta(t)$ the gaze bias; $\sigma$
+the calibrated cone width; $D(\mathbf{o},\mathbf{r})$ the splat depth
+oracle along ray $\mathbf{r}$.
+
+\subsection{World-Frame Fixation Events}
+An image-frame fixation detector cannot see the fixations that matter
+here: a walking user stabilizes gaze on a world point through the
+vestibulo-ocular reflex, which reads as continuous saccading in the
+image. We therefore detect fixations \emph{after} mapping each sample
+into the world: $\mathbf{r}_W = R\,[\,\mathbf{g}-\beta_{\mathrm{eff}};
+1\,]/\|\cdot\|$, $\;\mathbf{p} = \mathbf{o} +
+D(\mathbf{o},\mathbf{r}_W)\,\mathbf{r}_W$ (median $z$-depth over the
+central patch; low accumulated opacity returns \emph{no surface}).
+Samples cluster incrementally with three angular rules: a point joins
+while $\|\mathbf{p}-\mathbf{c}\| \le \max(0.05\,\mathrm{m},\,
+\tan(1.5^\circ)\,d)$ with $d$ the viewing distance --- the radius
+scales with distance exactly as gaze noise does; a split triggers
+when apparent angular velocity exceeds $80^\circ$/s (a metric
+threshold tuned near shreds fixations far, since noise-induced
+apparent speed grows with $d$); a cluster closes after 0.4\,s without
+a mappable sample and survives if it lasted $\ge$0.25\,s. Because a
+fixation only closes when gaze \emph{leaves} the target, the still-open
+cluster is judged provisionally every 0.4\,s; finals settle the books.
+
+\subsection{Online Accuracy Stamps}
+A \TBD{drift-deg} within-wear drift once invalidated an entire
+% 旧值:2.6°(rec002,宪法§4.5);可复用旧案或在新图复测
+session: constant-bias calibration dies quietly as the headset creeps.
+Surveyed fiducials give millimeter ground truth for free, so bias is
+re-measured \emph{during use}: an uninterrupted stare at one tag
+(same tag, sample gaps $\le$0.1\,s, dwell $\ge$0.4\,s, $\ge$25
+samples, MAD outlier rejection; both raw and corrected directions are
+tested so a stale correction cannot lock out its own replacement)
+yields a stamp $(\hat\beta, \hat\sigma)$; $\hat\sigma$ is the pooled
+per-axis RMS of the cleaned residuals. Tags adjacent to experiment
+objects are excluded as stamp targets. A stamp's authority decays
+with age,
+\begin{equation}
+\beta_{\mathrm{eff}}(t) = \hat\beta\, e^{-(t - t_s)/\tau},
+\qquad \tau = 45\,\mathrm{s},
+\end{equation}
+so an outdated correction fades toward raw gaze instead of pushing it
+off target. One statistical rule governs everything downstream: a
+fixation is \emph{one} observation, not $N$,
+\begin{equation}
+\sigma_{\mathrm{eff}}^2 = \sigma_{\mathrm{bias}}^2 +
+\sigma_{\mathrm{jitter}}^2/N,
+\end{equation}
+because calibration error is shared across all samples of a fixation.
+Treating samples as independent would sharpen the cone by $\sqrt{N}$
+and produce confidently wrong verdicts.
+
+\subsection{Cone-Posterior Instance Voting}
+The naive resolver --- collect Gaussians in a sphere around the gaze
+point --- is viewpoint-independent, which contradicts what a fixation
+is: floor Gaussians \emph{behind} a prone object vote even though the
+user cannot see them. On our validation recording, sphere voting
+produced confident misjudgments (a wrong object carrying a
+\TBD{sphere-fail-share} vote share); its replacement lets only
+% 旧值:84%(次案 44%);rec002,宪法§4.5 口径按此修正
+\emph{visible} surface vote. The patch renderer already computes an
+$S\times S$ depth-and-opacity block ($S{=}33$, spanning $\pm2.5\sigma$);
+each pixel casts a ray with weight
+$w_i=\exp(-\theta_i^2/2\sigma^2)$, back-projects at its rendered
+depth, and snaps to the nearest labeled Gaussian within 5\,cm
+(contour pixels, whose blended depths float between objects, honestly
+fail the snap). Raw votes and abstention are
+\begin{equation}
+v(\ell) = \textstyle\sum_{i:\,L(\mathbf{x}_i)=\ell} w_i \alpha_i,
+\qquad
+p_{\mathrm{none}} = 1 - \textstyle\sum_\ell v(\ell) \big/
+\textstyle\sum_i w_i ,
+\end{equation}
+with the denominator over \emph{all} patch pixels --- invisible,
+out-of-range, and unlabeled surface all counted as ``don't know.''
+Votes pool by name (naming merges), and only then multiplies the
+interactability prior: $\tilde V(n) = \pi(n)\sum_{\ell\in n}v(\ell)$.
+Because $\pi$ is class-uniform, the argmax \emph{among same-class
+instances} is invariant to it --- the prior suppresses cross-class
+vote leakage only, which E4 ablates. The verdict published per
+fixation is top-$k$ candidates with shares, $p_{\mathrm{none}}$, and
+the $\sigma$ actually used --- a calibrated posterior, not a label.
+
+\subsection{Eye--Voice Binding and Slot Resolution}
+Each transcribed command is anchored at its utterance end $t_w$
+(back-dated for transcription latency). Each deictic slot is bound to
+gaze evidence in an asymmetric window: 4\,s back, 0.5\,s forward
+grace, with a still-running fixation ranking first --- speakers look
+at the referent before and while naming it (eye--voice span).
+The \emph{object} slot binds to instance identity (verdict
+$\ge$0.5 vote share, cone mode only; a noun class in the utterance
+filters candidates; only \emph{named} instances are bindable). The
+\emph{place} and \emph{destination} slots bind to the \emph{landing
+point} --- the world point gaze actually struck ($\ge$0.4\,s dwell;
+unnamed instances count; floor and walls do not) --- deliberately not
+the instance centroid: ``this spot'' means the point you looked at.
+Name-filled slots resolve by fuzzy match over the registry with a
+unique-hit rule (accept only a clear single winner). Resolution runs
+destination $\to$ place $\to$ object; any unresolved slot aborts with
+a spoken refusal --- the system never substitutes a guess. A
+confirmation gate precedes dispatch; the task order carries the
+referent centroid, an approach bearing computed from the user's side,
+and the instance centroid as \texttt{object\_hint}.
+
+\subsection{Last-Meter Disambiguation}
+Class-level detection at the table re-loses the instance: among $N$
+identical balls, a detector's boxes are descriptively
+indistinguishable --- the 1-in-$N$ wall returns at one meter. The
+resolved instance's map centroid closes it: the robot projects the
+\texttt{object\_hint} into its grasp camera through its own estimated
+board-frame pose and picks the detection box containing the projected
+point; if no box contains it and none is within half a box width, the
+robot \emph{refuses} rather than guesses. No fiducial is needed at
+the table: the projection rides on the same localization the robot
+navigates by, and the short grasp-range standoff keeps the angular
+lever arm small, so the projection error budget (robot pose at the
+table $\times$ map centroid, \TBD{lastmeter-budget}) stays small
+against the object radius and densely packed lookalikes remain
+separable.
+% 新设计(2026-08 demo 实测):无桌面 tag,hint 直接经狗自身位姿投影。
+% 狗端同学确认三点:①桌前位姿来源(墙 tag / 里程计融合?)
+% ②负例拒抓分支(hint_mismatch)在新实现里是否仍在——明天负例必测
+% ③lastmeter-budget 改从 E2 日志实测:hint 投影点到目标框的残差中位数
+
+\subsection{The Failure Envelope}
+Every stage of this pipeline scales \emph{angularly}: the gaze noise
+$\sigma$, the clustering radius, and the voting cone all subtend
+fixed angles, so distance enters resolution only through the
+\emph{angular separation} of competing instances,
+$\Delta\theta \approx s/d$ for spacing $s$ at distance $d$. This
+collapses ``how far'' and ``how dense'' onto one axis and yields a
+prediction: accuracy among identical instances degrades to chance as
+$\Delta\theta$ approaches $O(\sigma)$, i.e.\ beyond
+$d^\ast \approx s/(k\sigma)$ for some $k$ of order unity. E1 measures
+the curve and locates the knee (\TBD{E1-knee}); localization quality
+and splat depth noise are logged per station so the knee is
+attributable to the gaze channel rather than to a decaying pose.
+Failures off this axis --- no fiducial in view, unmapped or moved
+objects, a missed binding window, transcription errors --- do not
+bend the curve; they are enumerated and counted in the E2 failure
+taxonomy.
+
+
+\section{EXPERIMENTS}
+
+\subsection{Setup and Protocol}
+The arena is two connected spaces separated by a doorway
+(Fig.~3): the user and target objects occupy one room; the robot
+parks in the other, without line of sight to the targets. Targets
+include \TBD{n-balls} identical, unmarked tennis balls placed
+\TBD{layout} apart. Ground truth follows a card protocol: each trial's
+target is drawn from a pre-generated pseudorandom card sequence
+(committed before collection); the physical layout and its
+instance-ID correspondence are photo-archived; the system's choice is
+the instance ID in the binding log. Metrics and the failure taxonomy
+below were frozen before data collection; \emph{every trial is
+recorded and reported --- none excluded}. All parameters of
+Secs.~III--IV were frozen at commit \TBD{freeze-commit}.
+
+\subsection{E1: Disambiguation Accuracy vs.\ Angular Separation}
+E1 asks the core question --- when language cannot separate identical
+instances, does gaze? --- without the robot in the loop. The user
+fixates the carded target and issues ``bring me \emph{that} ball'';
+commands are injected as text at logged timestamps, so ASR error is
+excluded by construction (it is measured in E2). Independent
+variables: instance count $N \in \{2,3,5\}$ (fixed layout, subset
+selection) and angular separation, swept by crossing spacing
+$\{0.25, 0.5, 1.0\}$\,m with standing distance $\{1.5, 3, 5, 7\}$\,m
+--- the far, dense cells push $\Delta\theta$ into the
+$1$--$2^\circ$ regime where Sec.~IV-G predicts collapse. Each cell
+runs 15--20 trials (\TBD{E1-total} total). Per-station covariates
+(fiducials in view, localization residual, online $\sigma$) are
+logged so the knee is attributable to the gaze channel.
+
+\emph{Baselines} (scored on the same trials): (i) language only ---
+analytically $1/N$, plus an LLM given the utterance text and the
+instance list; (ii) nearest same-class instance to the user.
+\emph{Metrics}: top-1 accuracy with Wilson 95\% CIs per cell,
+first-vs-second vote margin, and McNemar tests against both
+baselines.
+
+Fig.~4 plots accuracy against angular separation with the calibrated
+$\sigma$ drawn as a vertical line. Accuracy is \TBD{E1-near} above
+\TBD{E1-sep-safe} of separation and falls to \TBD{E1-far} as
+separation approaches $\sigma$, with the knee at
+\TBD{E1-knee}~--- consistent with the geometric prediction of
+Sec.~IV-G. % 膝盖没测出来就如实报平线并讨论(但按设计 7m/0.25m 应该塌)
+A walking condition repeats one column of the grid while the user
+moves ($\ge$\TBD{E1-walk-n} trials): world-frame clustering holds
+accuracy at \TBD{E1-walk} vs.\ \TBD{E1-stand} standing, isolating the
+contribution of locomotion-stabilized fixation detection.
+
+\subsection{E2: End-to-End Fetch (Table~I)}
+K $\ge$ 25 trials across $\ge$2 object classes and 2--3 layouts, with
+hard resets between trials (robot to park, objects re-placed). A
+trial succeeds only with \emph{zero human intervention}. Table~I
+reports staged success --- reference resolution / navigation to
+within 0.3\,m of the approach pose / grasp / delivery --- and a
+latency decomposition (utterance end $\to$ dispatch $\to$ arrival
+$\to$ grasp $\to$ delivery). Every failure lands in exactly one
+pre-registered class: localization gap / wrong-instance selection /
+missed binding window / transcription error / navigation failure /
+grasp failure / communication timeout.
+
+\begin{table}[t]
+\caption{E2 end-to-end results (staged success and latency).}
+\label{tab:e2}
+\centering
+\begin{tabular}{lcc}
+\hline
+Stage & Success & Median latency (s)\\
+\hline
+Reference resolution & \TBD{}/\TBD{} & \TBD{} \\
+Navigation ($<$0.3\,m) & \TBD{}/\TBD{} & \TBD{} \\
+Grasp (correct instance) & \TBD{}/\TBD{} & \TBD{} \\
+Delivery & \TBD{}/\TBD{} & \TBD{} \\
+\hline
+End-to-end & \TBD{}/\TBD{} & \TBD{} total \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{E3: In-View / Out-of-View Equivalence}
+The same fetch task under two command-time conditions: (a) the robot
+in the same room, target inside its camera view; (b) the robot behind
+the doorway, no line of sight --- 10--12 trials each. Map mediation
+provides no mechanism by which (b) should be harder \emph{for
+resolution}: we observe \TBD{E3-in} vs.\ \TBD{E3-out} success with
+overlapping CIs and matching failure classes. The (a)/(b) contrast
+also separates navigation difficulty from resolution ability. In-view
+approaches (e.g.\ FAM-HRI-style matching) are structurally
+inapplicable in (b); we state this by citation rather than
+re-implementation.
+
+\subsection{E4: Replay Ablations (Table~II)}
+Every trial's event stream replays bit-exactly, so ablations cost no
+robot time. Table~II sweeps: eye--voice window start/width (0--3\,s);
+noun-class filtering on/off; online accuracy stamps on/off (stale
+constant bias); vote-share threshold 0.3--0.7; interactability prior
+on/off; candidate scope named-only vs.\ all instances.
+
+\begin{table}[t]
+\caption{E4 ablations: E1 accuracy under replayed variants.}
+\label{tab:e4}
+\centering
+\begin{tabular}{lc}
+\hline
+Variant & Top-1 accuracy \\
+\hline
+Full system & \TBD{} \\
+No online stamps (constant bias) & \TBD{} \\
+No class filter & \TBD{} \\
+Binding window \TBD{best}/\TBD{worst} & \TBD{}/\TBD{} \\
+Prior off & \TBD{} \\
+Candidate scope: all instances & \TBD{} \\
+\hline
+\end{tabular}
+\end{table}
+% 预期口径:prior off 不动同类消歧、只影响跨类漏票;scope=all 掉分
+% 来自未命名碎片抢票——写结果时按这两句解读,别倒果为因。
+
+\subsection{System Characterization}
+From logs, no new collection: localization coverage \TBD{sys-loc},
+post-stamp gaze $\sigma$ \TBD{sys-sigma}, depth query
+\TBD{timing-depth}, cone verdict \TBD{timing-cone}, dispatch receipt
+\TBD{sys-rep}, emergency-stop response \TBD{sys-estop} (measured
+stop-request to motion-halt on hardware). Fig.~5 shows qualitative
+strips: gaze cross, instance boxes, and verdict banners across
+scenes.
+
+%================================================================
+\section{LIMITATIONS}
+%================================================================
+The map is static: moved objects invalidate both depth and centroids
+until remapped (render-vs-photo blending flags changes but does not
+repair them). Referability is closed-world twice over --- only named
+instances can be bound, and the robot's detector vocabulary is a
+finite class list. Calibration lives for one wearing; within-wear
+drift is suppressed by the stamp protocol, which requires surveyed
+fiducials in view from time to time, and head localization dies
+without wall fiducials. Binding anchors at utterance end; a sentence
+with two deictics relies on an ordering heuristic (word-level
+timestamps are future work). Delivery targets the user's position at
+confirmation time. Last-meter disambiguation inherits the robot's
+localization error at the table; when the projection matches no
+detection, the robot refuses rather than guesses. Transparent and unmapped surfaces
+return no depth and cannot be referred to. Single user, single scene
+(a cross-user study is future work).
+
+%================================================================
+\section{CONCLUSION}
+%================================================================
+Reference resolution moved venue: from the robot's camera to a
+persistent metric 3DGS instance map that the human's gaze queries and
+the robot acts in. The change dissolves two standing premises ---
+in-view targets and instrumented objects --- and turns ``can gaze
+tell identical instances apart'' into a geometric proposition with a
+measurable failure point. A quadruped manipulator fetching an
+unmarked, gaze-designated ball from outside the room is the
+existence proof; the angular-separation curve is the science.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{APPENDIX}
+
+Appendixes should appear before the acknowledgment.
+
+\section*{ACKNOWLEDGMENT}
+
+The preferred spelling of the word ÒacknowledgmentÓ in America is without an ÒeÓ after the ÒgÓ. Avoid the stilted expression, ÒOne of us (R. B. G.) thanks . . .Ó  Instead, try ÒR. B. G. thanksÓ. Put sponsor acknowledgments in the unnumbered footnote on the first page.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+References are important to the reader; therefore, each citation must be complete and correct. If at all possible, references should be commonly available publications.
+
+
+
+\begin{thebibliography}{99}
+
+% ---- \bibitem entries (IEEEtran style) for related_work_v2.tex ----
+% Paste into your \begin{thebibliography}{99} ... \end{thebibliography}.
+% Ordering: rearrange to match first-citation order in your final text.
+
+% ===== New references introduced in RELATED WORK v2 =====
+
+\bibitem{fischerjanzen2024}
+A. Fischer-Janzen, T. M. Wendt, and K. Van Laerhoven, ``A scoping
+review of gaze and eye tracking-based control methods for assistive
+robotic arms,'' \emph{Front. Robot. AI}, vol. 11, p. 1326670, 2024.
+
+\bibitem{weber2022}
+D. Weber, E. Kasneci, and A. Zell, ``Exploiting augmented reality for
+extrinsic robot calibration and eye-based human-robot collaboration,''
+in \emph{Proc. ACM/IEEE Int. Conf. Human-Robot Interaction (HRI)},
+2022, pp. 284--293.
+
+\bibitem{weber2023}
+D. Weber, W. Fuhl, E. Kasneci, and A. Zell, ``Multiperspective
+teaching of unknown objects via shared-gaze-based multimodal
+human-robot interaction,'' in \emph{Proc. ACM/IEEE Int. Conf.
+Human-Robot Interaction (HRI)}, 2023, pp. 544--553.
+
+\bibitem{yuguchi2019}
+A. Yuguchi, T. Inoue, G. A. Garcia Ricardez, M. Ding, J. Takamatsu,
+and T. Ogasawara, ``Real-time gazed object identification with a
+variable point of view using a mobile service robot,'' in \emph{Proc.
+IEEE Int. Conf. Robot Human Interact. Commun. (RO-MAN)}, 2019.
+
+\bibitem{dgsgmind}
+L. Ge, X. Zhu, J. Liu, and X. Li, ``DGSG-Mind: Dynamic 3D Gaussian
+scene graphs for long-term scene understanding and grounding,''
+arXiv:2605.29879, 2026.
+
+\bibitem{ingress2020}
+M. Shridhar, D. Mittal, and D. Hsu, ``INGRESS: Interactive visual
+grounding of referring expressions,'' \emph{Int. J. Robot. Res.},
+vol. 39, no. 2--3, pp. 217--232, 2020.
+
+\bibitem{hatori2018}
+J. Hatori \emph{et al.}, ``Interactively picking real-world objects
+with unconstrained spoken language instructions,'' in \emph{Proc.
+IEEE Int. Conf. Robot. Autom. (ICRA)}, 2018, pp. 3774--3781.
+
+\bibitem{kogkas2017}
+A. A. Kogkas, A. Darzi, and G. P. Mylonas, ``Gaze-contingent
+perceptually enabled interactions in the operating theatre,''
+\emph{Int. J. Comput. Assist. Radiol. Surg.}, vol. 12, no. 7,
+pp. 1131--1140, 2017.
+
+\bibitem{aea2024}
+Z. Lv \emph{et al.}, ``Aria everyday activities dataset,''
+arXiv:2402.13349, 2024.
+
+\bibitem{schuetz2020}
+I. Schuetz, T. S. Murdison, and M. Zannoli, ``A psychophysics-inspired
+model of gaze selection performance,'' in \emph{Proc. ACM Symp. Eye
+Tracking Res. Appl. (ETRA)}, 2020.
+
+\bibitem{evain2016}
+A. \'Evain, F. Argelaguet, G. Casiez, N. Roussel, and A. L\'ecuyer,
+``Design and evaluation of fusion approach for combining brain and
+gaze inputs for target selection,'' \emph{Front. Neurosci.}, vol. 10,
+p. 454, 2016.
+
+\bibitem{wei2023}
+Y. Wei, R. Shi, D. Yu, Y. Wang, Y. Li, L. Yu, and H.-N. Liang,
+``Predicting gaze-based target selection in augmented reality headsets
+based on eye and head endpoint distributions,'' in \emph{Proc. CHI
+Conf. Human Factors Comput. Syst.}, 2023.
+
+\bibitem{miniotas2006}
+D. Miniotas, O. \v{S}pakov, I. Tugoy, and I. S. MacKenzie,
+``Speech-augmented eye gaze interaction with small closely spaced
+targets,'' in \emph{Proc. Symp. Eye Tracking Res. Appl. (ETRA)},
+2006, pp. 67--72.
+
+\bibitem{bayesgaze2021}
+Z. Li \emph{et al.}, ``BayesGaze: A Bayesian approach to eye-gaze
+based target selection,'' in \emph{Proc. Graphics Interface}, 2021,
+pp. 231--240.
+
+\bibitem{breuer2010}
+T. Breuer, P. G. Pl\"oger, and G. K. Kraetzschmar, ``Precise pointing
+target recognition for human-robot interaction,'' in \emph{Proc.
+SIMPAR Workshops}, 2010, pp. 229--240.
+
+\bibitem{onkhar2024}
+V. Onkhar, D. Dodou, and J. C. F. de Winter, ``Evaluating the Tobii
+Pro Glasses 2 and 3 in static and dynamic conditions,'' \emph{Behav.
+Res. Methods}, vol. 56, no. 5, pp. 4221--4238, 2024.
+
+\bibitem{meyer1998}
+A. S. Meyer, A. M. Sleiderink, and W. J. M. Levelt, ``Viewing and
+naming objects: Eye movements during noun phrase production,''
+\emph{Cognition}, vol. 66, no. 2, pp. B25--B33, 1998.
+
+\bibitem{lookandtell2025}
+A. Deichler and J. Beskow, ``Look and tell: A dataset for multimodal
+grounding across egocentric and exocentric views,''
+arXiv:2510.22672, 2025.
+
+\bibitem{kaur2003}
+M. Kaur \emph{et al.}, ``Where is `it'? Event synchronization in
+gaze-speech input systems,'' in \emph{Proc. Int. Conf. Multimodal
+Interfaces (ICMI)}, 2003, pp. 151--158.
+
+\bibitem{prasov2010}
+Z. Prasov and J. Y. Chai, ``Fusing eye gaze with speech recognition
+hypotheses to resolve exophoric references in situated dialogue,'' in
+\emph{Proc. Conf. Empirical Methods Natural Lang. Process. (EMNLP)},
+2010, pp. 471--481.
+
+\bibitem{khan2026}
+A. A. Khan \emph{et al.}, ``Gaze and speech in multimodal
+human-computer interaction: A scoping review,'' in \emph{Proc. CHI
+Conf. Human Factors Comput. Syst.}, 2026.
+
+\bibitem{sorensen2024}
+S. L. S{\o}rensen, S. Huang, Y. Cao, and M. B. Kj{\ae}rgaard,
+``Perceptual anchoring for gaze-tracking wearables and robot-mounted
+sensors,'' in \emph{Proc. Int. Conf. Ubiquitous Robots (UR)}, 2024,
+pp. 71--76.
+
+% ===== Intro "% TODO bibitem" resolutions =====
+
+\bibitem{eyevoicespan}
+Z. M. Griffin and K. Bock, ``What the eyes say about speaking,''
+\emph{Psychol. Sci.}, vol. 11, no. 4, pp. 274--279, 2000.
+
+\bibitem{famhri}
+Y. Lai, S. Yuan, P. Li, B. Zhang, B. Kiefer, T. Deng, and A. Zell,
+``FAM-HRI: Foundation-model assisted multi-modal human-robot
+interaction combining gaze and speech,'' \emph{IEEE Trans. Autom.
+Sci. Eng.}, vol. 23, pp. 10521--10534, 2026.
+
+\bibitem{gamma2026}
+T. Y. H. Tay, X. Yan, J. Ouyang, D. Wu, W. Jiang, J. Kao, and Y. Cui,
+``Intent at a glance: Gaze-guided robotic manipulation via foundation
+models,'' in \emph{RSS Workshop on Robot Planning in the Era of
+Foundation Models}, 2025.
+
+\bibitem{rueppel2025}
+J. V. R\"uppel, A. Rudenko, T. Schreiter, M. Magnusson, and
+A. J. Lilienthal, ``Gaze-supported large language model framework for
+bi-directional human-robot interaction,'' in \emph{Proc. IEEE Int.
+Conf. Robot Human Interact. Commun. (RO-MAN)}, 2025, pp. 677--684.
+
+% ===== Nearest neighbors (verified 2026-08-10; see tmp/related_work_scan/out/11-nearest-neighbors.md) =====
+
+\bibitem{ibotassistant}
+X. Liang and J. Cai, ``A multimodal agentic AI framework for intuitive
+human--robot collaboration,'' \emph{Sensors}, vol. 26, no. 6,
+p. 1958, 2026.
+
+\bibitem{intenbot}
+Y.-T. Liu \emph{et al.}, ``IntenBot: Flexible and imprecise multimodal
+input for LLMs to understand user intentions for casual and
+human-like HRI,'' arXiv:2605.04585, 2026.
+
+\bibitem{egospot}
+G. Zhang \emph{et al.}, ``EgoSpot: Egocentric multimodal control for
+hands-free mobile manipulation,'' arXiv:2306.02393, 2023, rev. 2026.
+
+% ===== 补缺 23 条(作者已核实 2026-08-10;验证表与来源 URL 见
+%       tmp/related_work_scan/out/bib-authors-{A,B,C}.md)=====
+
+\bibitem{bolt1980} R. A. Bolt, ```Put-that-there': Voice and gesture
+at the graphics interface,'' in \emph{Proc. SIGGRAPH}, 1980.
+
+\bibitem{belardinelli2024} A. Belardinelli, ``Gaze-based intention
+estimation: principles, methodologies, and applications in HRI,''
+\emph{ACM Trans. Human-Robot Interaction}, 2024.
+
+\bibitem{huang2015} C.-M. Huang, S. Andrist, A. Saupp\'e, and
+B. Mutlu, ``Using gaze patterns to predict task intent in
+collaboration,'' \emph{Frontiers in Psychology}, vol.~6, 2015.
+
+\bibitem{rosen2020} E. Rosen, D. Whitney, M. Fishman, D. Ullman, and
+S. Tellex, ``Mixed reality as a bidirectional communication interface
+for human-robot interaction,'' in \emph{Proc. IEEE/RSJ IROS}, 2020,
+pp. 11431--11438.
+
+\bibitem{glancesay} Y. Lai, S. Yuan, P. Li, B. Kiefer, and A. Zell,
+``Glance-Say: Multimodal human-robot collaboration and intent
+recognition via sticky glance,'' arXiv:2603.06121, 2026.
+
+\bibitem{edith} D. Lee, J. Choi, D. K. Shin, S. Kang, and K. Lee,
+``Hierarchical policies from verbal and egocentric human signals for
+natural human-robot interaction,'' arXiv:2606.10276, 2026.
+
+\bibitem{raycastgrasp2025} Z. Lin, Y. Sang, and Y. Ye,
+``RaycastGrasp: Eye-gaze interaction with wearable devices for
+robotic manipulation,'' arXiv:2510.22113, 2025.
+
+\bibitem{semanticscanpath} E. Menendez, M. Gienger, S. Mart\'inez,
+C. Balaguer, and A. Belardinelli, ``SemanticScanpath: Combining gaze
+and speech for situated human-robot interaction using LLMs,''
+arXiv:2503.16548, 2025.
+
+\bibitem{humanoids2023} Y.-C. Chang, N. Gandi, K. Shin, Y.-J. Mun,
+K. Driggs-Campbell, and J. Kim, ``Specifying target objects in robot
+teleoperation using speech and natural eye gaze,'' in \emph{Proc.
+IEEE-RAS Humanoids}, 2023, pp. 1--7.
+
+\bibitem{gaze2act2025} K. Zuo \emph{et al.}, ``Gaze2Act:
+Gaze-conditioned vision-language-action policies for interactive
+robot manipulation,'' arXiv:2605.30282, 2026.
+
+\bibitem{okrobot2024} P. Liu, Y. Orru, C. Paxton, N. M. M. Shafiullah,
+and L. Pinto, ``OK-Robot: What really matters in integrating
+open-knowledge models for robotics,'' in \emph{Proc. Robotics:
+Science and Systems (RSS)}, 2024.
+
+\bibitem{dynamem2024} P. Liu, Z. Guo, M. Warke, S. Chintala,
+C. Paxton, N. M. M. Shafiullah, and L. Pinto, ``DynaMem: Online
+dynamic spatio-semantic memory for open world mobile manipulation,''
+in \emph{Proc. IEEE ICRA}, 2025, pp. 13346--13355.
+
+\bibitem{dovsg} Z. Yan \emph{et al.}, ``Dynamic open-vocabulary 3D
+scene graphs for long-term language-guided mobile manipulation,''
+\emph{IEEE Robot. Autom. Lett.}, vol. 10, no. 5, pp. 4252--4259,
+2025.
+
+\bibitem{helios} K. Ashton \emph{et al.}, ``HELIOS: Hierarchical
+exploration for language-grounded interaction in open scenes,''
+arXiv:2509.22498, 2025.
+
+\bibitem{legs} J. Yu \emph{et al.}, ``Language-embedded Gaussian
+splats (LEGS): Incrementally building room-scale representations with
+a mobile robot,'' in \emph{Proc. IEEE/RSJ IROS}, 2024,
+pp. 13326--13332.
+
+\bibitem{hammer} J. Yu, T. Chen, and M. Schwager, ``HAMMER:
+Heterogeneous, multi-robot semantic Gaussian splatting,'' \emph{IEEE
+Robot. Autom. Lett.}, vol. 10, no. 7, pp. 7270--7277, 2025.
+
+\bibitem{beyondcybathlon} C. Scheidemann, A. Cramariuc, C. Chen,
+J.-R. Chiu, and M. Hutter, ``Beyond Cybathlon: on-demand quadrupedal
+assistance for people with limited mobility,'' \emph{J. NeuroEng.
+Rehabil.}, vol. 23, Art. no. 180, 2026.
+
+\bibitem{holospot} P. Soler Garcia \emph{et al.}, ``HoloSpot:
+Intuitive object manipulation via mixed reality drag-and-drop,''
+arXiv:2410.11110, 2024.
+
+\bibitem{miel} A. Oyama, S. Hasegawa, A. Taniguchi, Y. Hagiwara, and
+T. Taniguchi, ``Take that for me: Multimodal exophora resolution with
+interactive questioning for ambiguous out-of-view instructions,'' in
+\emph{Proc. IEEE RO-MAN}, 2025, pp. 563--570.
+
+\bibitem{wang2018} H. Wang, J. Pi, T. Qin, S. Shen, and B. E. Shi,
+``SLAM-based localization of 3D gaze using a mobile eye tracker,'' in
+\emph{Proc. ACM ETRA}, 2018, Art. no. 65.
+
+\bibitem{attention4d} S. Oishi, K. Koide, M. Yokozuka, and A. Banno,
+``4D Attention: Comprehensive framework for spatio-temporal gaze
+mapping,'' \emph{IEEE Robot. Autom. Lett.}, vol. 6, no. 4,
+pp. 7240--7247, 2021.
+
+\bibitem{semanticfovea} M. Li, N. Songur, P. Orlov, S. Leutenegger,
+and A. A. Faisal, ``Towards an embodied semantic fovea: Semantic 3D
+scene reconstruction from ego-centric eye-tracker videos,'' presented
+at the \emph{ECCV Workshop on Egocentric Perception, Interaction and
+Computing (EPIC)}, 2018.
+
+\bibitem{kothari2020} R. Kothari, Z. Yang, C. Kanan, R. Bailey,
+J. B. Pelz, and G. J. Diaz, ``Gaze-in-wild: A dataset for studying
+eye and head coordination in everyday activities,'' \emph{Sci. Rep.},
+vol. 10, Art. no. 2539, 2020.
+
+\end{thebibliography}
+
+
+
+
+\end{document}
