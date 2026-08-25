@@ -379,7 +379,7 @@ def main() -> int:
         return [round(goal[0], 3), round(goal[1], 3)], round(ang, 3)
 
     def propose(obj, tw, mode, t_word, goto=False, approach_from=None, dest=None,
-                via=None, raw_pose=False, obj_point=None):
+                via=None, raw_pose=False, obj_point=None, carry=False):
         """唯一技能 grasp:goto=True 时 object_name 置空 = 纯导航(冻结定义)。
         dest = (落点, 标签) 或 None:送达站位从物体那侧接近,停在落点前
         standoff、yaw 朝向落点(dest=用户位置时即"送回你这")。无 dest = 原地 done。
@@ -391,8 +391,13 @@ def main() -> int:
             stand, yaw = [round(tw[0], 3), round(tw[1], 3)], round(float(tw[2]), 3)
         else:
             stand, yaw = aim(tw, approach_from)
-        params = {"object_name": None if goto else detect_name(obj),
-                  "target_world": [stand[0], stand[1], yaw]}  # v2:目标本体+建议方位
+        if goto and carry:
+            # 带着手里的东西过来(拿过来/递送段):狗端凭 deliver_to 键在场识别
+            # "携物移动",空串即可;空手导航(回来/过来)不带此键(2026-08-26 对齐)
+            params = {"deliver_to": "", "target_world": [stand[0], stand[1], yaw]}
+        else:
+            params = {"object_name": None if goto else detect_name(obj),
+                      "target_world": [stand[0], stand[1], yaw]}  # v2:目标本体+建议方位
         if not goto and obj_point is not None:
             # 实例消歧过线(坑2):选中实例的板系质心。狗端检测出多只同类时取离
             # hint 最近的,>0.3m 拒抓(hint_mismatch)。加字段=兼容,旧狗端自动忽略。
@@ -408,7 +413,7 @@ def main() -> int:
                 # 递给我 ≠ place(Place 会把东西放地上):链发纯导航到用户身边,
                 # 狗到跟前不撒手,人从爪上接——与 8-05 demo 的交接行为一致
                 place_req = {"v": 1, "type": "skill.request", "skill": "grasp",
-                             "params": {"object_name": None,
+                             "params": {"deliver_to": "",
                                         "target_world": [dxy[0], dxy[1], dyaw]},
                              "req_id": f"{sess.name}-{n_req:03d}p", "frame": args.frame,
                              "sent_at": 0.0, "t_stream": round(t_word, 3),
@@ -582,9 +587,10 @@ def main() -> int:
                 # 从最近注视处那一侧接近:站到用户视野里,yaw 朝向用户。
                 # 这同时是控制权:回车前盯稳(≥0.5s)哪一侧,狗就停哪一侧
                 r = place_buf.latest(t_word, 30.0)
+                carry = any(w in key for w in ("拿", "带", "端", "送"))  # 拿过来=携物
                 propose("你这里", user_pos["xyz"], "导航", t_word, goto=True,
                         approach_from=r["point"] if r else None,
-                        via=place_label(r) if r else None)
+                        via=place_label(r) if r else None, carry=carry)
                 return
             st, pt, label = slot_point(cmd["place_deictic"], cmd["place"], t_place, "目的地")
             if st == "ok":

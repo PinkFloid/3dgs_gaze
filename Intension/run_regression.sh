@@ -80,7 +80,7 @@ run "$TMP/r1" "$TMP/named.jsonl" "103.0:把这个机器人拿来" "107.0:拿这�
 ck "类别过滤跳过在盯的 cup -> 黄色机器人" "$TMP/r1" "消解为 黄色机器人"
 ck "拿这个 -> 最近命名物 cup" "$TMP/r1" '"object_name": "cup"'
 ck "抓取纯单(无送达字段)" "$TMP/r1" '"skill": "grasp", "params": \{"object_name": "cup", "target_world": \[[^]]*\], "object_hint": \[[^]]*\]\}'
-ck "链发送回=导航到用户(不撒手,非 place)" "$TMP/r1" '"skill": "grasp", "params": \{"object_name": null, "target_world": \[2.0, -1.5'
+ck "链发送回=携物移动(deliver_to 空串标记)" "$TMP/r1" '"skill": "grasp", "params": \{"deliver_to": "", "target_world": \[2.0, -1.5'
 EV=$(ls -t "$TMP"/logs/r1/*/events.jsonl | head -1)
 if $PY eval_binding.py "$EV" --expect 黄色机器人,cup --sep 0.3 --dist 1.7 --n 2 \
       --out "$TMP/e1.csv" | grep -q "对 2 错 0"; then
@@ -233,8 +233,9 @@ assert len(reqs) == 3, len(reqs)            # goto + grasp + 链发 place(送回
 assert "object_hint" not in reqs[0]["params"], reqs[0]["params"]        # goto 不带
 h = reqs[1]["params"]["object_hint"]                                    # 拿这个 -> cup 质心
 assert h == [-0.67, -2.26, 0.75], h
-assert reqs[2]["skill"] == "grasp", reqs[2]                            # 链发送回=纯导航
-assert reqs[2]["params"]["object_name"] is None, reqs[2]                # 不撒手,人来接
+assert reqs[2]["skill"] == "grasp", reqs[2]                            # 链发送回=携物移动
+assert reqs[2]["params"]["deliver_to"] == "", reqs[2]                   # 空串=带着东西走
+assert "object_name" not in reqs[2]["params"], reqs[2]["params"]        # 对齐狗端样例
 assert "object_hint" not in reqs[2]["params"], reqs[2]["params"]
 EOF
 then echo "  [o] hint 逐字段正确"; else echo "  [x] hint 校验失败"; FAIL=1; fi
@@ -319,6 +320,11 @@ ck "解不出落点如实说" "$TMP/r18" "没看到要放哪——本单不带�
 ck "首单不带 deliver_to 照派 cup" "$TMP/r18" '"object_name": "cup", "target_world": \[[^]]*\], "object_hint": \[[^]]*\]\}'
 ck "第二单绑最近注视且剔自身落点(dest=apple 点)" "$TMP/r18" '"skill": "place".*"target_world": \[1.5, -2.0'
 ckn "不再有等待机制" "$TMP/r18" "看准位置停"
+
+echo "R23 携物召回 vs 空手导航:拿过来带 deliver_to 空串,回来不带"
+run "$TMP/r23" "$TMP/cup.jsonl" "106.0:拿过来" "108.0:回来"
+ck "拿过来=携物参数" "$TMP/r23" '"params": \{"deliver_to": "", "target_world"'
+ck "回来=纯导航(object_name null 无 deliver 键)" "$TMP/r23" '"params": \{"object_name": null, "target_world"'
 
 echo "R20 裸放置:放到纸箱子(不带物体,单发 place;狗手里有什么放什么)"
 run "$TMP/r20" "$TMP/named.jsonl" "107.0:放到纸箱子"

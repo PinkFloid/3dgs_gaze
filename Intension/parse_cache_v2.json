@@ -1879,5 +1879,49 @@
   "dest_query": null,
   "dest_deictic": false,
   "to_user": false
+ },
+ "拿过来": {
+  "action": "goto",
+  "object_query": null,
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "带过来": {
+  "action": "goto",
+  "object_query": null,
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "拿来": {
+  "action": "goto",
+  "object_query": null,
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "拿过来给我": {
+  "action": "goto",
+  "object_query": null,
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
  }
 }
