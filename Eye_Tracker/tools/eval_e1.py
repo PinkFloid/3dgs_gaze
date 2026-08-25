@@ -122,9 +122,25 @@ def runs_of(seq):
     return out
 
 
+def era_alias(seq, named):
+    """v9 改名(网球X->球X)后跨代打分的别名垫:卡序里的名字若不在该代地图,
+    试同义别名(球X<->网球X),谁在地图里用谁——老录像配老图照打不误。"""
+    out = []
+    for nm in seq:
+        if nm not in named:
+            for alt in ("网球" + nm[-1] if nm.startswith("球") and len(nm) == 2 else None,
+                        "球" + nm[-1] if nm.startswith("网球") else None):
+                if alt and alt in named:
+                    nm = alt
+                    break
+        out.append(nm)
+    return out
+
+
 def run(intents: Path, seq: list[str], map_dir: Path, out_csv: Path | None,
         merge_gap=1.2, min_dur=1.0, double_dwell=7.0):
     named = load_named(map_dir)
+    seq = era_alias(seq, named)
     ev = finals(intents)
     eps = episodes(ev, merge_gap, min_dur)
     runs = runs_of(seq)
