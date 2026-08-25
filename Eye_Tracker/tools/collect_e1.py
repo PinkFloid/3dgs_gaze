@@ -36,6 +36,12 @@ RECS = [
     (R/"2026_08_20/001/c2_score.csv", "c2", "新房", "v9", "2m 正对", set()),
     (R/"2026_08_20/002/c4_score.csv", "c4", "新房", "v9", "4.36m α20.6°", {"beyond_occ"}),
     (R/"2026_08_20/003/c4_score.csv", "c4", "新房", "v9", "4.52m α14.5°", {"beyond_occ"}),
+    # 08-25 斜位三连 + 边走(车位偏移 5.8cm 实测:斜位站侧向分量 <1cm 不受害;
+    # u1 正对站侧向 3.7cm+后排邻近受害,整条剔除并披露,不入 RECS)
+    (R/"2026_08_25/c1_1/c4_score.csv", "c4", "新房", "v9", "4.25m α22.2°", {"beyond_occ"}),
+    (R/"2026_08_25/c1_2/c4_score.csv", "c4", "新房", "v9", "4.31m α26.9°", set()),
+    (R/"2026_08_25/c1_3/c4_score.csv", "c4", "新房", "v9", "3.77m α26.7°", set()),
+    (R/"2026_08_25/u3/u3_score.csv",   "u3", "新房", "v9", "2.5m 边走", {"walking"}),
 ]
 BINS = [0.5, 0.75, 1.0, 1.5, 2.5, 4.0, 6.0, 20.0]
 
@@ -89,7 +95,8 @@ def main():
         w.writerows(all_rows)
 
     trials = [r for r in all_rows if r["outcome"] in ("hit", "miss")
-              and "stress" not in r["tags"] and r["theta_deg"] != ""]
+              and not ({"stress", "walking"} & set(r["tags"].split("|")))
+              and r["theta_deg"] != ""]
     th = np.array([float(r["theta_deg"]) for r in trials])
     ok = np.array([r["outcome"] == "hit" for r in trials])
     with (OUT / "curve.csv").open("w", newline="", encoding="utf-8") as f:
