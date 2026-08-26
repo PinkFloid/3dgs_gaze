@@ -145,7 +145,10 @@ def parse_args():
     p.add_argument("--voice-device", default="Rx",
                    help="麦克风设备:序号或名字子串(voice_input.py --list 查;缺省=DJI 无线麦。"
                         "PortAudio 的'系统默认'是板载卡,故显式点名;没插会开麦报错,fail loud)")
-    p.add_argument("--voice-rms", type=float, default=54,
+    p.add_argument("--voice-rms", type=float, default=90,
+                   # 2026-08-26 用户调:54(8-02 静室校准)在狗运转时会把电机噪声
+                   # 当说话段;90 仍低于实测人声 207 一半,狗噪声区间抬门。
+                   # 换环境/换麦标准动作:voice_input --meter 20 现场重校
                    help="语音能量闸:低于此 rms 的段当环境底噪丢弃(另有超长段/幻听闸,"
                         "见 voice_input.py 模块注释;默认按 DJI 麦 --meter 校准,换麦必重跑)")
     p.add_argument("--yes", action="store_true", help="自动确认(回归测试用)")
