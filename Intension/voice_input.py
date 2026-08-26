@@ -106,7 +106,7 @@ class VoiceReader:
 
     def __init__(self, on_text, model="small", vocab=(), say=print,
                  aggressiveness=2, silence_s=0.6, min_speech_s=0.3, device=None,
-                 min_rms=90, max_speech_s=12.0, dump_dir=None):
+                 min_rms=100, max_speech_s=12.0, dump_dir=None):
         import sounddevice as sd
         import webrtcvad
         from faster_whisper import WhisperModel
@@ -228,7 +228,7 @@ def main() -> int:
     ap.add_argument("--once", action="store_true", help="转写一句即退出(试麦)")
     ap.add_argument("--device", default="Rx",
                     help="输入设备:序号或名字子串(缺省=DJI 无线麦;序号会随插拔变,--list 查)")
-    ap.add_argument("--min-rms", type=float, default=90,
+    ap.add_argument("--min-rms", type=float, default=100,
                     help="能量闸:低于此 rms 的段当环境底噪丢弃(丢弃时打印实测值;"
                          "默认=DJI 麦 --meter 校准值,底噪14/说话207 的几何均值,换麦必重跑)")
     ap.add_argument("--list", action="store_true", help="列出音频设备后退出")
