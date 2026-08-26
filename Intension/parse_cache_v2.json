@@ -1989,5 +1989,71 @@
   "dest_query": "纸箱子",
   "dest_deictic": false,
   "to_user": false
+ },
+ "拿一下这个网球给我": {
+  "action": "fetch",
+  "object_query": "球M",
+  "object_deictic": true,
+  "noun_class": "球",
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "拿一下这个杯子给我": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": "杯",
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "把这个杯子拿给我": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": "杯",
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "拿这个杯子给我": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": "杯",
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "拿一下这个球给我": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": "球",
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "拿一下这个苹果给我": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": "苹果",
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
  }
 }
