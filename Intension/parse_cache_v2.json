@@ -1923,5 +1923,71 @@
   "dest_query": null,
   "dest_deictic": false,
   "to_user": true
+ },
+ "把粉苹果拿来": {
+  "action": "fetch",
+  "object_query": "苹果粉",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "拿一下苹果粉给我": {
+  "action": "fetch",
+  "object_query": "苹果粉",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "放到这里去": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": true,
+  "to_user": false
+ },
+ "放到那边去": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": true,
+  "to_user": false
+ },
+ "把这个网球放到纸箱子": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": "球",
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": "纸箱子",
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "把这个网球放到纸箱子里": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": "球",
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": "纸箱子",
+  "dest_deictic": false,
+  "to_user": false
  }
 }
