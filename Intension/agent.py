@@ -55,10 +55,15 @@ _STRIP = " \t\r\n。,、!?;:…~·“”‘’\"'()()《》〈〉【】[].,!?;:~
 # 只治句首、只治动词:物体名的同音错让 LLM 按词表纠(提示词里有)。
 _ASR_HEAD = (("麻衣下", "拿一下"), ("那一下", "拿一下"), ("麻一下", "拿一下"),
              ("拿衣下", "拿一下"), ("纳一下", "拿一下"), ("那衣下", "拿一下"))
+# 句中同音错字(head 表只管句首):实测「把这个网球拿给我」→"往球",LLM 直接懵。
+# 只收指令域内无歧义的替换,实测一个加一个。
+_ASR_SUBS = (("往球", "网球"), ("王球", "网球"))
 
 
 def norm_cmd(text: str) -> str:
     t = text.strip(_STRIP).lower()
+    for bad, good in _ASR_SUBS:
+        t = t.replace(bad, good)
     for bad, good in _ASR_HEAD:
         if t.startswith(bad):
             t = good + t[len(bad):]
@@ -73,6 +78,12 @@ def _sanitize(data):
         v = data.get(q)
         if v and v.strip() in _DEICTIC_WORDS:
             data[q], data[d] = None, True
+    # 指代词不是类别:光杆「拿一下这个给我」实测 LLM 把 noun_class 填成"这个",
+    # 类过滤拿它去筛注视缓冲全灭(苹果粉明明在盯着,候选全 0.00)。指代词一律
+    # 从类槽清掉,指代标志补上——失败解析不落盘,但同会话内存缓存会复读这口毒。
+    nc = data.get("noun_class")
+    if nc and nc.strip() in _DEICTIC_WORDS:
+        data["noun_class"], data["object_deictic"] = None, True
     # 指名即指称:object_query 是真名字、且没有独立类别词(noun 缺失或只是名字的
     # 重复)时,object_deictic 视为地点槽漏过来的错标,按命名处理。
     # ("去这里拿Orange"实测:'这里'的 deictic 被同时标到了 object 上。
@@ -233,6 +244,19 @@ class CommandParser:
                                                "那俩", "那瓶", "那杯", "那台")):
             data["object_deictic"] = False
             data["noun_class"] = None
+        # 指代句里 LLM 给的具体名,按"名字的字都在句里吗"分两路(各有实测反例):
+        # ①「这个红苹果」→苹果红:语序归一的真指名(字全在句中)——指名即指称,
+        #   名字压过指代,不盯着也拿对;之前按字面 not in key 一刀切把它冤杀了。
+        # ②「这个苹果」→苹果红:凭空多出"红"=幻觉,清掉让视线裁决。
+        # 单字类词(球M 的"球")不算指名,仍走视线绑定。
+        oq = data.get("object_query")
+        if data.get("object_deictic") and oq:
+            hz = [ch for ch in oq if not ch.isascii()]
+            if len(hz) >= 2 and all(ch in key for ch in hz) and self._known(oq):
+                data["object_deictic"] = False
+                data["noun_class"] = None
+            else:
+                data["object_query"] = None
         # 「过来」类:目的地是人,不是地名。LLM 时不时把 place_query 填成
         # "用户"/"user"(实测),brain 会拿它去物体表里找一个叫"用户"的东西而报错;
         # 也见过标成 place_deictic 让狗走去注视点。归一到 to_user 这一条路上。
