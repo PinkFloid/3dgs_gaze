@@ -32,6 +32,7 @@ import argparse
 import json
 import math
 import queue
+import re
 import sys
 import threading
 import time
@@ -49,7 +50,22 @@ from core.resolve import load_object_table, resolve_named   # noqa: E402
 # 才进得了门——尤其急停,带个句号就掉进 2.2s LLM 是不可接受的。
 YES_WORDS = {"y", "yes", "是", "好", "嗯", "要", "ok", "行", "好的", "可以"}
 NO_WORDS = {"n", "no", "不", "不用", "不要", "算了", "否", "取消"}
-STOP_WORDS = {"停", "停下", "停止", "停一下", "stop", "s"}
+STOP_WORDS = {"停一下", "s"}
+# 停词规约 v2(用户裁定 8-27 晚,二次收紧):**语音停只认「停一下」一个词**,
+# s 留给键盘硬急停。停/停下/停止/别动/stop 全部作废——实测幻听吐的就是这些
+# 短形(「停下。」两字被热词诱出,17:24 会话两次现行),三字全句幻不出来。
+_STOP_RE = re.compile(r"(?:停一下)+|s")
+_BARE_STOP = re.compile(r"(?:停(?:下|止)?|别动|stop)+")  # 其他停形:不停也不进 LLM
+
+
+def is_stop(key: str) -> bool:
+    t = re.sub(r"[^\w一-鿿]+", "", key)
+    return bool(t) and bool(_STOP_RE.fullmatch(t))
+
+
+def is_bare_stop(key: str) -> bool:
+    t = re.sub(r"[^\w一-鿿]+", "", key)
+    return bool(t) and bool(_BARE_STOP.fullmatch(t))
 
 
 OBJ_DEIX = ("这个", "那个", "这只", "这颗", "这些", "这俩", "这")
@@ -107,7 +123,12 @@ def parse_args():
                                             / "SceneRebuild/lab_result/segmentation_sam"),
                    help="instances.json + names.json 所在目录(名字消解用)")
     p.add_argument("--merge-gap", type=float, default=0.6)
-    p.add_argument("--min-vote", type=float, default=0.5)
+    p.add_argument("--min-vote", type=float, default=0.45,
+                   help="绝对票面闸(用户裁定 8-27 放松 0.5->0.45:落点准仍被拒的"
+                        "冤案太多;仅 live 绑定用,回放打分不走 brain)")
+    p.add_argument("--vote-margin", type=float, default=1.4,
+                   help="相对优势闸(0=关):票面<min-vote 但 ≥0.35 且第一名"
+                        "≥margin×第二名 也入缓冲;1.4=昨日全流验证值,默认开")
     p.add_argument("--lookback", type=float, default=4.0,
                    help="视线消解回看窗:说指代词前多少秒内的注视算数")
     p.add_argument("--place-dwell", type=float, default=0.4,
@@ -261,7 +282,7 @@ def main() -> int:
         threading.Thread(target=status_listener, args=(sep, P, status_seen, logev),
                          daemon=True).start()
 
-    last_req = {"id": None}  # 最近已接受请求:回放收尾 + 盯视补发的空闲判据
+    last_req = {"id": None, "sent_wall": 0.0}  # 最近已接受请求:回放收尾 + 盯视补发的空闲判据
     # 盯视补发单槽:主动模式派发被拒 busy 时暂存最新一单,状态流报终态后补发。
     # 不是忙闲记账——不看表不设看门狗,纯反应式:被拒才存,终态才发,45s 放弃。
     parked = {"req": None, "name": None, "deadline": 0.0, "next_try": 0.0}
@@ -306,17 +327,29 @@ def main() -> int:
                 chime("ok")  # 狗跑完终态也报音:不看屏幕知道干完没
         P.say = _say_chimed
 
-        def _on_voice(text, t_end, asr_s, words=None):
-            P.say(f"[语音] 「{text}」 (asr {asr_s:.2f}s)")
+        def _on_voice(text, t_end, asr_s, words=None, fast=False):
+            # fast: 假值=全量路径;真值=快诊,且携「原文|lp|ns」串——归一后的
+            # 「停一下」在日志里真假同形,审计全靠这个字段(8-27 幻听排障教训)
+            P.say(f"[语音] 「{text}」 (asr {asr_s:.2f}s{'·急停快诊' if fast else ''})")
             logev({"topic": "asr", "text": text, "t_end_wall": t_end, "asr_s": asr_s,
-                   "words": words})
+                   "words": words, **({"fast_stop": True, "fast_raw": fast}
+                                      if fast else {})})
             cmd_q.put((text, t_end, words))
 
         dev = args.voice_device
         if dev is not None and dev.isdigit():
             dev = int(dev)
+        # 急停快诊只在任务在飞时开:空闲判据与盯视补发同一条(last_req 到终态)。
+        # 再并上"30s 内发过单":实测停话音落在 抓取done→链单派发 的指令间隙里,
+        # 纯终态判据在那一瞬是 False,快诊漏开(-155653 的 :58:48)。
+        inflight = lambda: ((last_req["id"] is not None  # noqa: E731
+                             and (status_seen or {}).get(last_req["id"])
+                             not in ("done", "failed", "stopped"))
+                            or time.time() - last_req["sent_wall"] < 30)
         vr = VoiceReader(_on_voice, model=args.voice_model, vocab=table.keys(),
                          say=P.say, device=dev, min_rms=args.voice_rms,
+                         stop_test=lambda txt: is_stop(norm_cmd("".join(txt.split()))),
+                         busy_probe=inflight,
                          dump_dir=sess / "utt")  # 每条语音段存 WAV(Pupil 不录音)
         threading.Thread(target=vr.run, daemon=True).start()
     scripted = sorted((float(s.split(":", 1)[0]), s.split(":", 1)[1]) for s in args.script)
@@ -336,6 +369,7 @@ def main() -> int:
         chain_req 非空 = 本单(grasp)done 后要补发的 place 链单;无状态流
         (干跑)时直接连发两单,有状态流则入链槽等终态。"""
         rep = dispatch(req, args.skill_endpoint)
+        last_req["sent_wall"] = time.time()  # 急停快诊的"最近有动作"判据
         logev({"topic": "skill.req", **req, "rep": rep})
         P.say(f"[派发] {json.dumps(req, ensure_ascii=False)}")
         P.say(f"       -> {json.dumps(rep, ensure_ascii=False)}")
@@ -543,7 +577,10 @@ def main() -> int:
             if key in NO_WORDS:
                 return
             was_decline = True  # 可能是"取消旧的换新指令":往下试,解析不出就保持安静
-        if key in STOP_WORDS:  # 急停硬旁路:永不过 LLM
+        if is_bare_stop(key):  # 光杆「停」按规约作废:不停、不进 LLM、不动链
+            P.say("[语音] 光杆「停」按规约忽略——要停请说「停一下」")
+            return
+        if is_stop(key):  # 急停硬旁路:永不过 LLM(连喊/顿号形同样命中)
             void_chain()
             send_stop()
             return
@@ -590,7 +627,9 @@ def main() -> int:
                 # 从最近注视处那一侧接近:站到用户视野里,yaw 朝向用户。
                 # 这同时是控制权:回车前盯稳(≥0.5s)哪一侧,狗就停哪一侧
                 r = place_buf.latest(t_word, 30.0)
-                carry = any(w in key for w in ("拿", "带", "端", "送"))  # 拿过来=携物
+                carry = any(w in key for w in ("拿", "带", "端", "送", "给", "递"))
+                # 拿过来/给我/递过来=携物:光杆「给我」实测走了纯导航(无 deliver_to),
+                # 狗端少了携物语义;抓完手里有东西时喊人过来默认都是送东西
                 propose("你这里", user_pos["xyz"], "导航", t_word, goto=True,
                         approach_from=r["point"] if r else None,
                         via=place_label(r) if r else None, carry=carry)
@@ -779,7 +818,7 @@ def main() -> int:
                 if ow:  # 背景注视也带头位姿:每条 verdict 都在更新用户位置
                     user_pos["xyz"], user_pos["t"] = [round(v, 3) for v in ow], t
                 place_buf.feed(e)  # 落点通道:物体表面落点记账(place/dest 槽用)
-                if accepted(e, args.min_vote):
+                if accepted(e, args.min_vote, args.vote_margin):
                     for kind, pl in buf.feed(e):
                         if kind == "progress":
                             if pl["object"] not in table:

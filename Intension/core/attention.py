@@ -14,12 +14,25 @@ from collections import deque
 OBJ0 = 10  # instance labels >= OBJ0 are objects; below: floor/wall/ceiling (同 grasp_intent.py)
 
 
-def accepted(e, min_vote):
-    """Same gate as grasp_intent.py: objects only, clean cone verdicts."""
-    return (e.get("object_label", -1) >= OBJ0
-            and e.get("vote_share", 0.0) >= min_vote
-            and e.get("mode") == "cone"
-            and e.get("object_centroid_world"))
+def accepted(e, min_vote, margin=0.0):
+    """Same gate as grasp_intent.py: objects only, clean cone verdicts.
+
+    margin>0 追加"相对优势"放行:绝对多数(≥min_vote)是密排角落里过苛的闸形——
+    杯对 13.9cm 在 2.6m 只有 2σ 角距,票面被邻居摊到 0.4x 却明明是清晰第一
+    (实测 白杯1:0.45 红杯:0.33)。第一名 ≥ margin×第二名 且 ≥0.35 也放行。
+    默认 0=关闭,E1/E2 冻结口径与回放打分不受影响(此闸只在 brain live 用)。
+    """
+    if (e.get("object_label", -1) < OBJ0 or e.get("mode") != "cone"
+            or not e.get("object_centroid_world")):
+        return False
+    share = e.get("vote_share", 0.0)
+    if share >= min_vote:
+        return True
+    if margin > 0 and share >= 0.35:
+        cands = e.get("candidates") or []
+        second = cands[1].get("share", 0.0) if len(cands) > 1 else 0.0
+        return share >= margin * second
+    return False
 
 
 def noun_match(noun, obj):

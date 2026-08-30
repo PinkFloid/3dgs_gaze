@@ -111,9 +111,11 @@ echo "R5b 命名送达带检测名:把这个拿到纸箱子那边 -> deliver_nam
 run "$TMP/r5b" "$TMP/named.jsonl" "107.0:把这个拿到纸箱子那边"
 ck "放置单坐标+检测名(键=object_name)" "$TMP/r5b" '"skill": "place".*"target_world": \[1.2, -1.0.*"object_name": "storage box"'
 
-echo "R6 急停旁路:停(永不过 LLM)"
-run "$TMP/r6" "$TMP/cup.jsonl" "106.0:停"
+echo "R6 急停旁路:停一下(永不过 LLM;光杆停按规约作废)"
+run "$TMP/r6" "$TMP/cup.jsonl" "106.0:停一下"
 ck "发出 stop 请求" "$TMP/r6" '"skill": "stop"'
+run "$TMP/r6b" "$TMP/cup.jsonl" "106.0:停"
+ck "光杆'停'被忽略(不发 stop)" "$TMP/r6b" "光杆「停」按规约忽略"
 
 echo "R8 槽位卫生:LLM 把'这里'塞进 place_query 也能救(实测坏例)"
 if $PY - <<'EOF'
@@ -246,8 +248,8 @@ if $PY hint_select.py --selftest >"$TMP/r15" 2>&1; then
 else echo "  [x] hint_select selftest 失败"; cat "$TMP/r15"; FAIL=1; fi
 
 echo "R16 语音标点归一:'停。'走急停旁路,'好。'当确认(转写带标点的实测形)"
-run "$TMP/r16" "$TMP/cup.jsonl" "106.0:停。"
-ck "'停。'发出 stop(不吃 LLM/缓存)" "$TMP/r16" '"skill": "stop"'
+run "$TMP/r16" "$TMP/cup.jsonl" "106.0:停一下。"
+ck "'停一下。'发出 stop(不吃 LLM/缓存)" "$TMP/r16" '"skill": "stop"'
 $PY brain.py --llm off --replay "$TMP/named.jsonl" --skill-endpoint off \
     --map-dir "$TMP/map" --script "103.0:给我找下黄色机器人" --script "104.5:好。" \
     --log-dir "$TMP/logs/r16b" >"$TMP/r16b" 2>&1
