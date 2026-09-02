@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# run_e4.sh -- E4 回放消融批跑(Table II 数据):三个感知开关 × 全部 E1 录像。
+# run_e4_sigma.sh -- E4 追加批:锥宽 σ 扫描(v2 口径,半角 2σ):σ=2.5° / 4.0°;σ=1.5° 即 v2。
+# 由 run_e4.sh 复制而来,只换 CFGS;跑法/续跑规则相同。
 #   nohup ./Eye_Tracker/tools/run_e4.sh > /tmp/e4_batch.log 2>&1 &
 # 可断点续跑:已有 intents_e4_<cfg>.jsonl 的跳过回放,已有 csv 的跳过打分。
 # 跨代:v7/v8 录像用 SceneRebuild/archive_envs/<era> + 对应 ckpt(先跑 collect 前先抽档)。
@@ -29,12 +30,8 @@ $R/2026_08_25/c1_3:c4:v9 $R/2026_08_25/u3:u3:v9
 # 前三个是 v1 时代的开关(2026-08-26 批跑产物已在盘上,跳过不重跑;v2 代码下这些
 # 开关无操作,若删了旧文件重跑得到的是 v2 结果)。v2/v2mass 是 09-02 的面积归一后验:
 # v2 = 按 capture 排序 + places.json 场所词表;v2mass = 同词表但按原始锥质量排序(area bias 对照)。
-CFGS="votescope_all:--vote-scope all
-priors_off:--priors off
-cluster0:--cluster-deg 0
-v2:--rank capture
-v2mass:--rank mass
-v2selfcal:--rank capture --selfcal on"
+CFGS="v2s25:--rank capture --sigma-deg 2.5
+v2s40:--rank capture --sigma-deg 4.0"
 
 for entry in $RECS; do
   IFS=: read -r rec card era <<< "$entry"
@@ -59,4 +56,4 @@ for entry in $RECS; do
     fi
   done <<< "$CFGS"
 done
-echo "== E4 批跑完毕 $(date +%H:%M:%S)"
+echo "== E4 sigma 批跑完毕 $(date +%H:%M:%S)"

@@ -129,6 +129,13 @@ def parse_args():
     p.add_argument("--vote-margin", type=float, default=1.4,
                    help="相对优势闸(0=关):票面<min-vote 但 ≥0.35 且第一名"
                         "≥margin×第二名 也入缓冲;1.4=昨日全流验证值,默认开")
+    p.add_argument("--min-capture", type=float, default=0.2,
+                   help="v2 角偏差闸:赢家 capture=q/c 低于此值不入缓冲(0.2≈偏 1.8σ≈2.7°);"
+                        "v1 事件无 capture 字段则跳过此闸")
+    p.add_argument("--sure-ratio", type=float, default=0.25,
+                   help="v2 分段:歧义比(第二/第一候选 capture)≤此值标 band=sure(E4:1–2.5° 档精度 79%%)")
+    p.add_argument("--unsure-ratio", type=float, default=0.5,
+                   help="v2 分段:歧义比≤此值标 unsure,再高标 ambiguous(交语音名词类/确认门)")
     p.add_argument("--lookback", type=float, default=4.0,
                    help="视线消解回看窗:说指代词前多少秒内的注视算数")
     p.add_argument("--place-dwell", type=float, default=0.4,
@@ -818,7 +825,7 @@ def main() -> int:
                 if ow:  # 背景注视也带头位姿:每条 verdict 都在更新用户位置
                     user_pos["xyz"], user_pos["t"] = [round(v, 3) for v in ow], t
                 place_buf.feed(e)  # 落点通道:物体表面落点记账(place/dest 槽用)
-                if accepted(e, args.min_vote, args.vote_margin):
+                if accepted(e, args.min_vote, args.vote_margin, args.min_capture, args.sure_ratio, args.unsure_ratio):
                     for kind, pl in buf.feed(e):
                         if kind == "progress":
                             if pl["object"] not in table:

@@ -14,8 +14,17 @@ from collections import deque
 OBJ0 = 10  # instance labels >= OBJ0 are objects; below: floor/wall/ceiling (同 grasp_intent.py)
 
 
-def accepted(e, min_vote, margin=0.0):
+def accepted(e, min_vote, margin=0.0, min_capture=0.2, sure_ratio=0.25, unsure_ratio=0.5):
     """Same gate as grasp_intent.py: objects only, clean cone verdicts.
+
+    v2 verdicts carry capture = q/c (赢家锥质量 / 完美注视时能拿到的锥质量,
+    ≈exp(-d²/2σ²),d=角偏差,与站距和物体大小无关):先过 min_capture(0.2≈1.8σ)。
+    分段用的是歧义比 ambiguity = 第二候选 capture / 第一候选 capture,不是 capture 本身:
+    E4 回放(09-02)里 1.0–2.5° 档 ambiguity≤0.25 的判定精度 79%,0.25–0.5 65%,>0.5 44–50%,
+    而 capture≥0.5 的桶精度只有 56%——密排里赢家离视线都很近,错的是选了谁。
+    band = sure(≤sure_ratio)/ unsure(≤unsure_ratio)/ ambiguous(其余,交给语音名词类与确认门)。
+    票面条件不变。
+    v1 事件没有 capture 字段,跳过该闸(回归夹具/旧日志兼容)。
 
     margin>0 追加"相对优势"放行:绝对多数(≥min_vote)是密排角落里过苛的闸形——
     杯对 13.9cm 在 2.6m 只有 2σ 角距,票面被邻居摊到 0.4x 却明明是清晰第一
@@ -25,6 +34,16 @@ def accepted(e, min_vote, margin=0.0):
     if (e.get("object_label", -1) < OBJ0 or e.get("mode") != "cone"
             or not e.get("object_centroid_world")):
         return False
+    cap = e.get("capture")
+    if cap is not None:  # v2: distance-invariant angular-miss gate first
+        if cap < min_capture:
+            return False
+        cands = e.get("candidates") or []
+        first = cands[0].get("capture") if cands else None
+        second = (cands[1].get("capture") or 0.0) if len(cands) > 1 else 0.0
+        ratio = (second / first) if first else 1.0
+        e["ambiguity"] = round(ratio, 3)
+        e["band"] = "sure" if ratio <= sure_ratio else ("unsure" if ratio <= unsure_ratio else "ambiguous")
     share = e.get("vote_share", 0.0)
     if share >= min_vote:
         return True
@@ -221,10 +240,16 @@ class PlaceBuffer:
     def feed(self, e):
         """一条 gaze.intent verdict 进来,静默记账(无事件输出)。"""
         p = e.get("centroid_world")
-        if not p or e.get("object_label", -1) < OBJ0:
+        if not p:
             return
+        if e.get("object_label", -1) >= OBJ0:
+            obj = e.get("object", "?")
+        else:  # v2: 无目标判定仍带落点所在表面(场所/无名实例);地板墙面不算地点
+            obj = e.get("surface")
+            if not obj or obj in ("floor", "wall", "ceiling"):
+                return
         t0, t1 = float(e.get("t_start", 0.0)), float(e.get("t_end", 0.0))
-        dur, obj = float(e.get("duration_s", 0.0)), e.get("object", "?")
+        dur = float(e.get("duration_s", 0.0))
         if e.get("provisional"):
             if dur >= self.min_dwell:
                 self.open = {"t_start": t0, "t_end": t1, "point": list(p), "object": obj}

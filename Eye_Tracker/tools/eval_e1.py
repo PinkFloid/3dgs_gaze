@@ -46,7 +46,7 @@ def finals(path: Path):
             continue
         if e.get("provisional"):
             continue
-        if e.get("object") in DROP:
+        if not e.get("object") or e.get("object") in DROP:  # v2: object=None = 无目标
             continue
         rows.append(e)
     return rows

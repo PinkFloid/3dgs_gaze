@@ -41,7 +41,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from pupil_localizer import (connect_pupil, load_fisheye, load_tags,  # noqa: E402
                              recording_frames, scale_K, solve_pose)
 from gaze_to_world import SplatDepth  # noqa: E402
-from gaze_object import cone_votes, pooled_centroids_by_name  # noqa: E402
+from gaze_object import (cone_votes, load_places, object_radii_by_name,  # noqa: E402
+                         pooled_centroids_by_name, rank_votes, verdict_text)
+from gaze_selfcal import ObjectSelfCal  # noqa: E402
 from gaze_video import CjkText, draw_instances, load_instances  # noqa: E402
 
 SCENE = Path(__file__).resolve().parents[2] / "SceneRebuild"
@@ -101,7 +103,8 @@ def parse_args() -> argparse.Namespace:
                         "so long stares would otherwise feel unresponsive).")
     p.add_argument("--sigma-deg", type=float, default=None,
                    help="Cone sigma until the first online stamp (default: gaze_precision.json of --replay, else 1.5).")
-    p.add_argument("--span-sigmas", type=float, default=2.5)
+    p.add_argument("--span-sigmas", type=float, default=2.0,
+                   help="Cone half-angle in sigmas (v2: 2 = 86%% of the truth probability inside; v1 was 2.5).")
     p.add_argument("--patch", type=int, default=33)
     p.add_argument("--hit-eps", type=float, default=0.05)
     p.add_argument("--ema", type=float, default=0.3, help="Pose EMA (0 = raw).")
@@ -119,12 +122,25 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--stamp-mad-k", type=float, default=3.5,
                    help="Radial MAD multiplier for online stamp outlier rejection.")
     p.add_argument("--stamp-cooldown", type=float, default=5.0)
+    p.add_argument("--stamp-sigma", choices=["on", "off"], default="on",
+                   help="on=tag 戳同时重估 σ(v1 行为);off=戳只更新偏置中心,σ 钉住(v2 口径:不改锥大小)")
     p.add_argument("--priors", choices=["on", "off"], default="on",
-                   help="可交互性先验(seg目录 priors.json,名字->权重,类内同权):"
-                        "on=启用(有文件才生效);off=消融")
+                   help="[v1 遗留,v2 无操作] 先验已由 places.json 场所词表取代")
     p.add_argument("--vote-scope", choices=["named", "all"], default="named",
-                   help="named=投票候选只含命名物体+背景(未命名碎片不抢票,实验口径);"
-                        "all=全实例(旧口径)")
+                   help="[v1 遗留,v2 无操作] 候选集固定为目标词表(names 减 places)")
+    p.add_argument("--places", default=None,
+                   help="places.json 路径(场所名列表,永不当注视目标)。默认 <seg-dir>/places.json")
+    p.add_argument("--rank", choices=["capture", "mass"], default="capture",
+                   help="capture=按面积归一的后验排序(v2 默认);mass=原始锥质量排序(v1 口径,E4 对照)")
+    p.add_argument("--selfcal", choices=["on", "off"], default="off",
+                   help="对象自校准:无歧义的 final 判定当偏置观测,中位数慢拉偏置中心,σ 不变"
+                        "(gaze_selfcal.py;护栏见 docs/CONE_POSTERIOR_V2.md)")
+    p.add_argument("--selfcal-min-capture", type=float, default=0.3,
+                   help="自校准观测的最低 capture(0.3≈偏 1.55σ 以内才算数)")
+    p.add_argument("--selfcal-max-second", type=float, default=0.05,
+                   help="无歧义门:第二候选 capture 低于此值才算观测(0.05≈邻居离轴 ≥2.4σ,密排场景几乎全拦;0.2≈1.8σ)")
+    p.add_argument("--selfcal-min-objects", type=int, default=3,
+                   help="更新前窗口内至少几个不同物体(3=首批 v2selfcal 口径;球卡只有两端球无歧义,2 更合适)")
     p.add_argument("--bias-init", default="",
                    help="初始视线偏置 'dx,dy'(度,gaze-target)。E1 打分:先无修正跑一遍拿"
                         "片尾书签戳的量,再 --bias-init 回灌整卡矫正(配 --bias-tau 0 卡内不衰减)")
@@ -304,7 +320,7 @@ class StreamCluster:
         self.reset()
 
     def reset(self):
-        self.ts, self.pts, self.origins = [], [], []
+        self.ts, self.pts, self.origins, self.Ts = [], [], [], []
         self.centroid = None
 
     def _fx(self):
@@ -320,7 +336,11 @@ class StreamCluster:
                 "centroid_world": c.tolist(), "spread_m": spread,
                 "n_samples": len(self.ts),
                 "origin_world": o.tolist(), "distance_m": round(d, 3),
-                "ang_spread_deg": round(float(np.degrees(np.arctan2(spread, d))), 2)}
+                "ang_spread_deg": round(float(np.degrees(np.arctan2(spread, d))), 2),
+                # private (stripped from payload): median-sample pose for self-cal residuals,
+                # head travel over the fixation (walking guard)
+                "_T": self.Ts[len(self.ts) // 2],
+                "_travel": float(np.linalg.norm(np.asarray(self.origins[-1]) - np.asarray(self.origins[0])))}
 
     def _close(self):
         fx = self._fx()
@@ -331,7 +351,7 @@ class StreamCluster:
         """Provisional fixation from the still-open cluster (nothing is closed)."""
         return self._fx()
 
-    def push(self, t, p, origin):
+    def push(self, t, p, origin, T=None):
         closed = None
         if self.ts:
             dt = t - self.ts[-1]
@@ -355,6 +375,7 @@ class StreamCluster:
         self.ts.append(t)
         self.pts.append(p)
         self.origins.append(origin)
+        self.Ts.append(T)
         self.centroid = np.mean(self.pts, axis=0)
         return closed
 
@@ -378,7 +399,8 @@ class OnlineBias:
     """
 
     def __init__(self, tag_centers, on_tag_rad, n_needed, cooldown, bias0, sigma0,
-                 tau=15.0, min_dwell=0.8, max_sample_gap=0.10, mad_k=3.5):
+                 tau=15.0, min_dwell=0.8, max_sample_gap=0.10, mad_k=3.5, update_sigma=True):
+        self.update_sigma = update_sigma
         self.ids = np.array(sorted(tag_centers))
         self.C = np.stack([tag_centers[i] for i in self.ids])  # (N,3) world
         self.on_tag = on_tag_rad
@@ -468,7 +490,9 @@ class OnlineBias:
         resid = clean - self.bias
         # Pooled per-axis RMS, matching gaze_precision and cone's 1-D sigma.
         sigma_norm = float(np.sqrt(np.mean(resid ** 2)))
-        self.sigma_deg = float(np.degrees(np.arctan(sigma_norm)))
+        self.last_stamp_sigma_deg = float(np.degrees(np.arctan(sigma_norm)))
+        if self.update_sigma:  # v2 --stamp-sigma off: centre only, cone width pinned
+            self.sigma_deg = self.last_stamp_sigma_deg
         self.last_stamp_t = t
         self.last_stamp_tag = tid
         self.last_stamp_n = int(inlier.sum())
@@ -536,32 +560,7 @@ def live_events(pupil_addr: str, min_conf: float):
                 yield "gaze", float(r["timestamp"]), (tuple(r["norm_pos"]), float(r["confidence"]))
 
 
-# ------------------------------------------------------------ verdict pooling (as gaze_object)
-
-def rank_votes(votes, name_of, object_centroids, priors=None):
-    """priors: 名字->权重(可交互性先验,类内同权,缺省 1.0)。乘在按名并票后:
-    家具(如 物品台 0.3)要 1/w 倍的原始票才能压过小物;同类实例共享权重,
-    实例间 argmax 公共因子约掉——E1 的实例分辨不受影响,仅抑制跨类漏票。"""
-    if not votes:
-        return None
-    priors = priors or {}
-    pooled = {}
-    for lab, v in votes.items():
-        nm = name_of(lab)
-        p = pooled.setdefault(nm, {"v": 0.0, "labels": []})
-        p["v"] += v * priors.get(nm, 1.0)
-        p["labels"].append(lab)
-    total = sum(p["v"] for p in pooled.values())
-    if total <= 0:
-        return None
-    ranked = sorted(pooled.items(), key=lambda kv: -kv[1]["v"])
-    best_name, bp = ranked[0]
-    best = max(bp["labels"], key=lambda l: votes[l])
-    return {"object": best_name, "object_label": best,
-            "vote_share": round(bp["v"] / total, 3),
-            "object_centroid_world": object_centroids.get(best_name),
-            "candidates": [{"name": n, "share": round(p["v"] / total, 3),
-                            "labels": sorted(p["labels"])} for n, p in ranked[:3]]}
+# ------------------------------------------------------------ verdict pooling: gaze_object.rank_votes (shared)
 
 
 # ------------------------------------------------------------ main
@@ -582,22 +581,18 @@ def main() -> int:
     if not bg:  # 新建图流水线导出的 instances.json 可能丢 background 段(v5 实测):
         bg = {0: "floor", 1: "ceiling", 2: "wall", 3: "wall", 4: "wall", 5: "wall"}
         print("[!] instances.json 缺 background,按约定 0=floor/1=ceiling/2-5=wall 兜底")
-    if args.vote_scope == "named":
-        # 投票候选=命名物体+背景:未命名碎片(桌面切块/tag纸/杂物)不再与小目标
-        # 抢票——网球 6.7cm,σ 冷启动 1.5°,碎片在候选集里就是票仓黑洞。
-        # 背景保留:盯地板/墙仍判 floor/wall,p_none 语义不变。起名后需重启生效。
-        named_ids = np.array(sorted({int(k) for k, v in names.items() if v}), dtype=label.dtype)
-        keep = (label < 10) | np.isin(label, named_ids)
-        print(f"vote scope: named-only(命名 {len(named_ids)} + 背景;"
-              f"剔除未命名碎片高斯 {int((~keep).sum())})")
-        xyz, label = xyz[keep], label[keep]
+    # v2 候选集 = 目标词表(names 减 places);其余一律无效票 -> p_none。
+    # KD 树保留全部标注高斯:无名碎片的表面不再被 5cm 内的命名邻居认领。
+    if args.vote_scope != "named" or args.priors != "on":
+        print("[!] --vote-scope / --priors 是 v1 遗留开关,v2 无操作(候选集=目标词表,先验已由 places.json 取代)")
+    places = load_places(seg, args.places)
+    targets = {v for v in names.values() if v and v not in places}
+    radii = object_radii_by_name(xyz, label, names, only=targets)
+    print(f"targets {sorted(targets)}  places {sorted(places)}  rank by {args.rank}")
+    print("radii " + ", ".join(f"{n}:{r*100:.1f}cm" for n, r in sorted(radii.items())))
     from scipy.spatial import cKDTree
     tree = cKDTree(xyz)
     object_centroids = pooled_centroids_by_name(meta["instances"], names)
-    priors = {}
-    if args.priors == "on" and (seg / "priors.json").exists():
-        priors = json.loads((seg / "priors.json").read_text(encoding="utf-8"))
-        print(f"可交互性先验:{priors}(类内同权;--priors off 关闭,E4 消融用)")
 
     def name_of(lab: int) -> str:
         if lab in bg:
@@ -658,8 +653,16 @@ def main() -> int:
                           bias0=bias0, sigma0=sigma0, tau=args.bias_tau,
                           min_dwell=args.stamp_min_dwell,
                           max_sample_gap=args.stamp_max_gap,
-                          mad_k=args.stamp_mad_k)
+                          mad_k=args.stamp_mad_k, update_sigma=(args.stamp_sigma == "on"))
     print(f"cone sigma start: {sigma0:.2f} deg (online re-estimation on tag stares)")
+    selfcal = (ObjectSelfCal(min_capture=args.selfcal_min_capture, min_objects=args.selfcal_min_objects,
+                             max_second=args.selfcal_max_second)
+               if args.selfcal == "on" else None)
+    if selfcal is not None:
+        selfcal.bias = np.asarray(bias0, float).copy()  # 会话连续:--bias-init 的初值也是自校准的起点
+    if selfcal is not None:
+        print(f"self-cal: on (object-anchored bias, min capture {args.selfcal_min_capture}; "
+              f"σ 钉在 {sigma0:.2f}°, tag 戳 {'关' if args.on_tag_deg <= 0 else '开'})")
 
     loc = Localizer(args, tags)
     poses = RollingPoses()
@@ -707,29 +710,40 @@ def main() -> int:
         if fx is None:
             return
         t0 = time.perf_counter()
-        votes, p_none = cone_votes(splat, tree, label,
-                                   np.asarray(fx["origin_world"], float),
-                                   np.asarray(fx["centroid_world"], float),
-                                   np.radians(bias_est.sigma_deg), args.span_sigmas,
-                                   args.patch, args.hit_eps)
-        rank = rank_votes(votes, name_of, object_centroids, priors)
+        votes, kern = cone_votes(splat, tree, label,
+                                 np.asarray(fx["origin_world"], float),
+                                 np.asarray(fx["centroid_world"], float),
+                                 np.radians(bias_est.sigma_deg), args.span_sigmas,
+                                 args.patch, args.hit_eps)
+        rank = rank_votes(votes, kern, name_of, targets, object_centroids, radii,
+                          np.radians(bias_est.sigma_deg), fx.get("distance_m"),
+                          rank_by=args.rank)
         if rank is None:
             return
-        fx.update(rank, p_none=round(p_none, 3), sigma_deg=round(bias_est.sigma_deg, 2),
+        fx.update(rank, sigma_deg=round(bias_est.sigma_deg, 2),
                   mode="cone", provisional=provisional,
                   judge_ms=round((time.perf_counter() - t0) * 1e3, 1))
         verdict = dict(fx, _shown_at=t_now)
         c = fx["centroid_world"]
+        shown = fx["object"] or f"(none:{fx.get('surface') or '-'})"
         if provisional:
-            if fx["object"] != prov_name:  # only log changes, not every refresh
-                prov_name = fx["object"]
-                print(f"[{fx['t_start'] - (t_stream0 or 0):7.1f}s] ~ {fx['object']:<16} "
+            if shown != prov_name:  # only log changes, not every refresh
+                prov_name = shown
+                print(f"[{fx['t_start'] - (t_stream0 or 0):7.1f}s] ~ {shown:<16} "
                       f"{fx['vote_share']:>4.0%}  (fixating {fx['duration_s']:.1f}s...)")
         else:
             prov_name = None
-            print(f"[{fx['t_start'] - (t_stream0 or 0):7.1f}s] {fx['object']:<18} "
-                  f"{fx['vote_share']:>4.0%}  ({c[0]:+.2f},{c[1]:+.2f},{c[2]:+.2f})m "
-                  f"dur {fx['duration_s']:.2f}s  none {p_none:.0%}  [{fx['judge_ms']:.0f}ms]")
+            print(f"[{fx['t_start'] - (t_stream0 or 0):7.1f}s] {verdict_text(fx)}  "
+                  f"({c[0]:+.2f},{c[1]:+.2f},{c[2]:+.2f})m dur {fx['duration_s']:.2f}s  [{fx['judge_ms']:.0f}ms]")
+        if selfcal is not None and not provisional:
+            res = selfcal.observe(fx, fx.get("_T"), np.radians(bias_est.sigma_deg),
+                                  radii.get(fx.get("object")), bias_est.bias)
+            if "bias_deg" in res:
+                bias_est.bias = selfcal.bias.copy()
+                print(f"           self-cal #{selfcal.n_updates}: bias -> {res['bias_deg']} deg "
+                      f"(window median {res['target_deg']}; {fx['object']} resid {res['resid_deg']})")
+            fx["selfcal"] = res
+            fx["bias_deg"] = selfcal.deg(bias_est.bias)
         payload = {k: v for k, v in fx.items() if not k.startswith("_")}
         payload["topic"] = "gaze.intent"
         if pub:  # downstream consumers filter on payload["provisional"]
@@ -783,7 +797,7 @@ def main() -> int:
                 if depth is None:
                     continue
                 p_world = T[:3, 3] + depth * (T[:3, :3] @ ray)
-                close_and_judge(cluster.push(t, p_world, T[:3, 3]))
+                close_and_judge(cluster.push(t, p_world, T[:3, 3], T))
                 continue
 
             # ---- frame ----
@@ -848,7 +862,9 @@ def main() -> int:
                 else:
                     color = (140, 140, 140)
                 suffix = f"  ({v_age:.0f}s前)" if v_age >= 1.5 else ""
-                cjk.put(img, f"{'~' if prov else '->'} {verdict['object']}  {verdict['vote_share']:.0%}"
+                vname = verdict['object'] or f"none:{verdict.get('surface') or '-'}"
+                vcap = f"  cap {verdict['capture']:.2f}" if verdict.get('capture') is not None else ""
+                cjk.put(img, f"{'~' if prov else '->'} {vname}  {verdict['vote_share']:.0%}{vcap}"
                              f"  [{c[0]:+.2f},{c[1]:+.2f},{c[2]:+.2f}]m{suffix}", (30, H - 60), 40,
                         color, 3)
             im = np.mean(isect_ms) if isect_ms else 0.0
@@ -860,6 +876,9 @@ def main() -> int:
                 status += (f"  bias@tag{bias_est.last_stamp_tag}"
                            f" ({np.degrees(np.arctan(eff[0])):+.1f},{np.degrees(np.arctan(eff[1])):+.1f})deg"
                            f" age {bias_est.age(t):.0f}s")
+            if selfcal is not None:
+                sb = selfcal.deg(bias_est.bias)
+                status += f"  selfcal ({sb[0]:+.1f},{sb[1]:+.1f})deg n={selfcal.n_updates}"
             pose_ok = T_ui is not None
             cv2.putText(img, status, (30, 46), cv2.FONT_HERSHEY_SIMPLEX, 0.9,
                         (0, 255, 255) if pose_ok else (0, 0, 255), 2)
