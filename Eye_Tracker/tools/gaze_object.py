@@ -71,6 +71,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--span-sigmas", type=float, default=2.0,
                    help="Cone half-angle in sigmas (2 = 86%% of the truth probability inside the cone).")
     p.add_argument("--patch", type=int, default=33, help="Cone render patch size (px).")
+    p.add_argument("--patch-deg", type=float, default=6.0 / 33,
+                   help="Angular pixel size (deg): patch = 2*span*sigma/patch-deg (odd, >= --patch); 33 px at sigma 1.5.")
     p.add_argument("--hit-eps", type=float, default=0.05,
                    help="Max unprojected-point-to-gaussian distance (m); also rejects silhouette "
                         "depth blends -- do not raise casually.")
@@ -341,8 +343,9 @@ def main() -> int:
         dist = float(np.linalg.norm(pt - np.asarray(origin, float))) if origin is not None else None
         sigma_rad = np.radians(sigma_deg) if sigma_deg else None
         if args.cone and origin is not None:
+            S = max(args.patch, int(round(2 * args.span_sigmas * sigma_deg / args.patch_deg)) | 1)
             votes, kern = cone_votes(splat, tree, label, np.asarray(origin, float), pt,
-                                     sigma_rad, args.span_sigmas, args.patch, args.hit_eps)
+                                     sigma_rad, args.span_sigmas, S, args.hit_eps)
             entry["mode"] = "cone"
         else:
             if args.cone:

@@ -1,0 +1,137 @@
+<meta charset="utf-8">
+<title>角间隔成功率曲线</title>
+<style>
+.viz-root{color-scheme:light;
+  --surface-1:#fcfcfb;--page:#f9f9f7;--ink:#0b0b0b;--ink-2:#52514e;--muted:#898781;--grid:#e1e0d9;--axis:#c3c2b7;--border:rgba(11,11,11,.10);
+  --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s0:#898781;--occ:rgba(11,11,11,.045)}
+@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])) .viz-root{color-scheme:dark;
+  --surface-1:#1a1a19;--page:#0d0d0d;--ink:#ffffff;--ink-2:#c3c2b7;--muted:#898781;--grid:#2c2c2a;--axis:#383835;--border:rgba(255,255,255,.10);
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--s0:#898781;--occ:rgba(255,255,255,.06)}}
+:root[data-theme="dark"] .viz-root{color-scheme:dark;
+  --surface-1:#1a1a19;--page:#0d0d0d;--ink:#ffffff;--ink-2:#c3c2b7;--muted:#898781;--grid:#2c2c2a;--axis:#383835;--border:rgba(255,255,255,.10);
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--s0:#898781;--occ:rgba(255,255,255,.06)}
+html,body{margin:0}
+body{background:var(--page,#f9f9f7)}
+.viz-root{background:var(--page);color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI","PingFang SC","Noto Sans CJK SC",sans-serif;min-height:100vh;padding:28px 20px 48px;box-sizing:border-box}
+.wrap{max-width:860px;margin:0 auto}
+h1{font-size:20px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
+.sub{margin:0 0 18px;color:var(--ink-2);font-size:13.5px;max-width:64ch}
+.filters{display:flex;gap:8px;align-items:center;margin:0 0 14px;flex-wrap:wrap}
+.filters .lab{color:var(--muted);font-size:12px;letter-spacing:.06em;text-transform:uppercase;margin-right:4px}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.seg button{background:transparent;border:0;color:var(--ink-2);font:inherit;font-size:13px;padding:6px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface-1);color:var(--ink);font-weight:600;box-shadow:inset 0 0 0 1px var(--border)}
+.seg button:focus-visible{outline:2px solid var(--s1);outline-offset:-2px}
+.card{background:var(--surface-1);border:1px solid var(--border);border-radius:12px;padding:16px 16px 10px;position:relative}
+.legend{display:flex;gap:18px;flex-wrap:wrap;margin:0 0 6px;font-size:13px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend i{display:inline-block;width:18px;height:0;border-top:2px solid;border-radius:2px}
+.legend b{font-weight:500;color:var(--ink-2)}
+svg{display:block;width:100%;height:auto;overflow:visible}
+.gl{stroke:var(--grid);stroke-width:1}
+.ax{stroke:var(--axis);stroke-width:1}
+.tk{fill:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums}
+.tk.n{font-size:10.5px}
+.lbl{fill:var(--ink-2);font-size:11.5px}
+.ref{stroke:var(--axis);stroke-width:1}
+.occ{fill:var(--occ)}
+.ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.mk{stroke:var(--surface-1);stroke-width:2}
+.hit{fill:transparent;cursor:crosshair}
+.cross{stroke:var(--axis);stroke-width:1;pointer-events:none}
+.tip{position:absolute;pointer-events:none;background:var(--surface-1);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12.5px;color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,.12);min-width:190px;display:none}
+.tip .h{color:var(--ink-2);margin-bottom:4px;font-variant-numeric:tabular-nums}
+.tip .r{display:flex;justify-content:space-between;gap:12px;font-variant-numeric:tabular-nums}
+.tip .r i{display:inline-block;width:12px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px}
+.note{color:var(--ink-2);font-size:12.5px;margin:10px 0 0;max-width:72ch}
+details{margin-top:16px}
+summary{cursor:pointer;color:var(--ink-2);font-size:13px}
+table{border-collapse:collapse;margin-top:10px;font-size:12.5px;font-variant-numeric:tabular-nums}
+th,td{padding:5px 10px;text-align:right;border-bottom:1px solid var(--grid)}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:500;font-size:11.5px;letter-spacing:.04em}
+.tbl{overflow-x:auto}
+</style>
+<div class="viz-root"><div class="wrap">
+<h1>成功率随角间隔的变化</h1>
+<p class="sub">每个卡项算一次:系统答对为成功,没答与答错都算失败。「配置」比 v1、v2 与自校准,「锥宽 σ」比 v2 口径下 σ 取 1.5°、2.5°、4° 的差别。横轴 θ 是目标到最近命名物的张角,按 Fig.4 的分箱;主集剔压力段与边走,有 θ 的 202 项。</p>
+<div class="filters"><span class="lab">对比</span><div class="seg" role="group" aria-label="对比维度"><button id="m-config" aria-pressed="true">配置</button><button id="m-sigma" aria-pressed="false">锥宽 σ</button></div><span class="lab" style="margin-left:14px">trial</span><div class="seg" role="group" aria-label="是否剔除遮挡 trial"><button id="b-all" aria-pressed="true">全部</button><button id="b-noocc" aria-pressed="false">剔除物理遮挡</button></div><span id="ninfo" style="color:var(--muted);font-size:12.5px"></span></div>
+<div class="card">
+<div class="legend" id="legend"></div>
+<div id="chart"></div>
+<div class="tip" id="tip"></div>
+<p class="note" id="note"></p>
+</div>
+<details><summary>数据表</summary><div class="tbl" id="table"></div></details>
+</div></div>
+<script>
+const DATA={"full": {"all": [{"lo": 0.5, "hi": 0.75, "n": 26, "hit": 15, "rate": 0.5769230769230769, "ci": [0.389, 0.745]}, {"lo": 0.75, "hi": 1.0, "n": 42, "hit": 19, "rate": 0.4523809523809524, "ci": [0.312, 0.601]}, {"lo": 1.0, "hi": 1.5, "n": 28, "hit": 20, "rate": 0.7142857142857143, "ci": [0.529, 0.847]}, {"lo": 1.5, "hi": 2.5, "n": 37, "hit": 31, "rate": 0.8378378378378378, "ci": [0.689, 0.923]}, {"lo": 2.5, "hi": 4.0, "n": 37, "hit": 36, "rate": 0.972972972972973, "ci": [0.862, 0.995]}, {"lo": 4.0, "hi": 6.0, "n": 25, "hit": 25, "rate": 1.0, "ci": [0.867, 1.0]}, {"lo": 6.0, "hi": 20.0, "n": 7, "hit": 7, "rate": 1.0, "ci": [0.646, 1.0]}], "no_occ": [{"lo": 0.5, "hi": 0.75, "n": 8, "hit": 8, "rate": 1.0, "ci": [0.676, 1.0]}, {"lo": 0.75, "hi": 1.0, "n": 16, "hit": 11, "rate": 0.6875, "ci": [0.444, 0.858]}, {"lo": 1.0, "hi": 1.5, "n": 27, "hit": 19, "rate": 0.7037037037037037, "ci": [0.515, 0.841]}, {"lo": 1.5, "hi": 2.5, "n": 37, "hit": 31, "rate": 0.8378378378378378, "ci": [0.689, 0.923]}, {"lo": 2.5, "hi": 4.0, "n": 37, "hit": 36, "rate": 0.972972972972973, "ci": [0.862, 0.995]}, {"lo": 4.0, "hi": 6.0, "n": 25, "hit": 25, "rate": 1.0, "ci": [0.867, 1.0]}, {"lo": 6.0, "hi": 20.0, "n": 7, "hit": 7, "rate": 1.0, "ci": [0.646, 1.0]}]}, "naive": {"all": [{"lo": 0.5, "hi": 0.75, "n": 26, "hit": 6, "rate": 0.23076923076923078, "ci": [0.11, 0.421]}, {"lo": 0.75, "hi": 1.0, "n": 42, "hit": 13, "rate": 0.30952380952380953, "ci": [0.191, 0.46]}, {"lo": 1.0, "hi": 1.5, "n": 28, "hit": 13, "rate": 0.4642857142857143, "ci": [0.295, 0.642]}, {"lo": 1.5, "hi": 2.5, "n": 37, "hit": 29, "rate": 0.7837837837837838, "ci": [0.628, 0.886]}, {"lo": 2.5, "hi": 4.0, "n": 37, "hit": 36, "rate": 0.972972972972973, "ci": [0.862, 0.995]}, {"lo": 4.0, "hi": 6.0, "n": 25, "hit": 25, "rate": 1.0, "ci": [0.867, 1.0]}, {"lo": 6.0, "hi": 20.0, "n": 7, "hit": 7, "rate": 1.0, "ci": [0.646, 1.0]}], "no_occ": [{"lo": 0.5, "hi": 0.75, "n": 8, "hit": 1, "rate": 0.125, "ci": [0.022, 0.471]}, {"lo": 0.75, "hi": 1.0, "n": 16, "hit": 4, "rate": 0.25, "ci": [0.102, 0.495]}, {"lo": 1.0, "hi": 1.5, "n": 27, "hit": 12, "rate": 0.4444444444444444, "ci": [0.276, 0.627]}, {"lo": 1.5, "hi": 2.5, "n": 37, "hit": 29, "rate": 0.7837837837837838, "ci": [0.628, 0.886]}, {"lo": 2.5, "hi": 4.0, "n": 37, "hit": 36, "rate": 0.972972972972973, "ci": [0.862, 0.995]}, {"lo": 4.0, "hi": 6.0, "n": 25, "hit": 25, "rate": 1.0, "ci": [0.867, 1.0]}, {"lo": 6.0, "hi": 20.0, "n": 7, "hit": 7, "rate": 1.0, "ci": [0.646, 1.0]}]}, "v2": {"all": [{"lo": 0.5, "hi": 0.75, "n": 26, "hit": 12, "rate": 0.46153846153846156, "ci": [0.288, 0.645]}, {"lo": 0.75, "hi": 1.0, "n": 42, "hit": 23, "rate": 0.5476190476190477, "ci": [0.399, 0.688]}, {"lo": 1.0, "hi": 1.5, "n": 28, "hit": 22, "rate": 0.7857142857142857, "ci": [0.605, 0.898]}, {"lo": 1.5, "hi": 2.5, "n": 37, "hit": 30, "rate": 0.8108108108108109, "ci": [0.658, 0.905]}, {"lo": 2.5, "hi": 4.0, "n": 37, "hit": 36, "rate": 0.972972972972973, "ci": [0.862, 0.995]}, {"lo": 4.0, "hi": 6.0, "n": 25, "hit": 25, "rate": 1.0, "ci": [0.867, 1.0]}, {"lo": 6.0, "hi": 20.0, "n": 7, "hit": 7, "rate": 1.0, "ci": [0.646, 1.0]}], "no_occ": [{"lo": 0.5, "hi": 0.75, "n": 8, "hit": 7, "rate": 0.875, "ci": [0.529, 0.978]}, {"lo": 0.75, "hi": 1.0, "n": 16, "hit": 11, "rate": 0.6875, "ci": [0.444, 0.858]}, {"lo": 1.0, "hi": 1.5, "n": 27, "hit": 21, "rate": 0.7777777777777778, "ci": [0.592, 0.894]}, {"lo": 1.5, "hi": 2.5, "n": 37, "hit": 30, "rate": 0.8108108108108109, "ci": [0.658, 0.905]}, {"lo": 2.5, "hi": 4.0, "n": 37, "hit": 36, "rate": 0.972972972972973, "ci": [0.862, 0.995]}, {"lo": 4.0, "hi": 6.0, "n": 25, "hit": 25, "rate": 1.0, "ci": [0.867, 1.0]}, {"lo": 6.0, "hi": 20.0, "n": 7, "hit": 7, "rate": 1.0, "ci": [0.646, 1.0]}]}, "v2s25": {"all": [{"lo": 0.5, "hi": 0.75, "n": 26, "hit": 10, "rate": 0.38461538461538464, "ci": [0.224, 0.575]}, {"lo": 0.75, "hi": 1.0, "n": 42, "hit": 20, "rate": 0.47619047619047616, "ci": [0.334, 0.623]}, {"lo": 1.0, "hi": 1.5, "n": 28, "hit": 17, "rate": 0.6071428571428571, "ci": [0.424, 0.764]}, {"lo": 1.5, "hi": 2.5, "n": 37, "hit": 26, "rate": 0.7027027027027027, "ci": [0.542, 0.825]}, {"lo": 2.5, "hi": 4.0, "n": 37, "hit": 36, "rate": 0.972972972972973, "ci": [0.862, 0.995]}, {"lo": 4.0, "hi": 6.0, "n": 25, "hit": 25, "rate": 1.0, "ci": [0.867, 1.0]}, {"lo": 6.0, "hi": 20.0, "n": 7, "hit": 7, "rate": 1.0, "ci": [0.646, 1.0]}], "no_occ": [{"lo": 0.5, "hi": 0.75, "n": 8, "hit": 6, "rate": 0.75, "ci": [0.409, 0.929]}, {"lo": 0.75, "hi": 1.0, "n": 16, "hit": 11, "rate": 0.6875, "ci": [0.444, 0.858]}, {"lo": 1.0, "hi": 1.5, "n": 27, "hit": 16, "rate": 0.5925925925925926, "ci": [0.407, 0.755]}, {"lo": 1.5, "hi": 2.5, "n": 37, "hit": 26, "rate": 0.7027027027027027, "ci": [0.542, 0.825]}, {"lo": 2.5, "hi": 4.0, "n": 37, "hit": 36, "rate": 0.972972972972973, "ci": [0.862, 0.995]}, {"lo": 4.0, "hi": 6.0, "n": 25, "hit": 25, "rate": 1.0, "ci": [0.867, 1.0]}, {"lo": 6.0, "hi": 20.0, "n": 7, "hit": 7, "rate": 1.0, "ci": [0.646, 1.0]}]}, "v2s40": {"all": [{"lo": 0.5, "hi": 0.75, "n": 26, "hit": 8, "rate": 0.3076923076923077, "ci": [0.165, 0.5]}, {"lo": 0.75, "hi": 1.0, "n": 42, "hit": 10, "rate": 0.23809523809523808, "ci": [0.135, 0.385]}, {"lo": 1.0, "hi": 1.5, "n": 28, "hit": 9, "rate": 0.32142857142857145, "ci": [0.179, 0.507]}, {"lo": 1.5, "hi": 2.5, "n": 37, "hit": 20, "rate": 0.5405405405405406, "ci": [0.384, 0.69]}, {"lo": 2.5, "hi": 4.0, "n": 37, "hit": 28, "rate": 0.7567567567567568, "ci": [0.599, 0.866]}, {"lo": 4.0, "hi": 6.0, "n": 25, "hit": 23, "rate": 0.92, "ci": [0.75, 0.978]}, {"lo": 6.0, "hi": 20.0, "n": 7, "hit": 7, "rate": 1.0, "ci": [0.646, 1.0]}], "no_occ": [{"lo": 0.5, "hi": 0.75, "n": 8, "hit": 4, "rate": 0.5, "ci": [0.215, 0.785]}, {"lo": 0.75, "hi": 1.0, "n": 16, "hit": 6, "rate": 0.375, "ci": [0.185, 0.614]}, {"lo": 1.0, "hi": 1.5, "n": 27, "hit": 9, "rate": 0.3333333333333333, "ci": [0.186, 0.522]}, {"lo": 1.5, "hi": 2.5, "n": 37, "hit": 20, "rate": 0.5405405405405406, "ci": [0.384, 0.69]}, {"lo": 2.5, "hi": 4.0, "n": 37, "hit": 28, "rate": 0.7567567567567568, "ci": [0.599, 0.866]}, {"lo": 4.0, "hi": 6.0, "n": 25, "hit": 23, "rate": 0.92, "ci": [0.75, 0.978]}, {"lo": 6.0, "hi": 20.0, "n": 7, "hit": 7, "rate": 1.0, "ci": [0.646, 1.0]}]}, "v2selfcal3": {"all": [{"lo": 0.5, "hi": 0.75, "n": 26, "hit": 15, "rate": 0.5769230769230769, "ci": [0.389, 0.745]}, {"lo": 0.75, "hi": 1.0, "n": 42, "hit": 23, "rate": 0.5476190476190477, "ci": [0.399, 0.688]}, {"lo": 1.0, "hi": 1.5, "n": 28, "hit": 24, "rate": 0.8571428571428571, "ci": [0.685, 0.943]}, {"lo": 1.5, "hi": 2.5, "n": 37, "hit": 29, "rate": 0.7837837837837838, "ci": [0.628, 0.886]}, {"lo": 2.5, "hi": 4.0, "n": 37, "hit": 30, "rate": 0.8108108108108109, "ci": [0.658, 0.905]}, {"lo": 4.0, "hi": 6.0, "n": 25, "hit": 25, "rate": 1.0, "ci": [0.867, 1.0]}, {"lo": 6.0, "hi": 20.0, "n": 7, "hit": 7, "rate": 1.0, "ci": [0.646, 1.0]}], "no_occ": [{"lo": 0.5, "hi": 0.75, "n": 8, "hit": 7, "rate": 0.875, "ci": [0.529, 0.978]}, {"lo": 0.75, "hi": 1.0, "n": 16, "hit": 11, "rate": 0.6875, "ci": [0.444, 0.858]}, {"lo": 1.0, "hi": 1.5, "n": 27, "hit": 23, "rate": 0.8518518518518519, "ci": [0.675, 0.941]}, {"lo": 1.5, "hi": 2.5, "n": 37, "hit": 29, "rate": 0.7837837837837838, "ci": [0.628, 0.886]}, {"lo": 2.5, "hi": 4.0, "n": 37, "hit": 30, "rate": 0.8108108108108109, "ci": [0.658, 0.905]}, {"lo": 4.0, "hi": 6.0, "n": 25, "hit": 25, "rate": 1.0, "ci": [0.867, 1.0]}, {"lo": 6.0, "hi": 20.0, "n": 7, "hit": 7, "rate": 1.0, "ci": [0.646, 1.0]}]}};
+const MODES={"config": [["full", "v1 冻结", "s1"], ["v2", "v2 capture 排序", "s2"], ["v2selfcal3", "v2 会话连续自校准", "s3"], ["naive", "朴素最近质心", "s0"]], "sigma": [["v2", "σ = 1.5°(v2)", "s1"], ["v2s25", "σ = 2.5°", "s2"], ["v2s40", "σ = 4.0°", "s3"], ["naive", "朴素最近质心", "s0"]]};
+let mode="config";
+let SERIES=MODES[mode];
+const BINS=DATA.full.all.map(b=>[b.lo,b.hi]);
+const W=820,H=400,ML=52,MR=24,MT=18,MB=54;
+const px=i=>ML+(i+0.5)*(W-ML-MR)/BINS.length, py=v=>MT+(1-v)*(H-MT-MB);
+let view='all';
+const css=v=>getComputedStyle(document.querySelector('.viz-root')).getPropertyValue(v).trim();
+function esc(s){return String(s)}
+function render(){
+  const svg=[];
+  svg.push(`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="成功率随角间隔变化的折线图">`);
+  // occlusion band: bins below 1.0 deg (physical limit 0.96 deg)
+  const x0=ML, x1=ML+2*(W-ML-MR)/BINS.length;
+  svg.push(`<rect class="occ" x="${x0}" y="${MT}" width="${x1-x0}" height="${H-MT-MB}"/>`);
+  svg.push(`<text class="lbl" x="${x0+8}" y="${H-MB-10}">遮挡区 θ &lt; 0.96°</text>`);
+  for(const v of [0,.25,.5,.75,1]){svg.push(`<line class="gl" x1="${ML}" x2="${W-MR}" y1="${py(v)}" y2="${py(v)}"/>`);svg.push(`<text class="tk" x="${ML-8}" y="${py(v)+4}" text-anchor="end">${Math.round(v*100)}%</text>`);}
+  // chance 1/3 and sigma 1.5 deg (boundary between bins 1.0-1.5 and 1.5-2.5)
+  svg.push(`<line class="ref" x1="${ML}" x2="${W-MR}" y1="${py(1/3)}" y2="${py(1/3)}"/>`);
+  svg.push(`<text class="lbl" x="${W-MR-4}" y="${py(1/3)-5}" text-anchor="end">三球乱猜 33%</text>`);
+  const sig=mode==='sigma'?[[3,'σ 1.5°'],[4,'σ 2.5°'],[5,'σ 4°']]:[[3,'σ = 1.5°(打分口径)']];
+  for(const [k,lab] of sig){const xs=ML+k*(W-ML-MR)/BINS.length;svg.push(`<line class="ref" x1="${xs}" x2="${xs}" y1="${MT}" y2="${H-MB}"/>`);svg.push(`<text class="lbl" x="${xs+6}" y="${H-MB-8}">${lab}</text>`);}
+  svg.push(`<line class="ax" x1="${ML}" x2="${W-MR}" y1="${py(0)}" y2="${py(0)}"/>`);
+  BINS.forEach(([lo,hi],i)=>{const n=DATA.full[view][i].n;svg.push(`<text class="tk" x="${px(i)}" y="${H-MB+18}" text-anchor="middle">${hi>=20?'≥'+lo+'°':lo+'–'+hi+'°'}</text>`);svg.push(`<text class="tk n" x="${px(i)}" y="${H-MB+33}" text-anchor="middle">n=${n}</text>`);});
+  svg.push(`<text class="lbl" x="${(ML+W-MR)/2}" y="${H-4}" text-anchor="middle">θ,目标到最近命名物的张角(度)</text>`);
+  // lines, context series first so it sits under
+  for(const [cfg,name,slot] of [...SERIES].reverse()){
+    const col=css('--'+slot); const pts=DATA[cfg][view].map((b,i)=>b.rate==null?null:[px(i),py(b.rate)]).filter(Boolean);
+    svg.push(`<path class="ln" stroke="${col}" d="${pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ')}"/>`);
+    pts.forEach(p=>svg.push(`<circle class="mk" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="4.5" fill="${col}"/>`));
+  }
+  svg.push(`<line class="cross" id="cross" x1="0" x2="0" y1="${MT}" y2="${H-MB}" style="display:none"/>`);
+  BINS.forEach((b,i)=>svg.push(`<rect class="hit" data-i="${i}" x="${ML+i*(W-ML-MR)/BINS.length}" y="${MT}" width="${(W-ML-MR)/BINS.length}" height="${H-MT-MB}" tabindex="0" aria-label="分箱 ${b[0]}–${b[1]}°"/>`));
+  svg.push('</svg>');
+  document.getElementById('chart').innerHTML=svg.join('');
+  const lg=document.getElementById('legend'); lg.textContent='';
+  for(const [cfg,name,slot] of SERIES){const s=document.createElement('span');const i=document.createElement('i');i.style.borderTopColor=css('--'+slot);const b=document.createElement('b');b.textContent=name;s.append(i,b);lg.append(s);}
+  const tot=DATA.full[view].reduce((a,b)=>a+b.n,0);
+  document.getElementById('ninfo').textContent=view==='all'?`${tot} 项`:`${tot} 项(去掉 45 个被前球物理遮挡的 trial)`;
+  const NOTES={config:{all:'两个最低分箱里 68 项有 44 项是 4 m 站位上目标被前排球挡住的 trial,任何方法都答不了,所以曲线在 1° 以下被压到乱猜附近。切到「剔除物理遮挡」看方法本身的极限。',
+    no_occ:'去掉物理遮挡后曲线基本单调:1.5° 以上接近全对,1° 到 1.5° 七到八成,1° 以下二十几项里 v2 与 v1 相当,会话连续自校准在 1 到 1.5° 多中 4 项、在 2.5 到 4° 少中 6 项(远卡偏置带进近卡的代价)。'},
+    sigma:{all:'锥越宽越差,而且差在难档:σ=2.5° 在 1 到 2.5° 档掉 14 个点,σ=4° 掉 35 个点并开始伤及 2.5° 以上的易档。锥宽应等于标定精度,不是越宽越稳。像素角尺寸已随 σ 固定(1.5°/2.5°/4° 各用 33/55/89 像素),否则远处小球比一个像素还小。',
+    no_occ:'剔除遮挡后同样单调:σ=1.5° 与 2.5° 在 1.5° 以上都接近全对,分歧集中在 1.5° 以下;σ=4° 从 4° 档起就开始掉,说明 4° 的锥在 2.5 到 4° 的邻距上已经把邻居收进来了。'}};
+  document.getElementById('note').textContent=NOTES[mode][view];
+  // table
+  const t=document.createElement('table');const thead=document.createElement('thead');const tr=document.createElement('tr');
+  for(const h of ['θ 分箱',...SERIES.map(s=>s[1])]){const th=document.createElement('th');th.textContent=h;tr.append(th);}thead.append(tr);t.append(thead);
+  const tb=document.createElement('tbody');
+  BINS.forEach((b,i)=>{const r=document.createElement('tr');const td0=document.createElement('td');td0.textContent=`${b[0]}–${b[1]>=20?'∞':b[1]}°`;r.append(td0);
+    for(const [cfg] of SERIES){const d=DATA[cfg][view][i];const td=document.createElement('td');td.textContent=d.n?`${d.hit}/${d.n} (${Math.round(d.rate*100)}%)`:'—';r.append(td);}tb.append(r);});
+  t.append(tb);const tw=document.getElementById('table');tw.textContent='';tw.append(t);
+  // hover
+  const tip=document.getElementById('tip'),cross=document.getElementById('cross'),card=document.querySelector('.card');
+  const show=(i,ev)=>{const b=BINS[i];tip.textContent='';const h=document.createElement('div');h.className='h';h.textContent=`θ ${b[0]}–${b[1]>=20?'∞':b[1]}°`;tip.append(h);
+    for(const [cfg,name,slot] of SERIES){const d=DATA[cfg][view][i];const r=document.createElement('div');r.className='r';const l=document.createElement('span');const ic=document.createElement('i');ic.style.borderTopColor=css('--'+slot);l.append(ic,document.createTextNode(name));const v=document.createElement('span');v.textContent=d.n?`${d.hit}/${d.n} = ${Math.round(d.rate*100)}%  [${Math.round(d.ci[0]*100)}–${Math.round(d.ci[1]*100)}]`:'—';r.append(l,v);tip.append(r);}
+    cross.setAttribute('x1',px(i));cross.setAttribute('x2',px(i));cross.style.display='';
+    const rect=card.getBoundingClientRect();const svgEl=document.querySelector('#chart svg');const sr=svgEl.getBoundingClientRect();
+    const cx=sr.left-rect.left+px(i)*sr.width/W;tip.style.display='block';const tw2=tip.offsetWidth;tip.style.left=Math.min(Math.max(8,cx-tw2/2),rect.width-tw2-8)+'px';tip.style.top=(sr.top-rect.top+MT*sr.height/H+8)+'px';};
+  const hide=()=>{tip.style.display='none';cross.style.display='none';};
+  document.querySelectorAll('.hit').forEach(el=>{const i=+el.dataset.i;el.addEventListener('pointermove',e=>show(i,e));el.addEventListener('pointerleave',hide);el.addEventListener('focus',e=>show(i,e));el.addEventListener('blur',hide);});
+}
+document.getElementById('m-config').onclick=()=>{mode='config';SERIES=MODES[mode];document.getElementById('m-config').setAttribute('aria-pressed','true');document.getElementById('m-sigma').setAttribute('aria-pressed','false');render();};
+document.getElementById('m-sigma').onclick=()=>{mode='sigma';SERIES=MODES[mode];document.getElementById('m-sigma').setAttribute('aria-pressed','true');document.getElementById('m-config').setAttribute('aria-pressed','false');render();};
+document.getElementById('b-all').onclick=()=>{view='all';document.getElementById('b-all').setAttribute('aria-pressed','true');document.getElementById('b-noocc').setAttribute('aria-pressed','false');render();};
+document.getElementById('b-noocc').onclick=()=>{view='no_occ';document.getElementById('b-noocc').setAttribute('aria-pressed','true');document.getElementById('b-all').setAttribute('aria-pressed','false');render();};
+render();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',render);
+new MutationObserver(render).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+</script>

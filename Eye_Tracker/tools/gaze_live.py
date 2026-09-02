@@ -105,7 +105,10 @@ def parse_args() -> argparse.Namespace:
                    help="Cone sigma until the first online stamp (default: gaze_precision.json of --replay, else 1.5).")
     p.add_argument("--span-sigmas", type=float, default=2.0,
                    help="Cone half-angle in sigmas (v2: 2 = 86%% of the truth probability inside; v1 was 2.5).")
-    p.add_argument("--patch", type=int, default=33)
+    p.add_argument("--patch", type=int, default=33, help="锥 patch 最小边长(像素)")
+    p.add_argument("--patch-deg", type=float, default=6.0 / 33,
+                   help="像素角尺寸(度):patch 边长=2·span·σ/patch-deg 取奇数、不小于 --patch。默认 6/33≈0.18°,"
+                        "σ=1.5°·2σ 时正好 33(v2 口径不变);σ 变大 patch 随之放大,否则远处小球比一个像素还小,c_k 退化成噪声(σ=4° 实测)")
     p.add_argument("--hit-eps", type=float, default=0.05)
     p.add_argument("--ema", type=float, default=0.3, help="Pose EMA (0 = raw).")
     p.add_argument("--max-mean-reproj", type=float, default=0.006)
@@ -710,11 +713,12 @@ def main() -> int:
         if fx is None:
             return
         t0 = time.perf_counter()
+        S = max(args.patch, int(round(2 * args.span_sigmas * bias_est.sigma_deg / args.patch_deg)) | 1)
         votes, kern = cone_votes(splat, tree, label,
                                  np.asarray(fx["origin_world"], float),
                                  np.asarray(fx["centroid_world"], float),
                                  np.radians(bias_est.sigma_deg), args.span_sigmas,
-                                 args.patch, args.hit_eps)
+                                 S, args.hit_eps)
         rank = rank_votes(votes, kern, name_of, targets, object_centroids, radii,
                           np.radians(bias_est.sigma_deg), fx.get("distance_m"),
                           rank_by=args.rank)
