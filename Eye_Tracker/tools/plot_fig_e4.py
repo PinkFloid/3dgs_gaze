@@ -6,7 +6,7 @@
 fig_theta.pdf/png:成功率对 θ(没答与答错同算失败;主集 204 项,剔压力段与边走,全部 trial 含被前排球遮挡的)。
     分箱沿用论文 Fig.4:[0.5,1) [1,1.5) [1.5,2.5) [2.5,4) [4,∞)(遮挡极限以下两箱并一,饱和的末两箱并一)。
     曲线:ours(v2, σ=1°)、single ray(σ=0.2°,同管线锥收成射线)、nearest-centroid 基线、
-    sphere vote(视角无关球投票,有 e4_v2sphere_score.csv 时才画)。σ 竖线、乱猜线直接标注。
+    sphere vote(视角无关球投票;优先 σ=1° 的 v2sphere10,否则 σ=1.5° 的 v2sphere,都没有则不画)。σ 竖线、乱猜线直接标注。
 fig_sigma.pdf/png:成功率对锥宽 σ,只画 1°≤θ<2.5°(膝盖区,与 Table II 同档)这一档;σ=标定精度竖线。
     分箱直接由 e4_table.rows_for 现算,不依赖 json。
 """
@@ -95,8 +95,8 @@ def fig_theta(plt, have_sphere):
     lines = [("v2s10", r"ours (cone, $\sigma=1^\circ$)", GREEN, "o-", 3),
              ("v2s02", r"single ray ($\sigma=0.2^\circ$)", BLUE, "s--", 2),
              ("naive", "nearest centroid", GRAY, "^:", 2)]
-    if have_sphere:
-        lines.insert(2, ("v2sphere", "sphere vote (view-independent)", ORANGE, "d--", 2))
+    if have_sphere:  # σ=1° 那份优先(与 ours 同 σ),没有就退回 σ=1.5° 的
+        lines.insert(2, (have_sphere, "sphere vote (view-independent)", ORANGE, "d--", 2))
     for cfg, lab, col, fmt, z in lines:
         x, a, err, rows = series(cfg)
         ax.errorbar(x, a, yerr=err, fmt=fmt, color=col, lw=0.9, ms=3.0, elinewidth=0.6,
@@ -175,8 +175,9 @@ def main():
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     style(plt)
-    have_sphere = all((Path("/home/liuchy/recordings") / rec / "e4_v2sphere_score.csv").exists()
-                      for rec in ["2026_08_16/000", "2026_08_25/u3"])
+    have_sphere = next((cfg for cfg in ("v2sphere10", "v2sphere")
+                        if all((Path("/home/liuchy/recordings") / rec / f"e4_{cfg}_score.csv").exists()
+                               for rec in ["2026_08_16/000", "2026_08_25/u3"])), None)
     fig_theta(plt, have_sphere)
     fig_sigma(plt, sigma_curve())
     print("wrote fig_theta.{pdf,png} fig_sigma.{pdf,png} ->", DATA)

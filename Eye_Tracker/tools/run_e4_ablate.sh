@@ -30,9 +30,13 @@ $R/2026_08_25/c1_3:c4:v9 $R/2026_08_25/u3:u3:v9
 # 前三个是 v1 时代的开关(2026-08-26 批跑产物已在盘上,跳过不重跑;v2 代码下这些
 # 开关无操作,若删了旧文件重跑得到的是 v2 结果)。v2/v2mass 是 09-02 的面积归一后验:
 # v2 = 按 capture 排序 + places.json 场所词表;v2mass = 同词表但按原始锥质量排序(area bias 对照)。
-CFGS="v2sphere:--rank capture --vote-mode sphere
-v2table:--rank capture --places /nonexistent/places.json
-v2cluster0:--rank capture --cluster-deg 0"
+# 旧三组在 σ=1.5° 下跑(09-03),有日志自动跳过;*10 三组是 σ=1.0° 补跑(09-04),与 σ=1° 的 ours 直接比
+CFGS="v2sphere:--rank capture --vote-mode sphere --sigma-deg 1.5
+v2table:--rank capture --places /nonexistent/places.json --sigma-deg 1.5
+v2cluster0:--rank capture --cluster-deg 0 --sigma-deg 1.5
+v2sphere10:--rank capture --vote-mode sphere --sigma-deg 1.0
+v2table10:--rank capture --places /nonexistent/places.json --sigma-deg 1.0
+v2cluster010:--rank capture --cluster-deg 0 --sigma-deg 1.0"
 
 for entry in $RECS; do
   IFS=: read -r rec card era <<< "$entry"
