@@ -102,7 +102,8 @@ def parse_args() -> argparse.Namespace:
                         "(0 = only judge on close; closing waits for gaze to LEAVE the target, "
                         "so long stares would otherwise feel unresponsive).")
     p.add_argument("--sigma-deg", type=float, default=None,
-                   help="Cone sigma until the first online stamp (default: gaze_precision.json of --replay, else 1.5).")
+                   help="Cone sigma until the first online stamp (default: gaze_precision.json of --replay, else 1.0; "
+                        "σ 扫描 0.2–4° 最优在 1.0°=标定精度,09-03 由 1.5 改)")
     p.add_argument("--span-sigmas", type=float, default=2.0,
                    help="Cone half-angle in sigmas (v2: 2 = 86%% of the truth probability inside; v1 was 2.5).")
     p.add_argument("--patch", type=int, default=33, help="锥 patch 最小边长(像素)")
@@ -639,7 +640,7 @@ def main() -> int:
         pj = Path(args.replay) / "gaze_precision.json"
         if pj.exists():
             sigma0 = float(json.loads(pj.read_text(encoding="utf-8"))["sigma_deg"])
-    sigma0 = sigma0 or 1.5
+    sigma0 = sigma0 or 1.0
     excl = {int(x) for x in args.stamp_exclude.split(",") if x.strip().isdigit()}
     stamp_centers = {i: c for i, c in tag_centers.items() if i not in excl}
     incl = {int(x) for x in args.stamp_include.split(",") if x.strip().isdigit()}

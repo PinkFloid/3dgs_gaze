@@ -5,7 +5,7 @@ Two modes over world-space fixations + a segmentation (points.npz/names.json):
 
 --cone (recommended): gaze-cone posterior. Re-renders a depth patch down the
   fixation's mean ray (camera origin -> centroid), weights every pixel by an
-  angular Gaussian (sigma = gaze accuracy, 1.5 deg unless stamped), unprojects
+  angular Gaussian (sigma = gaze accuracy, 1.0 deg unless stamped), unprojects
   it through the rendered depth and assigns it to the nearest labeled gaussian.
   Only VISIBLE surface inside the cone votes. Needs the splat ckpt (one 33x33
   render per fixation).
@@ -67,12 +67,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--ckpt", default=None,
                    help="Cone mode: splat ckpt (default: newest step-*.ckpt under lab_result/).")
     p.add_argument("--sigma-deg", type=float, default=None,
-                   help="Cone mode: gaze angular sigma. Default: <recording>/gaze_precision.json, else 1.5.")
+                   help="Cone mode: gaze angular sigma. Default: <recording>/gaze_precision.json, else 1.0 (sweep optimum = calibrated accuracy).")
     p.add_argument("--span-sigmas", type=float, default=2.0,
                    help="Cone half-angle in sigmas (2 = 86%% of the truth probability inside the cone).")
     p.add_argument("--patch", type=int, default=33, help="Cone render patch size (px).")
     p.add_argument("--patch-deg", type=float, default=6.0 / 33,
-                   help="Angular pixel size (deg): patch = 2*span*sigma/patch-deg (odd, >= --patch); 33 px at sigma 1.5.")
+                   help="Angular pixel size (deg): patch = 2*span*sigma/patch-deg (odd, >= --patch); 33 px up to sigma 1.5.")
     p.add_argument("--hit-eps", type=float, default=0.05,
                    help="Max unprojected-point-to-gaussian distance (m); also rejects silhouette "
                         "depth blends -- do not raise casually.")
@@ -322,7 +322,7 @@ def main() -> int:
             if pj.exists():
                 sigma_deg = float(json.loads(pj.read_text(encoding="utf-8"))["sigma_deg"])
                 print(f"sigma from {pj.name}: {sigma_deg:.2f} deg")
-        sigma_deg = sigma_deg or 1.5
+        sigma_deg = sigma_deg or 1.0
         print(f"cone mode: sigma {sigma_deg:.2f} deg, half-angle {args.span_sigmas:.1f} sigma, "
               f"patch {args.patch}, hit-eps {args.hit_eps*100:.0f}cm, rank by {args.rank}")
 
