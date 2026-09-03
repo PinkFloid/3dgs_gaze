@@ -133,6 +133,10 @@ def parse_args() -> argparse.Namespace:
                    help="[v1 遗留,v2 无操作] 候选集固定为目标词表(names 减 places)")
     p.add_argument("--places", default=None,
                    help="places.json 路径(场所名列表,永不当注视目标)。默认 <seg-dir>/places.json")
+    p.add_argument("--vote-mode", choices=["cone", "sphere"], default="cone",
+                   help="cone=视线锥后验(默认);sphere=消融用的视角无关球投票:注视点 --sphere-radius 内的标注高斯按 1/d 加权,"
+                        "不渲染、不管遮挡(锥之前的旧方法,gaze_object 默认模式)。无核质量,按份额排序,capture 为空")
+    p.add_argument("--sphere-radius", type=float, default=0.20, help="球投票半径(m)")
     p.add_argument("--rank", choices=["capture", "mass"], default="capture",
                    help="capture=按面积归一的后验排序(v2 默认);mass=原始锥质量排序(v1 口径,E4 对照)")
     p.add_argument("--selfcal", choices=["on", "off"], default="off",
@@ -713,19 +717,28 @@ def main() -> int:
         if fx is None:
             return
         t0 = time.perf_counter()
-        S = max(args.patch, int(round(2 * args.span_sigmas * bias_est.sigma_deg / args.patch_deg)) | 1)
-        votes, kern = cone_votes(splat, tree, label,
-                                 np.asarray(fx["origin_world"], float),
-                                 np.asarray(fx["centroid_world"], float),
-                                 np.radians(bias_est.sigma_deg), args.span_sigmas,
-                                 S, args.hit_eps)
+        if args.vote_mode == "sphere":   # 消融:视角无关的球投票,无渲染
+            pt = np.asarray(fx["centroid_world"], float)
+            idx = tree.query_ball_point(pt, args.sphere_radius)
+            votes, kern = {}, None
+            if idx:
+                dist = np.linalg.norm(xyz[idx] - pt, axis=1)
+                for lab, wi in zip(label[idx], 1.0 / np.maximum(dist, 0.01)):
+                    votes[int(lab)] = votes.get(int(lab), 0.0) + float(wi)
+        else:
+            S = max(args.patch, int(round(2 * args.span_sigmas * bias_est.sigma_deg / args.patch_deg)) | 1)
+            votes, kern = cone_votes(splat, tree, label,
+                                     np.asarray(fx["origin_world"], float),
+                                     np.asarray(fx["centroid_world"], float),
+                                     np.radians(bias_est.sigma_deg), args.span_sigmas,
+                                     S, args.hit_eps)
         rank = rank_votes(votes, kern, name_of, targets, object_centroids, radii,
                           np.radians(bias_est.sigma_deg), fx.get("distance_m"),
                           rank_by=args.rank)
         if rank is None:
             return
         fx.update(rank, sigma_deg=round(bias_est.sigma_deg, 2),
-                  mode="cone", provisional=provisional,
+                  mode=args.vote_mode, provisional=provisional,
                   judge_ms=round((time.perf_counter() - t0) * 1e3, 1))
         verdict = dict(fx, _shown_at=t_now)
         c = fx["centroid_world"]
