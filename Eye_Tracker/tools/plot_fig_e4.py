@@ -4,10 +4,10 @@
     python Eye_Tracker/tools/plot_fig_e4.py
 
 fig_theta.pdf/png:成功率对 θ(没答与答错同算失败;主集 204 项,剔压力段与边走,全部 trial 含被前排球遮挡的)。
-    分箱 [0.5,1) [1,1.5) [1.5,2.5) [2.5,4) [4,∞)。
+    分箱边界取标定 σ(1°)的整数倍:[0.5,1) [1,2) [2,3) [3,4) [4,∞)。
     曲线:ours(v2, σ=1°)、single ray(σ=0.2°,同管线锥收成射线)、nearest-centroid 基线、
     sphere vote(视角无关球投票,有 e4_v2sphere_score.csv 时才画)。σ 竖线、乱猜线直接标注。
-fig_sigma.pdf/png:成功率对锥宽 σ,只画 1°≤θ<2.5° 这一档(膝盖区,锥宽最敏感);σ=标定精度竖线。
+fig_sigma.pdf/png:成功率对锥宽 σ,只画 1°≤θ<2°(1σ–2σ,膝盖区,锥宽最敏感)这一档;σ=标定精度竖线。
     分箱直接由 e4_table.rows_for 现算,不依赖 json。
 """
 from __future__ import annotations
@@ -28,8 +28,8 @@ SIGMA_CAL = 1.0        # 标定精度 ≈ 1°;σ 扫描最优也在此
 OCC_LIMIT_DEG = 0.96   # 物理遮挡极限:球径 6.7cm @ 4m
 CHANCE = 1 / 3
 GREEN, RED, GRAY, BLUE, ORANGE, PURPLE = "#4a7000", "#b23232", "#555555", "#2a5db0", "#c86a1e", "#6b4aa0"
-BINS = [0.5, 1.0, 1.5, 2.5, 4.0, 20.0]
-TIERS = [("<1°", 0.0, 1.0), ("1–2.5°", 1.0, 2.5), ("2.5–4°", 2.5, 4.0)]
+BINS = [0.5, 1.0, 2.0, 3.0, 4.0, 20.0]     # 箱边界 = 标定 σ(1°)的整数倍:1σ 2σ 3σ 4σ
+TIERS = [("<1σ", 0.0, 1.0), ("1–2σ", 1.0, 2.0), ("2–3σ", 2.0, 3.0), ("3–4σ", 3.0, 4.0)]
 SIGMAS = [("v2s02", 0.2), ("v2s05", 0.5), ("v2s10", 1.0), ("v2", 1.5), ("v2s25", 2.5), ("v2s40", 4.0)]
 Z = 1.959964
 
@@ -129,7 +129,7 @@ def sigma_curve():
     for cfg, sd in SIGMAS:
         th, hit = trials(cfg)
         tiers = {}
-        for name, lo, hi in TIERS + [("≥4°", 4.0, 99.0)]:
+        for name, lo, hi in TIERS + [("≥4σ", 4.0, 99.0)]:
             m = (th >= lo) & (th < hi)
             tiers[name] = (int(hit[m].sum()), int(m.sum()))
         t = k = 0
@@ -151,7 +151,7 @@ def fig_sigma(plt, curve):
     ax.text(SIGMA_CAL * 1.05, 0.04, r"calibrated $\sigma\approx1^\circ$", fontsize=6.5, color=GRAY, ha="left", va="bottom")
     ax.axhline(CHANCE, ls=":", lw=0.8, color=RED, zorder=1)
     ax.text(0.17, CHANCE + 0.025, "3-ball chance", fontsize=6.5, color=RED, ha="left", va="bottom")
-    for tier, lab, col, fmt in [("1–2.5°", r"$1^\circ\leq\theta<2.5^\circ$ (n=%d)" % curve[0]["tiers"]["1–2.5°"][1], BLUE, "s-")]:
+    for tier, lab, col, fmt in [("1–2σ", r"$1^\circ\leq\theta<2^\circ$ (n=%d)" % curve[0]["tiers"]["1–2σ"][1], BLUE, "s-")]:
         hn = [c["tiers"][tier] for c in curve]
         a = [h / n for h, n in hn]
         ci = [wilson(h, n) for h, n in hn]
