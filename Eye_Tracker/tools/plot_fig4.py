@@ -4,7 +4,7 @@
     python Eye_Tracker/tools/plot_fig4.py
 
 产物:docs/E1_DATA/fig4.pdf(投稿用矢量)/ fig4.png(300dpi 预览)。
-与 collect_e1.py 同一口径重新分箱(hit/miss、去 stress、θ 非空),并对
+与 collect_e1.py 同一口径重新分箱(hit/miss、去 stress 与 walking、θ 非空;09-04 起 θ 为结果盲的单元 θ),并对
 curve.csv 做一致性校验;额外算 Wilson 95% CI,顺带把逐箱数字打印出来
 (正文 TBD{E1-near}/TBD{E1-far} 直接抄)。σ 竖线与遮挡带是常量,改这里。
 """
@@ -39,7 +39,8 @@ def wilson(hits: int, n: int) -> tuple[float, float]:
 
 def load_bins():
     trials = [r for r in csv.DictReader((DATA / "trials.csv").open(encoding="utf-8"))
-              if r["outcome"] in ("hit", "miss") and "stress" not in r["tags"]
+              if r["outcome"] in ("hit", "miss")
+              and not ({"stress", "walking"} & set(r["tags"].split("|")))   # 主集口径,与 collect_e1 一致
               and r["theta_deg"]]
     th = np.array([float(r["theta_deg"]) for r in trials])
     ok = np.array([r["outcome"] == "hit" for r in trials])

@@ -10,6 +10,8 @@
 import sys
 from pathlib import Path
 
+import numpy as np
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import eval_e1 as E  # noqa: E402
 from e1_cards import CARDS  # noqa: E402
@@ -52,7 +54,10 @@ def analyse(cfg):
             continue
         named = E.load_named(A[era])
         seq = E.era_alias(CARDS[card][1], named)
-        eps = E.episodes(E.finals(path))
+        ev = E.finals(path)
+        _o = [e["origin_world"] for e in ev if e.get("origin_world")]
+        o_unit = np.median(np.array(_o, float), axis=0).tolist() if _o else None   # 结果盲 θ,同 eval_e1
+        eps = E.episodes(ev)
         runs = E.runs_of(seq)
         pairs = E.lcs_align([r[0] for r in runs], eps)
         used = set(pairs.values())
@@ -62,12 +67,12 @@ def analyse(cfg):
                 rows.append((None, "miss", {}))
                 continue
             rep = eps[j]["rep"]
-            th = E.theta_min(rep.get("origin_world"), want, named)
+            th = E.theta_min(o_unit, want, named)
             rows += [(tier_of(th), "hit", confs(rep))] * k
         for j, ep in enumerate(eps):
             if j not in used:
                 rep = ep["rep"]
-                th = E.theta_min(rep.get("origin_world"), ep["object"], named)
+                th = E.theta_min(o_unit, ep["object"], named)
                 rows.append((tier_of(th), "extra", confs(rep)))
     return rows
 

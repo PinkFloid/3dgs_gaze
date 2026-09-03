@@ -62,9 +62,10 @@ def unit_rows(csv_path, card, room, mapv, station, tags):
         base = dict(rec=str(csv_path.parent.name), card=card, room=room, map=mapv,
                     station=station, tags="|".join(sorted(tags)),
                     target=name, vote=r["vote"], dur_s=r["dur_s"], dist_m=r["dist_m"])
+        tu = r.get("theta_unit_deg", "")
         if v == "＋多余":
             rows.append(dict(base, target=r["got"], outcome="extra",
-                             theta_deg=r["theta_min_deg"], theta_src="trial"))
+                             theta_deg=tu if tu else r["theta_min_deg"], theta_src="unit" if tu else "trial"))
             continue
         credit = 0 if v.startswith("✗") else (2 if v.startswith("✓✓") else 1)
         if "(-1)" in v:
@@ -73,9 +74,12 @@ def unit_rows(csv_path, card, room, mapv, station, tags):
         th = r["theta_min_deg"]
         for i in range(k):
             hit = i < credit
-            rows.append(dict(base, outcome="hit" if hit else "miss",
-                             theta_deg=th if th else med,
-                             theta_src="trial" if th else "station"))
+            if tu:  # 结果盲:同一(录像,目标)单元的 trial 共用 θ_unit,与命中无关
+                rows.append(dict(base, outcome="hit" if hit else "miss", theta_deg=tu, theta_src="unit"))
+            else:   # 旧 CSV 兜底:命中行用注视 θ,漏掉的用录像中位(横轴与结果挂钩,勿用于终稿)
+                rows.append(dict(base, outcome="hit" if hit else "miss",
+                                 theta_deg=th if th else med,
+                                 theta_src="trial" if th else "station"))
     return rows
 
 

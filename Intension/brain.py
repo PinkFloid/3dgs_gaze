@@ -133,7 +133,7 @@ def parse_args():
                    help="v2 角偏差闸:赢家 capture=q/c 低于此值不入缓冲(0.2≈偏 1.8σ≈2.7°);"
                         "v1 事件无 capture 字段则跳过此闸")
     p.add_argument("--sure-ratio", type=float, default=0.25,
-                   help="v2 分段:歧义比(第二/第一候选 capture)≤此值标 band=sure(E4:1–2.5° 档精度 79%%)")
+                   help="v2 分段:歧义比(第二/第一候选 capture)≤此值标 band=sure(E4:1–2.5° 档精度 77%%)")
     p.add_argument("--unsure-ratio", type=float, default=0.5,
                    help="v2 分段:歧义比≤此值标 unsure,再高标 ambiguous(交语音名词类/确认门)")
     p.add_argument("--lookback", type=float, default=4.0,

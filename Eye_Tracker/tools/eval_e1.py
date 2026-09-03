@@ -143,6 +143,11 @@ def run(intents: Path, seq: list[str], map_dir: Path, out_csv: Path | None,
     seq = era_alias(seq, named)
     ev = finals(intents)
     eps = episodes(ev, merge_gap, min_dur)
+    # 结果盲 θ(09-04):同一录像(站位)里的每个目标用全部 final 的中位头位算一个 θ_unit,
+    # 命中与否都用它。旧的 theta_min_deg 只有命中行有(取该段注视自己的头位),漏掉的行
+    # 退回录像中位,横轴与结果挂钩;theta_min_deg 保留作参考,曲线与分箱一律用 theta_unit_deg。
+    _origins = [e["origin_world"] for e in ev if e.get("origin_world")]
+    o_unit = np.median(np.array(_origins, float), axis=0).tolist() if _origins else None
     runs = runs_of(seq)
     pairs = lcs_align([r[0] for r in runs], eps)
     used = set(pairs.values())
@@ -152,9 +157,11 @@ def run(intents: Path, seq: list[str], map_dir: Path, out_csv: Path | None,
         e = ep["rep"] if ep else {}
         th = theta_min(e.get("origin_world"), want if want != "--" else
                        (ep["object"] if ep else ""), named)
+        tu = theta_min(o_unit, want if want != "--" else (ep["object"] if ep else ""), named)
         rows.append({
             "k": k, "want": want, "got": ep["object"] if ep else "--",
             "verdict": verdict,
+            "theta_unit_deg": round(tu, 2) if tu is not None else "",
             "dur_s": round(ep["dur"], 1) if ep else "",
             "vote": round(e.get("vote_share", 0.0), 2) if e else "",
             "dist_m": round(e.get("distance_m", 0.0), 2) if e else "",
@@ -202,7 +209,7 @@ def run(intents: Path, seq: list[str], map_dir: Path, out_csv: Path | None,
         if j not in used:
             row("+", "--", eps[j], "＋多余")
 
-    w = {"k": 3, "want": 6, "got": 6, "verdict": 5, "dur_s": 5, "vote": 5,
+    w = {"k": 3, "want": 6, "got": 6, "verdict": 5, "theta_unit_deg": 8, "dur_s": 5, "vote": 5,
          "dist_m": 6, "theta_min_deg": 7, "t": 7}
     print("  ".join(f"{h:>{w[h]}}" for h in rows[0]))
     for r in rows:

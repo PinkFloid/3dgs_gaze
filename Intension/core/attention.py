@@ -20,7 +20,7 @@ def accepted(e, min_vote, margin=0.0, min_capture=0.2, sure_ratio=0.25, unsure_r
     v2 verdicts carry capture = q/c (赢家锥质量 / 完美注视时能拿到的锥质量,
     ≈exp(-d²/2σ²),d=角偏差,与站距和物体大小无关):先过 min_capture(0.2≈1.8σ)。
     分段用的是歧义比 ambiguity = 第二候选 capture / 第一候选 capture,不是 capture 本身:
-    E4 回放(09-02)里 1.0–2.5° 档 ambiguity≤0.25 的判定精度 79%,0.25–0.5 65%,>0.5 44–50%,
+    E4 回放(09-04 结果盲 θ)里 1.0–2.5° 档 ambiguity≤0.25 的判定精度 77%,0.25–0.5 64%,>0.5 44–50%,
     而 capture≥0.5 的桶精度只有 56%——密排里赢家离视线都很近,错的是选了谁。
     band = sure(≤sure_ratio)/ unsure(≤unsure_ratio)/ ambiguous(其余,交给语音名词类与确认门)。
     票面条件不变。
