@@ -3,12 +3,12 @@
 
     python Eye_Tracker/tools/plot_fig_e4.py
 
-fig_theta.pdf/png:成功率对 θ(没答与答错同算失败;主集剔压力段与边走)。主曲线只用**未被物理遮挡**的 trial
-    (159 项),45 个被前排球挡住的 trial 量的是遮挡不是方法,单独画成空心点;分箱 [0.5,1) [1,1.5) [1.5,2.5) [2.5,4) [4,∞)。
+fig_theta.pdf/png:成功率对 θ(没答与答错同算失败;主集 204 项,剔压力段与边走,全部 trial 含被前排球遮挡的)。
+    分箱 [0.5,1) [1,1.5) [1.5,2.5) [2.5,4) [4,∞)。
     曲线:ours(v2, σ=1°)、single ray(σ=0.2°,同管线锥收成射线)、nearest-centroid 基线、
     sphere vote(视角无关球投票,有 e4_v2sphere_score.csv 时才画)。σ 竖线、乱猜线直接标注。
-fig_sigma.pdf/png:成功率对锥宽 σ,未遮挡 trial 按 θ 档 <1° / 1–2.5° / 2.5–4°(≥4° 对所有 σ 都 ≥92%,只在图注说),
-    加有目标判定的 final 占比(灰虚线);σ=标定精度竖线。分箱直接由 e4_table.rows_for 现算,不依赖 json。
+fig_sigma.pdf/png:成功率对锥宽 σ,只画 1°≤θ<2.5° 这一档(膝盖区,锥宽最敏感);σ=标定精度竖线。
+    分箱直接由 e4_table.rows_for 现算,不依赖 json。
 """
 from __future__ import annotations
 
@@ -42,19 +42,19 @@ def wilson(h, n):
     return c - half, c + half
 
 
-def trials(cfg, occluded=False):
-    """主集(剔压力段与边走)、有 θ 的 hit/miss 行;occluded 选被前排球挡住的那批。"""
+def trials(cfg, occluded=None):
+    """主集(剔压力段与边走)、有 θ 的 hit/miss 行;occluded=None 全取,True/False 只取被/未被前排球挡住的。"""
     out = []
     for r in rows_for(cfg):
         tags = set(r["tags"].split("|"))
         if r["outcome"] not in ("hit", "miss") or ({"stress", "walking"} & tags) or r["theta_deg"] == "":
             continue
-        if ("beyond_occ" in tags) == occluded:
+        if occluded is None or ("beyond_occ" in tags) == occluded:
             out.append((float(r["theta_deg"]), r["outcome"] == "hit"))
     return np.array([t for t, _ in out]), np.array([h for _, h in out])
 
 
-def binned(cfg, occluded=False):
+def binned(cfg, occluded=None):
     th, hit = trials(cfg, occluded)
     rows = []
     for lo, hi in zip(BINS, BINS[1:]):
@@ -77,7 +77,7 @@ def style(plt):
     })
 
 
-def series(cfg, occluded=False):
+def series(cfg, occluded=None):
     rows = binned(cfg, occluded)
     x = [r["x"] for r in rows]
     a = [r["hit"] / r["n"] for r in rows]
@@ -105,14 +105,9 @@ def fig_theta(plt, have_sphere):
             for xx, r in zip(x, rows):
                 ax.annotate(f"{r['n']}", (xx, 0.0), textcoords="offset points", xytext=(0, 2),
                             ha="center", fontsize=5.5, color="#888888")
-    # 被前排球物理遮挡的 trial:单独画成空心点(ours),不进主曲线
-    xo, ao, erro, rowso = series("v2s10", occluded=True)
-    keep = [i for i, r in enumerate(rowso) if r["n"] >= 5]          # 单个 trial 的空心点没有信息
-    xo, ao, rowso = [xo[i] for i in keep], [ao[i] for i in keep], [rowso[i] for i in keep]
-    erro = [[erro[0][i] for i in keep], [erro[1][i] for i in keep]]
-    ax.errorbar(xo, ao, yerr=erro, fmt="o", mfc="white", mec=GREEN, color=GREEN, lw=0.8, ms=3.4,
-                elinewidth=0.6, capsize=1.2, capthick=0.6, zorder=3,
-                label=f"ours, target occluded (n={sum(r['n'] for r in rowso)})")
+    ax.axvspan(0.45, OCC_LIMIT_DEG, color=RED, alpha=0.08, lw=0, zorder=0)
+    ax.text(np.sqrt(0.45 * OCC_LIMIT_DEG), 1.005, "past occlusion\nlimit (4 m)",
+            fontsize=6.5, color=RED, ha="center", va="top")
     ax.set_xscale("log"); ax.set_xlim(0.45, 13); ax.set_ylim(0, 1.05)
     ax.xaxis.set_major_locator(FixedLocator([0.5, 1, 2, 5, 10]))
     ax.xaxis.set_major_formatter(ScalarFormatter()); ax.xaxis.set_minor_formatter(NullFormatter())
@@ -125,7 +120,6 @@ def fig_theta(plt, have_sphere):
     for cfg, lab, *_ in lines:
         x, a, err, rows = series(cfg)
         print(f"fig_theta {cfg:8}: " + "  ".join(f"[{r['lo']},{r['hi']}) {r['hit']}/{r['n']}" for r in rows))
-    print("fig_theta occluded (ours): " + "  ".join(f"[{r['lo']},{r['hi']}) {r['hit']}/{r['n']}" for r in rowso))
 
 
 def sigma_curve():
@@ -157,16 +151,12 @@ def fig_sigma(plt, curve):
     ax.text(SIGMA_CAL * 1.05, 0.04, r"calibrated $\sigma\approx1^\circ$", fontsize=6.5, color=GRAY, ha="left", va="bottom")
     ax.axhline(CHANCE, ls=":", lw=0.8, color=RED, zorder=1)
     ax.text(0.17, CHANCE + 0.025, "3-ball chance", fontsize=6.5, color=RED, ha="left", va="bottom")
-    for tier, lab, col, fmt in [("2.5–4°", r"$2.5^\circ\leq\theta<4^\circ$", GREEN, "o-"),
-                                ("1–2.5°", r"$1^\circ\leq\theta<2.5^\circ$", BLUE, "s-"),
-                                ("<1°", r"$\theta<1^\circ$", ORANGE, "^-")]:
+    for tier, lab, col, fmt in [("1–2.5°", r"$1^\circ\leq\theta<2.5^\circ$ (n=%d)" % curve[0]["tiers"]["1–2.5°"][1], BLUE, "s-")]:
         hn = [c["tiers"][tier] for c in curve]
         a = [h / n for h, n in hn]
         ci = [wilson(h, n) for h, n in hn]
         ax.errorbar(sig, a, yerr=[[v - c[0] for v, c in zip(a, ci)], [c[1] - v for v, c in zip(a, ci)]],
                     fmt=fmt, color=col, lw=0.9, ms=3.0, elinewidth=0.6, capsize=1.2, capthick=0.6, zorder=3, label=lab)
-    ax.plot(sig, [c["yield_finals"] for c in curve], ls="--", lw=0.8, color=GRAY, marker="x", ms=3,
-            zorder=2, label="fixations with a verdict")
     ax.set_xscale("log"); ax.set_xlim(0.16, 5); ax.set_ylim(0, 1.05)
     ax.xaxis.set_major_locator(FixedLocator(sig))
     ax.xaxis.set_major_formatter(ScalarFormatter()); ax.xaxis.set_minor_formatter(NullFormatter())
