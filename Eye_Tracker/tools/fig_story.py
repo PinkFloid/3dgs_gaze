@@ -25,9 +25,14 @@ SCENE = ROOT / "SceneRebuild"
 REC = Path("/home/liuchy/recordings/2026_08_27/005")
 SEG = SCENE / "lab_result/segmentation_sam"   # 08-27 demo 用的就是当前图(无水瓶)
 OUT = ROOT / "docs/E1_DATA/fig_story"
-T_CMD, T_GRASP, T_PLACE = 59.6, 74.0, 91.2      # demo-video seconds (= world_ts[0] + t)
+T_CMD, T_GRASP, T_PLACE = 59.6, 82.25, 92.0     # demo-video seconds (= world_ts[0] + t):说指令 / 臂弯到桌面抓取 / 苹果落进纸箱
 BOUND = "苹果粉"                                   # binding event of session 155653: 拿一下这个苹果 -> 苹果粉
 GAZE_MANUAL = None                                # (u, v) 去畸变像素:想手动把视线点放到所看物体上时填;None = 用测得视线
+# 手工按画面对准的框(去畸变帧 T_CMD 的像素坐标)。地图投影有 ~0.4° 位姿/配准误差,示意图要准就手工对;球M 此刻已被狗取走,不画。
+MANUAL_BOXES = {"苹果粉": [1001, 480, 1022, 503], "橘子": [1035, 479, 1055, 491], "苹果红": [1036, 486, 1056, 503],
+                "球L": [1032, 497, 1050, 517], "香蕉": [1070, 486, 1100, 505], "白杯1": [1114, 484, 1134, 510],
+                "红杯": [1131, 475, 1152, 502], "白杯2": [1153, 487, 1173, 515], "球R": [1131, 503, 1147, 522]}
+HERE_BOX = [700, 424, 761, 476]                    # 纸箱子(桌上)在 T_CMD 帧里的位置,格 2 标 "here"
 EN = {"球L": "ball L", "球M": "ball M", "球R": "ball R", "苹果粉": "apple 2", "苹果红": "apple 1", "橘子": "orange",
       "香蕉": "banana", "白杯1": "cup 1", "白杯2": "cup 2", "红杯": "red cup", "水瓶": "bottle", "纸箱子": "box", "物品台": "table"}
 
@@ -85,6 +90,8 @@ def main():
         x0, y0 = np.percentile(px, 5, axis=0); x1, y1 = np.percentile(px, 95, axis=0)   # 紧框:去掉离群点
         b = boxes.setdefault(i["name"], [x0, y0, x1, y1])
         boxes[i["name"]] = [min(b[0], x0), min(b[1], y0), max(b[2], x1), max(b[3], y1)]
+    if MANUAL_BOXES:
+        boxes = {k: list(v) for k, v in MANUAL_BOXES.items()}
     print("boxes:", {EN[k]: [round(float(x)) for x in v] for k, v in boxes.items()})
 
     img_cmd = und(frame_cmd)
@@ -98,6 +105,8 @@ def main():
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib.patches import Rectangle, FancyArrowPatch
+    import matplotlib.patheffects as pe
+    stroke = [pe.withStroke(linewidth=1.4, foreground="black")]
     plt.rcParams.update({"font.family": "serif", "font.serif": ["Times New Roman", "Times", "Nimbus Roman", "DejaVu Serif"],
                          "font.size": 7, "pdf.fonttype": 42})
     fig, axes = plt.subplots(1, 5, figsize=(7.16, 1.5), gridspec_kw=dict(wspace=0.04))
@@ -116,7 +125,13 @@ def main():
         return x0, y0
 
     crop(axes[0], img_cmd, tcx, tcy - 2, thw * 0.85)                             # 1 台面放大
-    crop(axes[1], img_cmd, W / 2, H / 2 - 20, min(W / 2, H / 2 * 4 / 3) - 40)    # 2 说指令时的第一人称
+    x0, y0 = crop(axes[1], img_cmd, W / 2, H / 2 - 20, min(W / 2, H / 2 * 4 / 3) - 40)   # 2 说指令时的第一人称
+    hb = HERE_BOX
+    axes[1].add_patch(Rectangle((hb[0] - x0, hb[1] - y0), hb[2] - hb[0], hb[3] - hb[1], fill=False, ec="#ff9f1a", lw=1.2))
+    axes[1].text(hb[0] - x0 - 8, (hb[1] + hb[3]) / 2 - y0, "here", color="#ff9f1a", fontsize=6.5, ha="right", va="center", fontweight="bold", path_effects=stroke)
+    ab = boxes[BOUND]
+    axes[1].add_patch(Rectangle((ab[0] - x0 - 3, ab[1] - y0 - 3), ab[2] - ab[0] + 6, ab[3] - ab[1] + 6, fill=False, ec="#2bd12b", lw=1.0))
+    axes[1].text(ab[0] - x0 - 2, ab[1] - y0 - 10, "this apple", color="#2bd12b", fontsize=6.5, ha="left", va="bottom", fontweight="bold", path_effects=stroke)
     x0, y0 = crop(axes[2], img_cmd, tcx, tcy - 2, thw * 0.85)                    # 3 视线与判定(与 1 同一裁剪)
     for name, (bx0, by0, bx1, by1) in boxes.items():
         sel = name == BOUND
@@ -126,11 +141,11 @@ def main():
     axes[2].plot(gu - x0, gv - y0, marker="+", ms=9, mew=1.6, color="#ffdd00")
     axes[2].add_patch(FancyArrowPatch((gu - x0, gv - y0), ((bx0 + bx1) / 2 - x0, (by0 + by1) / 2 - y0),
                                       arrowstyle="-|>", mutation_scale=8, lw=1.2, color="#ffdd00", shrinkA=4, shrinkB=2))
-    axes[2].text(bx0 - x0, by0 - y0 - 2, EN[BOUND], color="#2bd12b", fontsize=6, ha="left", va="bottom", fontweight="bold")
-    crop(axes[3], img_grasp, W / 2 + 60, H / 2 + 40, 300)                        # 4 抓取
-    crop(axes[4], img_place, W / 2 + 60, H / 2 + 40, 300)                        # 5 放入纸箱
+    axes[2].text(bx0 - x0, by0 - y0 - 2, EN[BOUND], color="#2bd12b", fontsize=6, ha="left", va="bottom", fontweight="bold", path_effects=stroke)
+    crop(axes[3], img_grasp, 1225, 530, 200)                                     # 4 臂弯到桌面抓取
+    crop(axes[4], img_place, 1080, 470, 210)                                     # 5 苹果落进纸箱
     caps = ["(1) objects on the table", "(2) \u201cpick up this apple,\nput it here\u201d", "(3) measured gaze (+),\nbound instance (green)",
-            "(4) robot fetches the instance", "(5) robot places it in the box"]
+            "(4) robot grasps the instance", "(5) robot drops it into the box"]
     for ax, c in zip(axes, caps):
         for sp in ax.spines.values():
             sp.set_linewidth(0.5); sp.set_color("#999999")
