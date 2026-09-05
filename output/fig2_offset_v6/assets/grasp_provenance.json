@@ -1,0 +1,16 @@
+{
+  "recording": "/home/liuchy/recordings/2026_08_27/020",
+  "source_video": "world.mp4",
+  "frame_index": 940,
+  "time_requested_s": 31.5,
+  "time_actual_s": 31.504037000000608,
+  "undistortion": "OpenCV fisheye, calibrated K and D, output K equals original K",
+  "calibration": "SceneRebuild/Calibration_result/world_camera_calibration.npz",
+  "crop_xyxy": [
+    820,
+    470,
+    1290,
+    990
+  ],
+  "modifications": "calibrated undistortion and crop only"
+}

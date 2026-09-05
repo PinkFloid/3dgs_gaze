@@ -1,0 +1,1159 @@
+[
+  {
+    "event": {
+      "t_start": 14000.495955999999,
+      "t_end": 14001.904225,
+      "duration_s": 1.4082690000013827,
+      "centroid_world": [
+        0.9504186073038078,
+        0.3451898244924711,
+        0.727662045228011
+      ],
+      "spread_m": 0.02489397616618072,
+      "n_samples": 27,
+      "origin_world": [
+        0.855770401817779,
+        -2.31816123435208,
+        1.665672892518629
+      ],
+      "distance_m": 2.825,
+      "ang_spread_deg": 0.5,
+      "object": "球M",
+      "object_label": 261,
+      "vote_share": 0.366,
+      "object_centroid_world": [
+        1.001,
+        0.353,
+        0.777
+      ],
+      "candidates": [
+        {
+          "name": "球M",
+          "share": 0.366,
+          "labels": [
+            261
+          ]
+        },
+        {
+          "name": "香蕉",
+          "share": 0.225,
+          "labels": [
+            264
+          ]
+        },
+        {
+          "name": "球L",
+          "share": 0.21,
+          "labels": [
+            259
+          ]
+        }
+      ],
+      "p_none": 0.224,
+      "sigma_deg": 1.5,
+      "mode": "cone",
+      "provisional": false,
+      "judge_ms": 6.1,
+      "topic": "gaze.intent"
+    },
+    "below_cm": 4.690653221530572,
+    "distance_m": 2.8252896303007553,
+    "rank": {
+      "p_none": 0.82,
+      "rank_by": "capture",
+      "surface": "物品台",
+      "surface_q": 0.593,
+      "object": "球M",
+      "object_label": 261,
+      "vote_share": 0.668,
+      "q": 0.12,
+      "capture": 0.584,
+      "miss_deg": 1.04,
+      "object_centroid_world": [
+        1.001,
+        0.353,
+        0.777
+      ],
+      "candidates": [
+        {
+          "name": "球M",
+          "share": 0.668,
+          "q": 0.12,
+          "capture": 0.584,
+          "miss_deg": 1.04,
+          "labels": [
+            261
+          ]
+        },
+        {
+          "name": "球L",
+          "share": 0.164,
+          "q": 0.03,
+          "capture": 0.133,
+          "miss_deg": 2.01,
+          "labels": [
+            259
+          ]
+        },
+        {
+          "name": "苹果红",
+          "share": 0.073,
+          "q": 0.013,
+          "capture": 0.046,
+          "miss_deg": 2.48,
+          "labels": [
+            260
+          ]
+        }
+      ]
+    },
+    "counts": {
+      "苹果粉": 0,
+      "苹果红": 43,
+      "球R": 0,
+      "球M": 126,
+      "白杯1": 0,
+      "橘子": 0,
+      "白杯2": 0,
+      "香蕉": 56,
+      "红杯": 0,
+      "球L": 67
+    },
+    "center_ray_label": 40,
+    "center_ray_name": "物品台",
+    "center_ray_point": [
+      0.947020575703765,
+      0.24957099037419406,
+      0.7613382304647921
+    ],
+    "nearest_axis_to_target": [
+      0.9501732692222354,
+      0.33828613903984994,
+      0.7300934677846943
+    ]
+  },
+  {
+    "event": {
+      "t_start": 14002.7708515,
+      "t_end": 14005.963182,
+      "duration_s": 3.1923305000000255,
+      "centroid_world": [
+        0.9769706469993024,
+        0.3442368252101445,
+        0.7441944328881129
+      ],
+      "spread_m": 0.015423972061219295,
+      "n_samples": 60,
+      "origin_world": [
+        0.944773133165997,
+        -2.122605483944261,
+        1.664894879158752
+      ],
+      "distance_m": 2.633,
+      "ang_spread_deg": 0.34,
+      "object": "球M",
+      "object_label": 261,
+      "vote_share": 0.456,
+      "object_centroid_world": [
+        1.001,
+        0.353,
+        0.777
+      ],
+      "candidates": [
+        {
+          "name": "球M",
+          "share": 0.456,
+          "labels": [
+            261
+          ]
+        },
+        {
+          "name": "香蕉",
+          "share": 0.278,
+          "labels": [
+            264
+          ]
+        },
+        {
+          "name": "球L",
+          "share": 0.116,
+          "labels": [
+            259
+          ]
+        }
+      ],
+      "p_none": 0.156,
+      "sigma_deg": 1.5,
+      "mode": "cone",
+      "provisional": false,
+      "judge_ms": 6.7,
+      "topic": "gaze.intent"
+    },
+    "below_cm": 3.1768152167633956,
+    "distance_m": 2.6332559636112554,
+    "rank": {
+      "p_none": 0.731,
+      "rank_by": "capture",
+      "surface": "物品台",
+      "surface_q": 0.504,
+      "object": "球M",
+      "object_label": 261,
+      "vote_share": 0.801,
+      "q": 0.215,
+      "capture": 0.966,
+      "miss_deg": 0.26,
+      "object_centroid_world": [
+        1.001,
+        0.353,
+        0.777
+      ],
+      "candidates": [
+        {
+          "name": "球M",
+          "share": 0.801,
+          "q": 0.215,
+          "capture": 0.966,
+          "miss_deg": 0.26,
+          "labels": [
+            261
+          ]
+        },
+        {
+          "name": "香蕉",
+          "share": 0.152,
+          "q": 0.041,
+          "capture": 0.042,
+          "miss_deg": 2.52,
+          "labels": [
+            264
+          ]
+        },
+        {
+          "name": "苹果红",
+          "share": 0.036,
+          "q": 0.01,
+          "capture": 0.03,
+          "miss_deg": 2.64,
+          "labels": [
+            260
+          ]
+        }
+      ]
+    },
+    "counts": {
+      "苹果粉": 0,
+      "苹果红": 46,
+      "球R": 0,
+      "球M": 135,
+      "白杯1": 0,
+      "橘子": 1,
+      "白杯2": 0,
+      "香蕉": 109,
+      "红杯": 0,
+      "球L": 7
+    },
+    "center_ray_label": 12,
+    "center_ray_name": "",
+    "center_ray_point": [
+      0.9772395281147521,
+      0.364837400619725,
+      0.7365056726853847
+    ],
+    "nearest_axis_to_target": [
+      0.976934367900977,
+      0.3414572685291435,
+      0.7452318478323661
+    ]
+  },
+  {
+    "event": {
+      "t_start": 14006.338762,
+      "t_end": 14007.4845985,
+      "duration_s": 1.1458364999998594,
+      "centroid_world": [
+        0.9996563123565403,
+        0.22598116188689255,
+        0.7431873877060341
+      ],
+      "spread_m": 0.016316666511333764,
+      "n_samples": 23,
+      "origin_world": [
+        0.9481549499184057,
+        -2.128708410812753,
+        1.6668925289210708
+      ],
+      "distance_m": 2.53,
+      "ang_spread_deg": 0.37,
+      "object": "球M",
+      "object_label": 261,
+      "vote_share": 0.576,
+      "object_centroid_world": [
+        1.001,
+        0.353,
+        0.777
+      ],
+      "candidates": [
+        {
+          "name": "球M",
+          "share": 0.576,
+          "labels": [
+            261
+          ]
+        },
+        {
+          "name": "香蕉",
+          "share": 0.225,
+          "labels": [
+            264
+          ]
+        },
+        {
+          "name": "球L",
+          "share": 0.066,
+          "labels": [
+            259
+          ]
+        }
+      ],
+      "p_none": 0.297,
+      "sigma_deg": 1.5,
+      "mode": "cone",
+      "provisional": false,
+      "judge_ms": 6.7,
+      "topic": "gaze.intent"
+    },
+    "below_cm": 7.247942306181598,
+    "distance_m": 2.5299103861640067,
+    "rank": {
+      "p_none": 0.914,
+      "rank_by": "capture",
+      "surface": "物品台",
+      "surface_q": 0.59,
+      "object": "球M",
+      "object_label": 261,
+      "vote_share": 1.0,
+      "q": 0.086,
+      "capture": 0.373,
+      "miss_deg": 1.41,
+      "object_centroid_world": [
+        1.001,
+        0.353,
+        0.777
+      ],
+      "candidates": [
+        {
+          "name": "球M",
+          "share": 1.0,
+          "q": 0.086,
+          "capture": 0.373,
+          "miss_deg": 1.41,
+          "labels": [
+            261
+          ]
+        }
+      ]
+    },
+    "counts": {
+      "苹果粉": 0,
+      "苹果红": 0,
+      "球R": 0,
+      "球M": 104,
+      "白杯1": 0,
+      "橘子": 0,
+      "白杯2": 0,
+      "香蕉": 0,
+      "红杯": 0,
+      "球L": 0
+    },
+    "center_ray_label": 40,
+    "center_ray_name": "物品台",
+    "center_ray_point": [
+      0.9996453325492022,
+      0.2254791550151234,
+      0.7433843165639838
+    ],
+    "nearest_axis_to_target": [
+      1.0018121880216495,
+      0.32454977654767303,
+      0.704520576938184
+    ]
+  },
+  {
+    "event": {
+      "t_start": 14013.851286500001,
+      "t_end": 14014.3179545,
+      "duration_s": 0.46666799999911746,
+      "centroid_world": [
+        0.9319349516307351,
+        0.3440834460493232,
+        0.7141576347889044
+      ],
+      "spread_m": 0.010696666284111901,
+      "n_samples": 10,
+      "origin_world": [
+        0.789272278329908,
+        -2.2278084358879107,
+        1.6575565995365573
+      ],
+      "distance_m": 2.743,
+      "ang_spread_deg": 0.22,
+      "object": "球M",
+      "object_label": 261,
+      "vote_share": 0.326,
+      "object_centroid_world": [
+        1.001,
+        0.353,
+        0.777
+      ],
+      "candidates": [
+        {
+          "name": "球M",
+          "share": 0.326,
+          "labels": [
+            261
+          ]
+        },
+        {
+          "name": "球L",
+          "share": 0.321,
+          "labels": [
+            259
+          ]
+        },
+        {
+          "name": "香蕉",
+          "share": 0.169,
+          "labels": [
+            264
+          ]
+        }
+      ],
+      "p_none": 0.255,
+      "sigma_deg": 1.5,
+      "mode": "cone",
+      "provisional": false,
+      "judge_ms": 5.9,
+      "topic": "gaze.intent"
+    },
+    "below_cm": 5.952008788449881,
+    "distance_m": 2.7431700817512077,
+    "rank": {
+      "p_none": 0.892,
+      "rank_by": "capture",
+      "surface": "物品台",
+      "surface_q": 0.599,
+      "object": "球M",
+      "object_label": 261,
+      "vote_share": 0.52,
+      "q": 0.056,
+      "capture": 0.271,
+      "miss_deg": 1.62,
+      "object_centroid_world": [
+        1.001,
+        0.353,
+        0.777
+      ],
+      "candidates": [
+        {
+          "name": "球M",
+          "share": 0.52,
+          "q": 0.056,
+          "capture": 0.271,
+          "miss_deg": 1.62,
+          "labels": [
+            261
+          ]
+        },
+        {
+          "name": "球L",
+          "share": 0.421,
+          "q": 0.045,
+          "capture": 0.203,
+          "miss_deg": 1.79,
+          "labels": [
+            259
+          ]
+        },
+        {
+          "name": "苹果红",
+          "share": 0.06,
+          "q": 0.006,
+          "capture": 0.021,
+          "miss_deg": 2.77,
+          "labels": [
+            260
+          ]
+        }
+      ]
+    },
+    "counts": {
+      "苹果粉": 0,
+      "苹果红": 17,
+      "球R": 0,
+      "球M": 115,
+      "白杯1": 0,
+      "橘子": 0,
+      "白杯2": 0,
+      "香蕉": 0,
+      "红杯": 0,
+      "球L": 100
+    },
+    "center_ray_label": 40,
+    "center_ray_name": "物品台",
+    "center_ray_point": [
+      0.9254298583804197,
+      0.2268110289928158,
+      0.7571744807230462
+    ],
+    "nearest_axis_to_target": [
+      0.9314325502262712,
+      0.3350262619680322,
+      0.7174799121155012
+    ]
+  },
+  {
+    "event": {
+      "t_start": 14055.363923500001,
+      "t_end": 14055.8305915,
+      "duration_s": 0.46666799999911746,
+      "centroid_world": [
+        1.0321369201580124,
+        0.22501526355992066,
+        0.7515461464717006
+      ],
+      "spread_m": 0.011757922041224193,
+      "n_samples": 10,
+      "origin_world": [
+        0.8314514414751344,
+        -2.092463716747318,
+        1.692544417630664
+      ],
+      "distance_m": 2.509,
+      "ang_spread_deg": 0.27,
+      "object": "球M",
+      "object_label": 261,
+      "vote_share": 0.504,
+      "object_centroid_world": [
+        1.001,
+        0.353,
+        0.777
+      ],
+      "candidates": [
+        {
+          "name": "球M",
+          "share": 0.504,
+          "labels": [
+            261
+          ]
+        },
+        {
+          "name": "香蕉",
+          "share": 0.212,
+          "labels": [
+            264
+          ]
+        },
+        {
+          "name": "白杯1",
+          "share": 0.128,
+          "labels": [
+            266
+          ]
+        }
+      ],
+      "p_none": 0.252,
+      "sigma_deg": 1.5,
+      "mode": "cone",
+      "provisional": false,
+      "judge_ms": 6.6,
+      "topic": "gaze.intent"
+    },
+    "below_cm": 6.526717682106009,
+    "distance_m": 2.5092750410913927,
+    "rank": {
+      "p_none": 0.921,
+      "rank_by": "capture",
+      "surface": "物品台",
+      "surface_q": 0.58,
+      "object": "球M",
+      "object_label": 261,
+      "vote_share": 0.984,
+      "q": 0.078,
+      "capture": 0.316,
+      "miss_deg": 1.52,
+      "object_centroid_world": [
+        1.001,
+        0.353,
+        0.777
+      ],
+      "candidates": [
+        {
+          "name": "球M",
+          "share": 0.984,
+          "q": 0.078,
+          "capture": 0.316,
+          "miss_deg": 1.52,
+          "labels": [
+            261
+          ]
+        },
+        {
+          "name": "白杯1",
+          "share": 0.016,
+          "q": 0.001,
+          "capture": 0.003,
+          "miss_deg": 3.45,
+          "labels": [
+            266
+          ]
+        }
+      ]
+    },
+    "counts": {
+      "苹果粉": 0,
+      "苹果红": 0,
+      "球R": 0,
+      "球M": 117,
+      "白杯1": 11,
+      "橘子": 0,
+      "白杯2": 0,
+      "香蕉": 0,
+      "红杯": 0,
+      "球L": 0
+    },
+    "center_ray_label": 40,
+    "center_ray_name": "物品台",
+    "center_ray_point": [
+      1.0320299796451253,
+      0.22378033419489807,
+      0.7520475820434422
+    ],
+    "nearest_axis_to_target": [
+      1.0406278558885564,
+      0.32306702698506573,
+      0.7117328231789399
+    ]
+  },
+  {
+    "event": {
+      "t_start": 14055.8847585,
+      "t_end": 14060.5139405,
+      "duration_s": 4.629182000000583,
+      "centroid_world": [
+        0.9661714471173573,
+        0.3437326676016624,
+        0.7531082855840743
+      ],
+      "spread_m": 0.02121858165579945,
+      "n_samples": 90,
+      "origin_world": [
+        0.882076225469365,
+        -2.1405661771213715,
+        1.6890555470717916
+      ],
+      "distance_m": 2.656,
+      "ang_spread_deg": 0.46,
+      "object": "球M",
+      "object_label": 261,
+      "vote_share": 0.415,
+      "object_centroid_world": [
+        1.001,
+        0.353,
+        0.777
+      ],
+      "candidates": [
+        {
+          "name": "球M",
+          "share": 0.415,
+          "labels": [
+            261
+          ]
+        },
+        {
+          "name": "香蕉",
+          "share": 0.281,
+          "labels": [
+            264
+          ]
+        },
+        {
+          "name": "球L",
+          "share": 0.14,
+          "labels": [
+            259
+          ]
+        }
+      ],
+      "p_none": 0.132,
+      "sigma_deg": 1.5,
+      "mode": "cone",
+      "provisional": false,
+      "judge_ms": 6.1,
+      "topic": "gaze.intent"
+    },
+    "below_cm": 2.4368039275789566,
+    "distance_m": 2.656089236543566,
+    "rank": {
+      "p_none": 0.703,
+      "rank_by": "capture",
+      "surface": "物品台",
+      "surface_q": 0.497,
+      "object": "球M",
+      "object_label": 261,
+      "vote_share": 0.69,
+      "q": 0.205,
+      "capture": 0.92,
+      "miss_deg": 0.41,
+      "object_centroid_world": [
+        1.001,
+        0.353,
+        0.777
+      ],
+      "candidates": [
+        {
+          "name": "球M",
+          "share": 0.69,
+          "q": 0.205,
+          "capture": 0.92,
+          "miss_deg": 0.41,
+          "labels": [
+            261
+          ]
+        },
+        {
+          "name": "香蕉",
+          "share": 0.203,
+          "q": 0.06,
+          "capture": 0.062,
+          "miss_deg": 2.36,
+          "labels": [
+            264
+          ]
+        },
+        {
+          "name": "苹果红",
+          "share": 0.062,
+          "q": 0.018,
+          "capture": 0.058,
+          "miss_deg": 2.38,
+          "labels": [
+            260
+          ]
+        }
+      ]
+    },
+    "counts": {
+      "苹果粉": 0,
+      "苹果红": 65,
+      "球R": 0,
+      "球M": 132,
+      "白杯1": 0,
+      "橘子": 0,
+      "白杯2": 0,
+      "香蕉": 137,
+      "红杯": 0,
+      "球L": 29
+    },
+    "center_ray_label": 12,
+    "center_ray_name": "",
+    "center_ray_point": [
+      0.9669262152480053,
+      0.3660296490264976,
+      0.7447080084803978
+    ],
+    "nearest_axis_to_target": [
+      0.9662142450893316,
+      0.34499698381665045,
+      0.7526319607242105
+    ]
+  },
+  {
+    "event": {
+      "t_start": 14060.568107,
+      "t_end": 14061.197276,
+      "duration_s": 0.6291690000016388,
+      "centroid_world": [
+        0.9698310444911408,
+        0.22481263255889014,
+        0.7443534115589779
+      ],
+      "spread_m": 0.0074585588921398565,
+      "n_samples": 13,
+      "origin_world": [
+        0.9158491952463992,
+        -2.137922185714481,
+        1.6651816431103867
+      ],
+      "distance_m": 2.536,
+      "ang_spread_deg": 0.17,
+      "object": "球M",
+      "object_label": 261,
+      "vote_share": 0.549,
+      "object_centroid_world": [
+        1.001,
+        0.353,
+        0.777
+      ],
+      "candidates": [
+        {
+          "name": "球M",
+          "share": 0.549,
+          "labels": [
+            261
+          ]
+        },
+        {
+          "name": "香蕉",
+          "share": 0.191,
+          "labels": [
+            264
+          ]
+        },
+        {
+          "name": "球L",
+          "share": 0.141,
+          "labels": [
+            259
+          ]
+        }
+      ],
+      "p_none": 0.297,
+      "sigma_deg": 1.5,
+      "mode": "cone",
+      "provisional": false,
+      "judge_ms": 6.2,
+      "topic": "gaze.intent"
+    },
+    "below_cm": 7.193577810444351,
+    "distance_m": 2.5364058219360865,
+    "rank": {
+      "p_none": 0.919,
+      "rank_by": "capture",
+      "surface": "物品台",
+      "surface_q": 0.596,
+      "object": "球M",
+      "object_label": 261,
+      "vote_share": 0.953,
+      "q": 0.077,
+      "capture": 0.333,
+      "miss_deg": 1.48,
+      "object_centroid_world": [
+        1.001,
+        0.353,
+        0.777
+      ],
+      "candidates": [
+        {
+          "name": "球M",
+          "share": 0.953,
+          "q": 0.077,
+          "capture": 0.333,
+          "miss_deg": 1.48,
+          "labels": [
+            261
+          ]
+        },
+        {
+          "name": "球L",
+          "share": 0.04,
+          "q": 0.003,
+          "capture": 0.013,
+          "miss_deg": 2.96,
+          "labels": [
+            259
+          ]
+        },
+        {
+          "name": "苹果红",
+          "share": 0.007,
+          "q": 0.001,
+          "capture": 0.002,
+          "miss_deg": 3.56,
+          "labels": [
+            260
+          ]
+        }
+      ]
+    },
+    "counts": {
+      "苹果粉": 0,
+      "苹果红": 5,
+      "球R": 0,
+      "球M": 108,
+      "白杯1": 0,
+      "橘子": 0,
+      "白杯2": 0,
+      "香蕉": 0,
+      "红杯": 0,
+      "球L": 17
+    },
+    "center_ray_label": 40,
+    "center_ray_name": "物品台",
+    "center_ray_point": [
+      0.9698451250166558,
+      0.22542892393014258,
+      0.7441132244295879
+    ],
+    "nearest_axis_to_target": [
+      0.9721343004521201,
+      0.3256239817538562,
+      0.7050642218955565
+    ]
+  },
+  {
+    "event": {
+      "t_start": 14061.463943499999,
+      "t_end": 14061.826444999999,
+      "duration_s": 0.3625014999997802,
+      "centroid_world": [
+        1.0170106428186607,
+        0.22407314496377118,
+        0.7475268766357007
+      ],
+      "spread_m": 0.006582186023036306,
+      "n_samples": 8,
+      "origin_world": [
+        0.9092645708363185,
+        -2.1454865140105794,
+        1.662927621625243
+      ],
+      "distance_m": 2.543,
+      "ang_spread_deg": 0.15,
+      "object": "球M",
+      "object_label": 261,
+      "vote_share": 0.536,
+      "object_centroid_world": [
+        1.001,
+        0.353,
+        0.777
+      ],
+      "candidates": [
+        {
+          "name": "球M",
+          "share": 0.536,
+          "labels": [
+            261
+          ]
+        },
+        {
+          "name": "香蕉",
+          "share": 0.234,
+          "labels": [
+            264
+          ]
+        },
+        {
+          "name": "白杯1",
+          "share": 0.088,
+          "labels": [
+            266
+          ]
+        }
+      ],
+      "p_none": 0.299,
+      "sigma_deg": 1.5,
+      "mode": "cone",
+      "provisional": false,
+      "judge_ms": 6.5,
+      "topic": "gaze.intent"
+    },
+    "below_cm": 6.866920817350353,
+    "distance_m": 2.542514644479688,
+    "rank": {
+      "p_none": 0.901,
+      "rank_by": "capture",
+      "surface": "物品台",
+      "surface_q": 0.562,
+      "object": "球M",
+      "object_label": 261,
+      "vote_share": 0.997,
+      "q": 0.099,
+      "capture": 0.429,
+      "miss_deg": 1.3,
+      "object_centroid_world": [
+        1.001,
+        0.353,
+        0.777
+      ],
+      "candidates": [
+        {
+          "name": "球M",
+          "share": 0.997,
+          "q": 0.099,
+          "capture": 0.429,
+          "miss_deg": 1.3,
+          "labels": [
+            261
+          ]
+        },
+        {
+          "name": "白杯1",
+          "share": 0.003,
+          "q": 0.0,
+          "capture": 0.001,
+          "miss_deg": 3.83,
+          "labels": [
+            266
+          ]
+        }
+      ]
+    },
+    "counts": {
+      "苹果粉": 0,
+      "苹果红": 0,
+      "球R": 0,
+      "球M": 117,
+      "白杯1": 4,
+      "橘子": 0,
+      "白杯2": 0,
+      "香蕉": 0,
+      "红杯": 0,
+      "球L": 0
+    },
+    "center_ray_label": 40,
+    "center_ray_name": "物品台",
+    "center_ray_point": [
+      1.0170396267065889,
+      0.224710560790919,
+      0.7472806321822937
+    ],
+    "nearest_axis_to_target": [
+      1.0216241677675908,
+      0.3255341300700141,
+      0.7083307918264965
+    ]
+  },
+  {
+    "event": {
+      "t_start": 14067.6356285,
+      "t_end": 14067.952293499999,
+      "duration_s": 0.31666499999846565,
+      "centroid_world": [
+        0.9519388988396613,
+        0.3493631883652535,
+        0.7285382336086217
+      ],
+      "spread_m": 0.021091361217912295,
+      "n_samples": 7,
+      "origin_world": [
+        0.6454078212070622,
+        -2.3452834384638663,
+        1.6852815303193505
+      ],
+      "distance_m": 2.876,
+      "ang_spread_deg": 0.42,
+      "object": "球M",
+      "object_label": 261,
+      "vote_share": 0.367,
+      "object_centroid_world": [
+        1.001,
+        0.353,
+        0.777
+      ],
+      "candidates": [
+        {
+          "name": "球M",
+          "share": 0.367,
+          "labels": [
+            261
+          ]
+        },
+        {
+          "name": "香蕉",
+          "share": 0.248,
+          "labels": [
+            264
+          ]
+        },
+        {
+          "name": "球L",
+          "share": 0.215,
+          "labels": [
+            259
+          ]
+        }
+      ],
+      "p_none": 0.225,
+      "sigma_deg": 1.5,
+      "mode": "cone",
+      "provisional": false,
+      "judge_ms": 5.9,
+      "topic": "gaze.intent"
+    },
+    "below_cm": 4.5971497577816045,
+    "distance_m": 2.8758371791249013,
+    "rank": {
+      "p_none": 0.818,
+      "rank_by": "capture",
+      "surface": "物品台",
+      "surface_q": 0.556,
+      "object": "球M",
+      "object_label": 261,
+      "vote_share": 0.626,
+      "q": 0.114,
+      "capture": 0.553,
+      "miss_deg": 1.09,
+      "object_centroid_world": [
+        1.001,
+        0.353,
+        0.777
+      ],
+      "candidates": [
+        {
+          "name": "球M",
+          "share": 0.626,
+          "q": 0.114,
+          "capture": 0.553,
+          "miss_deg": 1.09,
+          "labels": [
+            261
+          ]
+        },
+        {
+          "name": "球L",
+          "share": 0.169,
+          "q": 0.031,
+          "capture": 0.15,
+          "miss_deg": 1.95,
+          "labels": [
+            259
+          ]
+        },
+        {
+          "name": "苹果红",
+          "share": 0.056,
+          "q": 0.01,
+          "capture": 0.038,
+          "miss_deg": 2.56,
+          "labels": [
+            260
+          ]
+        }
+      ]
+    },
+    "counts": {
+      "苹果粉": 0,
+      "苹果红": 41,
+      "球R": 0,
+      "球M": 111,
+      "白杯1": 0,
+      "橘子": 0,
+      "白杯2": 0,
+      "香蕉": 77,
+      "红杯": 0,
+      "球L": 64
+    },
+    "center_ray_label": 40,
+    "center_ray_name": "物品台",
+    "center_ray_point": [
+      0.9447294413983097,
+      0.2859864491267907,
+      0.7510403568295556
+    ],
+    "nearest_axis_to_target": [
+      0.9511410413729402,
+      0.3423494005692649,
+      0.731028502422184
+    ]
+  }
+]

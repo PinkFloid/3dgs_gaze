@@ -1,0 +1,23 @@
+{
+  "page_mm": [
+    180.0,
+    84.27
+  ],
+  "outside_page_characters": 0,
+  "central_ray_object": "worktop",
+  "shares_from_full_query_verified": true,
+  "physical_support_verified": true,
+  "recorded_origin_projection_verified": true,
+  "distance_m": 2.8252896303007553,
+  "support_side_m": [
+    0.19732257585431576,
+    0.1973225758543158,
+    0.19732257585431576,
+    0.1973225758543156
+  ],
+  "shares_displayed": {
+    "ball_M": 0.667587590921691,
+    "ball_L": 0.16389619468432157,
+    "others": 0.16851621439398748
+  }
+}

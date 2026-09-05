@@ -1,6 +1,31 @@
 # GazeSplat 主图交接：给 Linux 上继续修改的 Codex
 
-日期：2026-09-05。本文记录用户在当前会话中的反馈与已完成工作，方便继续精修；当前版本**尚未获用户最终认可**。
+更新：2026-09-05。用户已认可 **v6 偏下注视示例**，并要求提交推送。以下先列当前入口，后面保留早期版本的历史交接记录。
+
+## 当前版本：v6 完整起点与偏下注视
+
+- 主图：`output/pdf/gazesplat_fig2_offset_v6.pdf`
+- 预览、可编辑 SVG、图注和数据说明：`output/fig2_offset_v6/`
+- 数据来源、查询参数和可视化边界：`output/fig2_offset_v6/README.md`
+- 排版入口：`tmp/fig2_design/build_offset_v6.py`；依赖同目录的 `build_recorded_v3.py` 布局和 `build_complete.py` 绘图函数。所需图片、几何和证据数据均已提交，不依赖未提交的 v3 输出目录。
+
+最新面板展示真实记录的眼动仪起点、偏在目标球下方并落到台面的中心射线，以及实际角查询中的物体表面证据。当前方法参数重放得到 ball_M 约 67%、ball_L 约 16%、其他物体约 17% 的物体集合内加权证据份额；这不是所有射线的命中率或执行成功率。三个地图包围盒、视锥角宽与注视坐标均按数据绘制。主地图仍保留用户喜欢的视角，执行照片使用能看清球和夹爪的实录帧。
+
+只调整排版无需 GPU：
+
+```bash
+python -m pip install reportlab pillow
+python tmp/fig2_design/build_offset_v6.py
+pdftoppm -scale-to 3600 -singlefile -png \
+  output/pdf/gazesplat_fig2_offset_v6.pdf \
+  output/fig2_offset_v6/gazesplat_fig2_offset_v6
+```
+
+重新查询或渲染需本地 CUDA / Nerfstudio 环境及 3DGS checkpoint；命令和原始数据路径见本版 README。模型 checkpoint 和录制视频不随主图提交。查询示例来自 recording 019、抓取照片来自 recording 020；图注已说明当前方法重放和分开录制的情况。
+
+## 早期 v2 refined 交接记录（历史）
+
+下面保留早期反馈与工作记录；其中“最新版本”等措辞仅指当时状态，不代表当前 v6 版本。
 
 ## 从哪里接着改
 

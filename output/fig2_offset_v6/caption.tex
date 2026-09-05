@@ -1,0 +1,6 @@
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/gazesplat_fig2_offset_v6.pdf}
+    \caption{Overview of GazeSplat. Offline mapping establishes a metric 3DGS map with persistent instance identities. The illustrated recorded fixation is replayed using the current method's $33\times33$ angular query with $\sigma=1^{\circ}$ and horizontal and vertical support of $\pm2\sigma$. Its center ray lands on the worktop below the target, while the surrounding query gives ball\_M the largest share of weighted evidence among registered target objects. The projected eye origin, map bounding boxes, and query geometry retain their metric coordinates. For clarity, connecting rays are uniformly subsampled and shown only for valid object matches; the evidence shares use the complete query and are normalized over target objects, excluding background and residual mass. Size- and distance-aware normalization and candidate gating produce the instance binding. Word-level temporal alignment grounds spoken references, and the resulting commands drive navigation, target reobservation, and manipulation in the shared map frame. The execution photograph illustrates the same registered target in a separate recording; the binding timeline is schematic.}
+    \label{fig:overview}
+\end{figure*}
