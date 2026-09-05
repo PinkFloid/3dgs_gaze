@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""fig_story.py -- 一行多格的流程故事板(原始 world.mp4 去畸变抽帧,自己画叠加,不用烧录字幕)。
+"""fig_story.py -- 流程故事板(原始 world.mp4 去畸变抽帧,自己画叠加,不用烧录字幕)。
 
-    conda run -n nerfstudio python Eye_Tracker/tools/fig_story.py                # 默认 --story hand
-    conda run -n nerfstudio python Eye_Tracker/tools/fig_story.py --story box
+    conda run -n nerfstudio python Eye_Tracker/tools/fig_story.py                  # 默认 --story merged:2 行 x 5 列 -> fig_story
+    conda run -n nerfstudio python Eye_Tracker/tools/fig_story.py --story hand     # 单行六格 -> fig_story_hand
+    conda run -n nerfstudio python Eye_Tracker/tools/fig_story.py --story box      # 单行五格 -> fig_story_box
 
 故事:
   hand  08-20/010(session 20260820-232900)"拿一下这个"→ 苹果粉 →"那给我":台面 / 指令 / 视线+绑定 / 抬离桌面 / 举回 / 递到手上
   box   08-27/005(session 20260827-155653)"拿一下这个苹果"→"放到这里":台面 / 指令(here=纸箱子)/ 视线+绑定 / 抓取 / 落进纸箱
+  merged 上排 hand(去掉"举回"格)、下排 box,各 5 格
 格 1 与格 3 用同一裁剪;格 3 的框是手工按画面对准的(地图投影有 ~0.4° 位姿/配准误差,示意图要准就手工对)。
-视线点默认取绑定那段注视的 gaze 中位;GAZE_MANUAL 可手动指定。
+视线点默认取绑定那段注视的 gaze 中位;gaze_manual 可手动指定。
 """
 import argparse
 import sys
@@ -28,17 +30,17 @@ EN = {"球L": "ball L", "球M": "ball M", "球R": "ball R", "苹果粉": "apple 
 
 STORIES = {
     "hand": dict(
-        rec=Path("/home/liuchy/recordings/2026_08_20/010"), out=ROOT / "docs/E1_DATA/fig_story",
+        rec=Path("/home/liuchy/recordings/2026_08_20/010"), out=ROOT / "docs/E1_DATA/fig_story_hand",
         t_cmd=62.2, gaze_win=(58.8, 65.6),           # binding 苹果粉 的注视段(vote 0.88);t 为视频秒 = pupil t - world_ts[0]
         bound="苹果粉", gaze_manual=None,
         boxes={"苹果粉": [975, 452, 993, 477], "苹果红": [1008, 455, 1026, 472], "球L": [1015, 469, 1033, 486],
                "水瓶": [1041, 428, 1059, 468], "白杯1": [1072, 448, 1088, 472], "红杯": [1077, 440, 1098, 466],
                "白杯2": [1107, 447, 1126, 470], "球R": [1094, 464, 1111, 483]},   # 橘子/香蕉被前排挡住、球M 已被取走:不画
         here=None, this_label="this", this_dy=75,
-        shots=[(94.25, (1200, 445, 300), "(4) robot grasps the instance"),
-               (96.25, (1050, 640, 450), "(5) carries it back"),
-               (98.25, (1000, 800, 400), "(6) “give it to me”: hands it over")],
-        cap_task="(2) “pick this up”\n(no object name, gaze only)"),
+        shots=[(94.25, (1200, 445, 300), "robot grasps the instance"),
+               (96.25, (1050, 640, 450), "carries it back"),
+               (98.25, (1000, 800, 400), "“give it to me”:\nhands it over")],
+        cap_task="“pick this up”\n(no object name, gaze only)"),
     "box": dict(
         rec=Path("/home/liuchy/recordings/2026_08_27/005"), out=ROOT / "docs/E1_DATA/fig_story_box",
         t_cmd=59.6, gaze_win=(59.2, 60.0),
@@ -47,9 +49,9 @@ STORIES = {
                "球L": [1032, 497, 1050, 517], "香蕉": [1070, 486, 1100, 505], "白杯1": [1114, 484, 1134, 510],
                "红杯": [1131, 475, 1152, 502], "白杯2": [1153, 487, 1173, 515], "球R": [1131, 503, 1147, 522]},   # 球M 此刻已被取走
         here=[700, 424, 761, 476], this_label="this apple", this_dy=75,
-        shots=[(82.25, (1225, 530, 200), "(4) robot grasps the instance"),
-               (92.0, (1080, 470, 210), "(5) robot drops it into the box")],
-        cap_task="(2) “pick up this apple,\nput it here”"),
+        shots=[(82.25, (1225, 530, 200), "robot grasps the instance"),
+               (92.0, (1080, 470, 210), "robot drops it into the box")],
+        cap_task="“pick up this apple,\nput it here”"),
 }
 
 
@@ -72,13 +74,9 @@ def gaze_px(rec, t0, t1, W, H, min_conf=0.6):
     return nx * W, (1 - ny) * H
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--story", choices=sorted(STORIES), default="hand")
-    args = ap.parse_args()
-    S = STORIES[args.story]
-    REC, OUT, BOUND = S["rec"], S["out"], S["bound"]
-
+def load_story(S):
+    """抽帧、去畸变、视线像素;返回画一行所需的一切。"""
+    REC = S["rec"]
     K0, D = load_fisheye(str(SCENE / "Calibration_result/world_camera_calibration.npz"))
     ts = np.load(REC / "world_timestamps.npy"); t_base = float(ts[0])
     _, frame_cmd = frame_at(REC, t_base + S["t_cmd"])
@@ -87,27 +85,26 @@ def main():
     Kn = K.copy()   # 去畸变后的针孔内参直接用原 K:中心区域保真,边缘裁掉即可
     m1, m2 = cv2.fisheye.initUndistortRectifyMap(K, D, np.eye(3), Kn, (W, H), cv2.CV_16SC2)
     und = lambda im: cv2.remap(im, m1, m2, cv2.INTER_LINEAR)
-
     u, v = gaze_px(REC, t_base + S["gaze_win"][0], t_base + S["gaze_win"][1], W, H)
     gu, gv = cv2.fisheye.undistortPoints(np.array([[[u, v]]], np.float64), K, D, P=Kn).reshape(2)
     if S["gaze_manual"] is not None:
         gu, gv = S["gaze_manual"]
     boxes = {k: list(v) for k, v in S["boxes"].items()}
-    print(f"frame {W}x{H}; gaze px ({gu:.0f},{gv:.0f}); boxes {len(boxes)}")
-
-    img_cmd = und(frame_cmd)
+    print(f"[{REC.name}] frame {W}x{H}; gaze px ({gu:.0f},{gv:.0f}); boxes {len(boxes)}")
     shots = [(und(frame_at(REC, t_base + t)[1]), crop, cap) for t, crop, cap in S["shots"]]
+    return dict(img_cmd=und(frame_cmd), W=W, H=H, gaze=(gu, gv), boxes=boxes, shots=shots)
 
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
+
+def draw_story(S, axes, shot_idx=None):
+    """把一个故事画进一行 axes:格 1 台面、格 2 指令、格 3 视线+绑定、其余为机器人执行。"""
     from matplotlib.patches import Rectangle, FancyArrowPatch
     import matplotlib.patheffects as pe
     stroke = [pe.withStroke(linewidth=1.4, foreground="black")]
-    plt.rcParams.update({"font.family": "serif", "font.serif": ["Times New Roman", "Times", "Nimbus Roman", "DejaVu Serif"],
-                         "font.size": 7, "pdf.fonttype": 42})
-    n = 3 + len(shots)
-    fig, axes = plt.subplots(1, n, figsize=(7.16, 1.5 * 5 / n + 0.35), gridspec_kw=dict(wspace=0.04))
+    L = load_story(S)
+    img_cmd, W, H, (gu, gv), boxes, shots, BOUND = L["img_cmd"], L["W"], L["H"], L["gaze"], L["boxes"], L["shots"], S["bound"]
+    if shot_idx is not None:
+        shots = [shots[i] for i in shot_idx]
+    assert len(axes) == 3 + len(shots), (len(axes), len(shots))
     rgb = lambda im: cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
 
     tb = np.array(list(boxes.values()))                                     # 台上实例的联合框
@@ -149,11 +146,38 @@ def main():
     # 4.. 机器人执行
     for ax, (im, (cx, cy, hw), _cap) in zip(axes[3:], shots):
         crop(ax, im, cx, cy, hw)
-    caps = ["(1) objects on the table", S["cap_task"], "(3) measured gaze (+),\nbound instance (green)"] + [c for _, _, c in shots]
+    caps = ["objects on the table", S["cap_task"], "measured gaze (+),\nbound instance (green)"] + [c for _, _, c in shots]
+    caps = [f"({k + 1}) {c}" for k, c in enumerate(caps)]
+    n = len(axes)
     for ax, c in zip(axes, caps):
         for sp in ax.spines.values():
             sp.set_linewidth(0.5); sp.set_color("#999999")
         ax.text(0.5, -0.05, c, transform=ax.transAxes, ha="center", va="top", fontsize=6.3 if n <= 5 else 5.9, linespacing=1.25)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--story", choices=sorted(STORIES) + ["merged"], default="merged")
+    args = ap.parse_args()
+
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    plt.rcParams.update({"font.family": "serif", "font.serif": ["Times New Roman", "Times", "Nimbus Roman", "DejaVu Serif"],
+                         "font.size": 7, "pdf.fonttype": 42})
+    if args.story == "merged":
+        OUT = ROOT / "docs/E1_DATA/fig_story"
+        # 面板宽 = 7.16*0.98/(5+4*0.04);行高按 4:3 定,hspace 只留说明文字两行 + 行标
+        fig, axes = plt.subplots(2, 5, figsize=(7.16, 2.95), gridspec_kw=dict(wspace=0.04, hspace=0.47, left=0.01, right=0.99, top=0.95, bottom=0.09))
+        draw_story(STORIES["hand"], axes[0], shot_idx=[0, 2])      # 上排:去掉"举回"格,递到手上收尾
+        draw_story(STORIES["box"], axes[1])                        # 下排:纸箱版
+        for ax, lab in zip(axes[:, 0], ("(a)", "(b)")):
+            ax.text(0.0, 1.03, lab, transform=ax.transAxes, ha="left", va="bottom", fontsize=7.5, fontweight="bold")
+    else:
+        S = STORIES[args.story]; OUT = S["out"]
+        n = 3 + len(S["shots"])
+        fig, axes = plt.subplots(1, n, figsize=(7.16, 1.5 * 5 / n + 0.35), gridspec_kw=dict(wspace=0.04))
+        draw_story(S, axes)
     fig.savefig(str(OUT) + ".png", dpi=300, bbox_inches="tight"); fig.savefig(str(OUT) + ".pdf", bbox_inches="tight")
     print("wrote", OUT)
 
