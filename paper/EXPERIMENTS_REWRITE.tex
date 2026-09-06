@@ -1,0 +1,206 @@
+% EXPERIMENTS — rewrite 2026-09-07 (claim -> evidence -> interpretation).
+% Numbers: E1/E2/E3 = 327-trial main set (docs/E1_RESULTS.md, curve.csv);
+% E4 = 204-trial frozen subset (docs/E1_DATA/table2.md). \TBD{} = still pending.
+\section{Experiments}
+\label{sec:experiments}
+
+The experiments answer three questions in turn. Can gaze on a
+persistent instance map single out one of several identical,
+unmarked objects, and where does it fail (E1)? Which mechanisms of
+Sec.~\ref{sec:method} carry the $1^\circ$ budget, measured by
+switching each one off in bit-exact replay (E4)? Does a resolved
+referent survive the trip to a robot that may never have seen it
+(E2, E3)?
+
+\subsection{Setup and Protocol}
+\label{sec:experimental_setup}
+
+\textbf{Platform.} A Pupil Core eye tracker; a Unitree B2 quadruped
+with an arm; an iPhone 16 Pro Max for mapping; an RTX 4090
+workstation for reconstruction and replay. Speech is transcribed
+with faster-whisper (word timestamps) and parsed by GPT-5 mini into
+an action with object/place/destination slots (Sec.~\ref{sec:method}).
+
+\textbf{Maps.} One room, four independently arranged and mapped
+layouts (78--144 photos each; the two most recent maps hold 259 and 64
+instances, 13 and 11 of them named). Named objects include three
+identical tennis balls, two identical white cups, and several
+everyday items placed within a few centimeters of one another. No
+object carries a marker.
+
+\textbf{Wearers and calibration.} Three wearers; the tracker is
+recalibrated after every donning, with a measured accuracy of
+$0.8$--$1.1^\circ$. The cone width is fixed at $\sigma=1^\circ$ for
+every result below; E4 sweeps it.
+
+\textbf{Fixation protocol.} Each recording follows a pre-registered
+card: a sequence of 12--15 named targets, each fixated for 2--3\,s
+from a fixed standing position (\TBD{n-stations} stations,
+$1.0$--$4.6$\,m from the objects). For every station--target pair we
+compute $\theta$, the minimum angular separation between the target
+and any other named instance, from the median head pose and the map
+geometry, independently of the outcome
+($0.1^\circ\le\theta\le24^\circ$). $\theta$ is the single axis on
+which Sec.~\ref{sec:method} predicts failure. Four further recordings
+are taken while walking laterally at $1$--$3$\,m.
+
+\textbf{Scoring.} Recordings are replayed offline through the frozen
+resolver. Outputs naming the same instance within $1.2$\,s are
+merged; merged segments shorter than $1.0$\,s are dropped; within each
+target's time slot the instance with the longest accumulated
+fixation is the prediction. A target counts as correct only if the
+predicted instance is correct in sequence; unmatched outputs are
+counted separately as extra bindings.
+
+\textbf{Data hygiene.} All 330 static trials recorded under the
+frozen configuration are reported, except three in which the wearer
+fixated a different ball than instructed (the system bound the
+fixated ball); these are excluded as execution errors, leaving 327.
+Two earlier recordings (30 trials) were dropped before scoring for
+instrumentation faults, not outcomes: a localization dead zone (95 of
+3833 frames localized) and a cart displaced $5.8$\,cm after mapping.
+Two pre-registered choices were revised before the final runs and are
+reported as run: the table prior was set to zero, and the planned
+re-layout batch was replaced by the four independently mapped
+layouts. The first author performed 90\% of gaze trials; the other
+two wearers contributed 30 and 12 trials after their own calibration.
+
+\textbf{Robot trials.} 39 end-to-end trials: 20 with full session
+logs and 19 scored on site. A trial succeeds only if the robot
+reaches the correct instance, grasps it, and completes the requested
+handover or placement without intervention. Eight target-matched
+pairs compare the robot starting in view of the target with the robot
+starting outside the room.
+
+\subsection{E1: Accuracy versus Angular Separation}
+\label{sec:disambiguation_results}
+
+Fig.~\ref{fig:theta} plots top-1 binding accuracy against $\theta$
+for the 327 static trials. Three regimes appear. For
+$\theta\ge2.5^\circ$ the resolver binds 151 of 154 targets
+($98.1\%$, Wilson 95\% CI $[94.4, 99.4]$). Between $1^\circ$ and
+$2.5^\circ$ --- one to two calibrated $\sigma$ --- it binds 77 of 88
+($87.5\%$): the knee sits where the cone width predicts. Below
+$1^\circ$ the outcome depends on whether the target is physically
+visible: with a clear sightline the resolver still binds 26 of 37
+($70.3\%$, $[54.2, 82.5]$), whereas targets hidden behind a nearer
+object --- balls in a row seen obliquely past the $4$\,m limit, or a
+second-row item behind a front one at $3$\,m --- fall to 16 of 48
+($33.3\%$, $[21.7, 47.5]$), the three-candidate chance level. The
+collapse is therefore a visibility limit of the scene, not a
+precision limit of the gaze channel.
+
+Walking does not break the world-frame fixation events: 56 of 57
+targets bind correctly across four lateral-walking recordings
+($\theta$ mostly $1.3$--$2.8^\circ$). The two additional wearers bind
+15/15 and 12/12 of their trials.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{Figures/fig_theta.pdf}
+    \caption{Top-1 gaze-to-instance binding accuracy versus the minimum
+    angular separation $\theta$ to the nearest named instance (327 static
+    trials, seven bins, Wilson 95\% CIs, bin sizes annotated). The
+    dash-dotted line marks the calibrated cone width
+    $\sigma\approx1^\circ$; the shaded band marks separations at which
+    the target is physically occluded from the station (adjacent balls
+    beyond $4$\,m, or a second-row object behind a front one at $3$\,m);
+    the dotted line is three-candidate chance.}
+    \label{fig:theta}
+\end{figure}
+
+\subsection{E2, E3: End-to-End Retrieval}
+\label{sec:end_to_end_results}
+
+Fig.~\ref{fig:story} shows the two task forms: fetch-and-handover
+(``Pick this up'' / ``Hand it to me'') and fetch-and-place (``Pick up
+this apple and put it here''), the destination given by a second
+fixation. In both, the measured gaze lands on the tabletop beside the
+fruit; the visible-surface vote still assigns it to the apple
+instance, whose identity the robot then re-acquires at the table.
+
+The robot completed 36 of 39 trials ($92\%$): 28/30 with a deictic
+reference resolved by gaze, 8/9 by category name, and 2/2 placements.
+The three failures are, in the taxonomy of Sec.~\ref{sec:method}:
+twice the wearer fixated a neighboring instance (the robot fetched
+what was looked at), once no binding cleared the vote threshold and
+the system refused. Every trial on the pair of identical white cups
+selected the correct cup. In the eight target-matched pairs the robot
+succeeded 7/8 with the target in view and 7/8 starting outside the
+room: resolution is settled in the map before the robot moves, and
+entering the room is only navigation. Median execution time from
+accepted order to delivery was $5.4$\,s ($n{=}14$, IQR $5.3$--$7.4$);
+speech end to dispatch took $2.2$\,s with a cached parse and $5.0$\,s
+with a cold LLM call, of which transcription is $\sim$$1.5$\,s.
+Emergency stop measured \TBD{sys-estop}.
+
+\subsection{E4: Replay Ablations}
+\label{sec:ablation_results}
+
+Every session replays bit-exactly, so each mechanism can be switched
+off on the same recordings. Table~\ref{tab:ablations} does this on the
+204-trial frozen subset used for method freezing (bins $n=58/66/78$,
+walking $n=15$); each row removes one mechanism and restores the naive
+design it replaced.
+
+\begin{table}[t]
+    \centering
+    \caption{Replay ablations on the 204-trial frozen subset: correct
+    bindings out of trials. Each row switches one mechanism of
+    Sec.~\ref{sec:method} back to the design it replaced; all rows use
+    $\sigma=1^\circ$ unless stated. The last two rows are measured on the
+    earlier v1 resolver (full v1: 144, 58/66, 29/78, 11/15).}
+    \label{tab:ablations}
+    \scriptsize
+    \setlength{\tabcolsep}{3pt}
+    \renewcommand{\arraystretch}{1.15}
+    \begin{tabular}{llcccc}
+        \hline
+        Variant & Mechanism removed & All & $1$--$2.5^\circ$ & $<1^\circ$ & Walk \\
+        \hline
+        \textbf{Full method} & --- & \textbf{166}/204 & \textbf{58}/66 & \textbf{50}/78 & \textbf{14}/15 \\
+        Near-single ray ($\sigma{=}0.2^\circ$) & directional uncertainty & 102 & 29 & 23 & 3 \\
+        Sphere voting & visible-surface voting & 120 & 49 & 15 & 9 \\
+        Nearest centroid ($0.35$\,m) & the map query itself & 117 & 46 & 15 & 9 \\
+        Places as candidates & named-only candidate set & 144 & 50 & 36 & 2 \\
+        Metric-radius clustering & angular fixation clustering & 160 & 58 & 43 & 14 \\
+        Mass ranking & area-normalized posterior & 165 & 59 & 48 & 12 \\
+        \hline
+        All instances bindable (v1) & vocabulary filter & 39 & 9 & 3 & 2 \\
+        Prior off (v1) & interactability prior & 100 & 39 & 6 & 0 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+Three mechanisms carry the result. Collapsing the cone to a near
+single ray loses a third of all bindings and almost every walking
+trial: a fixation is a region, and evidence off the central ray is
+what recovers the target when the ray misses. Voting over a sphere
+around the gaze point instead of over rendered visible surfaces
+loses most of the sub-$\sigma$ bin (50 to 15 of 78): invisible
+surfaces behind or beneath the target outvote it exactly where
+neighbors are close. Letting every instance --- or the tabletop ---
+compete for votes collapses accuracy (39 and 144 of 204) and
+destroys walking (2 of 15), because unnamed fragments and supporting
+surfaces sweep through the cone continuously. The remaining
+mechanisms are refinements: angular clustering adds seven sub-$\sigma$
+bindings over a fixed metric radius, area normalization trades one
+hit for fewer extra bindings, and the interactability prior matters
+only in the hard bin and while walking.
+
+Fig.~\ref{fig:sigma} varies $\sigma$ alone. Correct bindings in the
+$1$--$2.5^\circ$ bin are 29, 42, 58, 58, 47, and 26 of 66 for
+$\sigma=0.2, 0.5, 1, 1.5, 2.5, 4^\circ$ (all trials: 102, 131, 166,
+152, 130, 92 of 204). The optimum coincides with the calibrated
+$0.8$--$1.1^\circ$: narrower cones miss surfaces displaced from the
+central ray, wider cones admit the neighbors the task is meant to
+separate.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{Figures/fig_sigma.pdf}
+    \caption{Cone width $\sigma$ swept with every other component fixed,
+    on the 66 frozen-subset trials with $1^\circ\le\theta<2.5^\circ$.
+    The maximum lies at the calibrated width.}
+    \label{fig:sigma}
+\end{figure}
