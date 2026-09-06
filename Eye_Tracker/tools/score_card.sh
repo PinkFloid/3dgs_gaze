@@ -9,6 +9,6 @@ ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 RUN="conda run --no-capture-output -n nerfstudio python -u"
 
 $RUN "$ROOT/Eye_Tracker/tools/gaze_live.py" --replay "$REC" --headless \
-    --on-tag-deg 0 --log "$REC/intents.jsonl" 2>&1 | grep -E "done:" || true
+    --on-tag-deg 0 --log "$REC/intents.jsonl" 2>&1 | grep -E "done:|Traceback|Error|SystemExit|不符" || true  # 报错别吞(9-07 目录改名后回放失败被 grep 吃掉)
 $RUN "$ROOT/Eye_Tracker/tools/eval_e1.py" "$REC/intents.jsonl" \
     --card "$CARD" --csv "$REC/${CARD}_score.csv"

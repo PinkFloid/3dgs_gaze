@@ -22,7 +22,7 @@
 | 5 m 正对 | 退到 5 m(站不到就站最远处,记实测) | 5.00 | 5.01 | 5.01 | V3 |
 
 ⚠ 4.5 m / 5 m 站位**开录前先空跑 30 秒看定位率**(08_18/003 死于定位空窗):
-`python Eye_Tracker/tools/pupil_localizer.py --print`,位姿输出断断续续(不到一半帧)就别录,回来告诉我,我把墙上 tag 补进地图。
+`conda run --no-capture-output -n nerfstudio python Eye_Tracker/tools/pupil_localizer.py --print`(裸 `python` 没有 numpy,必须走 nerfstudio 环境),位姿输出断断续续(不到一半帧)就别录,回来告诉我,我把墙上 tag 补进地图。
 v10 地图里只有地面 tag,远站位能看到的主要是 77/80(2.5–3 m 前方)和 76(4–4.6 m 前方)。
 
 ## 卡片
@@ -72,3 +72,17 @@ v10 地图里只有地面 tag,远站位能看到的主要是 77/80(2.5–3 m 前
 | v6 | p2 | | | | | |
 
 回来后打分:`./Eye_Tracker/tools/score_card.sh <录像目录> v1`(v1–v4、v6 同法;v5 另算)。
+
+## 录完回来:先算站位与 θ(现场不用看屏幕)
+
+```bash
+conda run --no-capture-output -n nerfstudio python Eye_Tracker/tools/station_theta.py --day <日期,如 2026_09_07>
+```
+
+目录名里含 v1–v6 就能自动认卡(`p1_v6`、`v1b` 都行;Pupil 自动编号的目录用 `000=v1` 指定)。每条录像给:实际站位
+(到 M/L/R 卷尺数、方位角、定位率、看到的 tag)、逐项 θ(**论文口径**=对全部命名物的最小张角,与 eval_e1 的
+theta_unit_deg 同源)与落箱;末尾汇总各 θ 箱的缺口,并给下一站建议(球卡 / 综合卡分开)。`--plan` 只看"站位→θ"速查表。
+
+⚠ 论文口径下第二排(苹果粉/橘子/白杯2)就在球正后方 15–23 cm,所以**球卡 3 m 以外 θ 全 <1.5°,4.5/5 m 只有 0.5–0.6°**;
+卡片标题里的 6.9°/3.0°/2.75° 是只算三球的数。要补 ≥4° 的箱得站到 1.2–1.5 m(球卡与综合卡都行);1–1.5° 箱 = 3 m。
+

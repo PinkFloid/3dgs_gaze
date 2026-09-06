@@ -23,7 +23,12 @@ ap.add_argument("recording", help="Pupil 录像目录(004)")
 ap.add_argument("session", help="brain 会话目录(logs/2026...)")
 ap.add_argument("--out", default=None, help="输出 mp4(默认 <录像>/demo_voice_gaze.mp4)")
 ap.add_argument("--crf", type=int, default=19)
+ap.add_argument("--lang", choices=["zh", "en"], default="zh", help="字幕语言(英文演示用 en:系统行英文、物名用英文对照)")
 A = ap.parse_args()
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from core.en_names import gloss  # noqa: E402
+EN = A.lang == "en"
+name = (lambda o: gloss(o)) if EN else (lambda o: o)
 REC, SESS = Path(A.recording).expanduser(), Path(A.session).expanduser()
 OUT = REC
 SR = 16000
@@ -161,13 +166,23 @@ for t_end, text in asr:
     s0, s1 = speech_island(u[1])
     a = max(w2v(seg_start + s0) - 0.15, 0.0)
     b = min(w2v(seg_start + s1) + 0.7, vid_dur)
+    quoted = f"\u201c{text.rstrip('。.')}\u201d" if EN else f"「{text.rstrip('。')}」"
     lines.append((a, f"Dialogue: 0,{ts(a)},{ts(b)},Speech,"
-                     f"{{\\fad(120,120)}}「{text.rstrip('。')}」"))
+                     f"{{\\fad(120,120)}}{quoted}"))
 for t_wall, obj, mode, goto in res:
     if not (0 <= t_wall - vid_start_wall <= vid_dur):
         continue
     a = w2v(t_wall) + 0.3
-    if goto or mode == "导航":
+    if EN:
+        who = {"你这里": "you", None: ""}.get(obj, obj)
+        modes = {"视线": "gaze", "名字": "by name", "主动": "proactive", "导航": "navigate", "放置": "place"}
+        if goto or mode == "导航":
+            txt = f"→ {name(who) if who != 'you' else 'to you'} · navigation dispatched"
+        elif mode == "放置":
+            txt = "→ place held object at gazed spot · dispatched"
+        else:
+            txt = f"→ {name(obj)} ({modes.get(mode, mode)}) · grasp dispatched"
+    elif goto or mode == "导航":
         txt = f"→ {obj} · 已派导航"
     elif mode == "放置":  # 裸放置:没有 object(手里有什么放什么),别打 None
         txt = "→ 手里的放到注视处 · 已派放置"
@@ -179,7 +194,8 @@ for t_wall, state, rid in dones:
     if not (0 <= (t_wall or 0) - vid_start_wall <= vid_dur):
         continue
     a = w2v(t_wall)
-    txt = {"done": "✓ 任务完成", "failed": "✗ 失败", "stopped": "⏹ 已急停"}[state]
+    txt = ({"done": "✓ Task done", "failed": "✗ Failed", "stopped": "⏹ Stopped"} if EN
+           else {"done": "✓ 任务完成", "failed": "✗ 失败", "stopped": "⏹ 已急停"})[state]
     lines.append((a, f"Dialogue: 0,{ts(a)},{ts(min(a + 2.2, vid_dur))},Sys,"
                      f"{{\\fad(120,200)}}{txt}"))
 lines.sort()

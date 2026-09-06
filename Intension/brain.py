@@ -45,17 +45,21 @@ from core.attention import (AttentionBuffer, PlaceBuffer,   # noqa: E402
 from core.comms import (Printer, dispatch, gaze_events,     # noqa: E402
                         replay_events, status_listener)
 from core.resolve import load_object_table, resolve_named   # noqa: E402
+from core.en_names import en_class_to_zh                    # noqa: E402
 
 # 词表匹配一律吃 norm_cmd(去两端标点+lower):语音转写的"好。""停。""Stop!"
 # 才进得了门——尤其急停,带个句号就掉进 2.2s LLM 是不可接受的。
-YES_WORDS = {"y", "yes", "是", "好", "嗯", "要", "ok", "行", "好的", "可以"}
-NO_WORDS = {"n", "no", "不", "不用", "不要", "算了", "否", "取消"}
+YES_WORDS = {"y", "yes", "是", "好", "嗯", "要", "ok", "行", "好的", "可以",
+             "okay", "yeah", "yep", "yup", "sure", "go", "go ahead", "do it", "confirm", "right"}
+NO_WORDS = {"n", "no", "不", "不用", "不要", "算了", "否", "取消",
+            "nope", "cancel", "never mind", "no thanks", "dont"}
 STOP_WORDS = {"停一下", "s"}
 # 停词规约 v2(用户裁定 8-27 晚,二次收紧):**语音停只认「停一下」一个词**,
 # s 留给键盘硬急停。停/停下/停止/别动/stop 全部作废——实测幻听吐的就是这些
 # 短形(「停下。」两字被热词诱出,17:24 会话两次现行),三字全句幻不出来。
-_STOP_RE = re.compile(r"(?:停一下)+|s")
-_BARE_STOP = re.compile(r"(?:停(?:下|止)?|别动|stop)+")  # 其他停形:不停也不进 LLM
+# 英文演示(--lang en):停词 = stop(连喊/stop it/stop now 同形);置信闸照旧把关幻听。
+_STOP_RE = re.compile(r"(?:停一下)+|s|(?:stop|stopit|stopnow)+")
+_BARE_STOP = re.compile(r"(?:停(?:下|止)?|别动)+")  # 其他停形:不停也不进 LLM
 
 
 def is_stop(key: str) -> bool:
@@ -68,9 +72,10 @@ def is_bare_stop(key: str) -> bool:
     return bool(t) and bool(_BARE_STOP.fullmatch(t))
 
 
-OBJ_DEIX = ("这个", "那个", "这只", "这颗", "这些", "这俩", "这")
+OBJ_DEIX = ("这个", "那个", "这只", "这颗", "这些", "这俩", "这",
+            "these", "those", "this", "that")  # 英文:逐词流 strip 后无空格拼接,子串照找
 LOC_DEIX = ("这里", "那里", "这边", "那边", "哪里", "哪儿", "这儿", "那儿",
-            "这块", "那块", "什么地方")
+            "这块", "那块", "什么地方", "overthere", "righthere", "there", "here")
 DEST_FWD = 3.0  # dest 槽词后前看窗 (s):"说完'那里'目光才指过去"是实测常态,
 # ASR 迟到 1-2s 使流早已跑到句后,回头消解就能捡到——不是等待机制(R18 裁定不等)
 
@@ -180,6 +185,8 @@ def parse_args():
                    help="语音能量闸:低于此 rms 的段当环境底噪丢弃(另有超长段/幻听闸,"
                         "见 voice_input.py 模块注释;默认按 DJI 麦 --meter 校准,换麦必重跑)")
     p.add_argument("--yes", action="store_true", help="自动确认(回归测试用)")
+    p.add_argument("--lang", choices=["zh", "en"], default="zh",
+                   help="指令语言:en = 英文演示(whisper 英文、停词 stop、LLM 英文对照、类别词映射)")
     p.add_argument("--log-dir", default=str(Path(__file__).resolve().parent / "logs"))
     return p.parse_args()
 
@@ -279,7 +286,7 @@ def main() -> int:
         P.say("[!] 未配置 OPENAI_API_KEY(环境变量或 Intension/.openai_key),只用解析缓存")
         args.llm = "off"
     parser = CommandParser(table, model=args.llm_model, mode=args.llm, key=key,
-                           say=P.say, logev=logev)
+                           say=P.say, logev=logev, lang=args.lang)
 
     # 状态订阅纯粹是显示 + 回放收尾等终态;抢占语义下大脑不做任何忙闲记账
     status_seen = None
@@ -354,7 +361,7 @@ def main() -> int:
                              not in ("done", "failed", "stopped"))
                             or time.time() - last_req["sent_wall"] < 30)
         vr = VoiceReader(_on_voice, model=args.voice_model, vocab=table.keys(),
-                         say=P.say, device=dev, min_rms=args.voice_rms,
+                         say=P.say, device=dev, min_rms=args.voice_rms, lang=args.lang,
                          stop_test=lambda txt: is_stop(norm_cmd("".join(txt.split()))),
                          busy_probe=inflight,
                          dump_dir=sess / "utt")  # 每条语音段存 WAV(Pupil 不录音)
@@ -555,7 +562,10 @@ def main() -> int:
 
     def handle(t_word, text, words=None):
         nonlocal pending, n_req
-        t = "".join(text.split())
+        # 中文 ASR 常在字间插空格,全部抹掉;英文(--lang en)词间空格必须保留——
+        # 解析后处理的英文规则靠单词边界,实测 "Bringmethistennisball." 让规则全失效
+        t = re.sub(r"(?<=[\u4e00-\u9fff])\s+(?=[\u4e00-\u9fff])", "", text)
+        t = re.sub(r"\s+", " ", t).strip()
         key = norm_cmd(t)  # 词表匹配用归一形:"好。""停。"(语音标点)才进得了门
         if not key:
             return  # 空行 / 纯标点(转写噪声)
@@ -592,6 +602,8 @@ def main() -> int:
             send_stop()
             return
         cmd = parser.parse(t)
+        if cmd is not None and cmd.get("noun"):  # 英文类别词("cup")-> 中文类别子串("杯"),类过滤/兜底同款
+            cmd["noun"] = en_class_to_zh(cmd["noun"])
         if cmd is not None:
             last_cmd["text"] = t  # 供 propose 记进 pending:确认后按原文落盘
         # kind 词表与旧版对齐:E1 打分认 kind=="deictic"(object 槽走视线的 trial)

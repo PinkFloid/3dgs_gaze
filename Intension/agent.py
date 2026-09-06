@@ -14,6 +14,7 @@ json_schema,reasoning minimal);都不行返回 None。
 from __future__ import annotations
 
 import json
+import re
 import os
 import time
 import urllib.error
@@ -21,6 +22,20 @@ import urllib.request
 from pathlib import Path
 
 _DIR = Path(__file__).resolve().parent
+from core.en_names import EN_CLASS, gloss, ungloss  # noqa: E402
+
+
+def _en_class_in(key):
+    """句里出现的英文类别词(最长优先):"this tennis ball" -> "tennis ball"。"""
+    toks = key.split()
+    best = None
+    for c in EN_CLASS:
+        ct = c.split()
+        if any(toks[i:i + len(ct)] == ct for i in range(len(toks))):
+            if best is None or len(c) > len(best):
+                best = c
+    return best
+
 PARSE_SCHEMA = json.loads((_DIR / "parse_schema.json").read_text(encoding="utf-8"))
 
 # 槽位卫生:LLM 偶尔把指代词本身塞进 *_query(实测:"去这里拿Orange" ->
@@ -28,14 +43,21 @@ PARSE_SCHEMA = json.loads((_DIR / "parse_schema.json").read_text(encoding="utf-8
 # 不指望提示词能管住模型。
 _DEICTIC_WORDS = {"这", "那", "这个", "那个", "这里", "那里", "这边", "那边",
                   "这儿", "那儿", "此处", "这块", "那块", "这个地方", "那个地方",
-                  "这个位置", "那个位置", "哪里", "哪儿", "什么地方"}
+                  "这个位置", "那个位置", "哪里", "哪儿", "什么地方",
+                  "this", "that", "it", "here", "there", "this one", "that one",
+                  "over there", "right here", "this place", "that place"}
 
 # 送回用户的明说标记(用户裁定 2026-08-20:「拿一下X」=过去拿住,不默认送回;
 # 送回要么句里带这些词,要么拿完另说一句"给我")。判定前先抠掉否定说法:
 # "拿apple不需要给我"(缓存实测句)不许因子串"给我"被翻成送回。
-_GIVE_WORDS = ("给我", "拿来", "过来", "带来", "递", "送")
+_EN_PRONOUNS = {"me", "it", "this", "that", "one", "them", "us", "you", "him", "her", "thing",
+                "object", "item", "stuff", "this one", "that one", "these", "those"}
+_GIVE_WORDS = ("给我", "拿来", "过来", "带来", "递", "送",
+               "give me", "bring me", "bring it", "bring this", "bring that", "bring the",
+               "hand me", "hand it", "to me", "over here", "come")
 _NO_GIVE = ("不需要给我", "不用给我", "不要给我", "别给我", "不给我",
-            "不需要拿来", "不用拿来", "别拿来", "先不给我", "不用送", "不送")
+            "不需要拿来", "不用拿来", "别拿来", "先不给我", "不用送", "不送",
+            "don't bring", "dont bring", "no need to bring", "don't give", "dont give", "not to me")
 
 
 def _says_give(key):
@@ -82,7 +104,8 @@ def _sanitize(data):
     # 类过滤拿它去筛注视缓冲全灭(苹果粉明明在盯着,候选全 0.00)。指代词一律
     # 从类槽清掉,指代标志补上——失败解析不落盘,但同会话内存缓存会复读这口毒。
     nc = data.get("noun_class")
-    if nc and nc.strip() in _DEICTIC_WORDS:
+    if nc and (nc.strip() in _DEICTIC_WORDS or nc.strip().lower() in _EN_PRONOUNS):
+        # 英文实测 "Grab me this." -> noun_class="me":代词不是类别,清掉走纯视线绑定
         data["noun_class"], data["object_deictic"] = None, True
     # 指名即指称:object_query 是真名字、且没有独立类别词(noun 缺失或只是名字的
     # 重复)时,object_deictic 视为地点槽漏过来的错标,按命名处理。
@@ -107,8 +130,9 @@ def load_openai_key():
 
 class CommandParser:
     def __init__(self, table, model="gpt-5-mini", mode="on", key="",
-                 cache_path=None, say=print, logev=lambda rec: None):
+                 cache_path=None, say=print, logev=lambda rec: None, lang="zh"):
         self.table = table            # 物体名 -> 质心(名字表进提示词,口语->规范名)
+        self.lang = lang              # en:提示词加英文对照块,后处理认英文说法
         self.model, self.mode, self.key = model, mode, key
         self.say, self.logev = say, logev
         self.cache_path = Path(cache_path or _DIR / "parse_cache_v2.json")
@@ -168,7 +192,26 @@ class CommandParser:
             "  goto=目的地是用户('过来')\n"
             "单说'给我/拿过来/递过来'(没提任何物体):把手里的送到我这 ->\n"
             "action=goto, to_user=true(狗过来,东西在爪上不放下)。\n"
-            f"指令:「{text}」")
+            + (self._en_block() if self.lang == "en" else "")
+            + f"指令:「{text}」")
+
+    def _en_block(self):
+        pairs = "; ".join(f"{n} = {gloss(n)}" for n in sorted(self.table) if gloss(n) != n)
+        return (
+            "\n【English mode】The command below is spoken in ENGLISH. Apply exactly the same\n"
+            "rules and output the same JSON. Map spoken object names to the table names\n"
+            "above using these glosses (always output the TABLE name, never the English):\n"
+            f"{pairs}\n"
+            "Deictic sentences ('this/that/it' + a class word, e.g. 'this cup', 'this ball'):\n"
+            "object_deictic=true, object_query=null, noun_class = the English class word\n"
+            "(ball, apple, cup, banana, orange, table). 'bring me / give me / hand me X' =\n"
+            "fetch with to_user=true; 'grab / pick up / get / take X' = fetch, to_user=false;\n"
+            "'put it here/there', 'put it down here', 'put it on the table' = placement (the\n"
+            "dog already holds something): object_* empty, dest_deictic=true or\n"
+            "dest_query=table name; 'give it to me / hand it over / bring it here' with no\n"
+            "object = action=goto, to_user=true; 'come here / come back / come to me' =\n"
+            "goto, to_user=true; 'go there / go over there' = goto, place_deictic=true;\n"
+            "'stop' = stop.\n")
 
     def _call_api(self, text, key):
         t0 = time.time()
@@ -239,9 +282,12 @@ class CommandParser:
         # 标 object_deictic,于是明明指了名却掉进视线绑定,没注视就报"「杯」类有多个"。
         # 句里根本没出现指代词、且名字对得上物体表 -> 按指名处理。
         # ("那"单字不算:它多半就是"拿"的同音错字;"这"单字算。)
+        for q in ("object_query", "place_query", "dest_query"):  # 英文说法 -> 地图名(LLM 偶尔照抄英文)
+            data[q] = ungloss(data.get(q), self.table)
         if data.get("object_deictic") and self._known(data.get("object_query")) \
                 and not any(w in key for w in ("这", "那个", "那只", "那颗", "那些",
-                                               "那俩", "那瓶", "那杯", "那台")):
+                                               "那俩", "那瓶", "那杯", "那台",
+                                               "this", "that", "these", "those")):
             data["object_deictic"] = False
             data["noun_class"] = None
         # 指代句里 LLM 给的具体名,按"名字的字都在句里吗"分两路(各有实测反例):
@@ -252,19 +298,36 @@ class CommandParser:
         oq = data.get("object_query")
         if data.get("object_deictic") and oq:
             hz = [ch for ch in oq if not ch.isascii()]
+            g = gloss(oq).lower()
             if len(hz) >= 2 and all(ch in key for ch in hz) and self._known(oq):
+                data["object_deictic"] = False
+                data["noun_class"] = None
+            elif g != oq and self._known(oq) and all(w in key.split() for w in g.split()):
+                # 英文真指名("this red apple" -> 苹果红:gloss 的词全在句里),同①
                 data["object_deictic"] = False
                 data["noun_class"] = None
             else:
                 data["object_query"] = None
+        # 英文:句里有 this/that 却给了具体名且标非指代(实测 "bring me this tennis ball"
+        # -> 网球M,没看视线纯猜):gloss 的词没全在句里 = 猜的,改走视线,类别词从句里认
+        if self.lang == "en" and not data.get("object_deictic") and data.get("object_query") \
+                and re.search(r"\b(this|that|these|those)\b", key):
+            oq = data["object_query"]
+            g = gloss(oq).lower()
+            if self._known(oq) and g != oq and not all(w in key.split() for w in g.split()):
+                data["object_query"], data["object_deictic"] = None, True
+                data["noun_class"] = _en_class_in(key) or data.get("noun_class")
         # 「过来」类:目的地是人,不是地名。LLM 时不时把 place_query 填成
         # "用户"/"user"(实测),brain 会拿它去物体表里找一个叫"用户"的东西而报错;
         # 也见过标成 place_deictic 让狗走去注视点。归一到 to_user 这一条路上。
         if data.get("action") == "goto":
             if (data.get("place_query") or "").strip().lower() in (
-                    "用户", "user", "我", "你", "我这", "我这里", "你这", "主人"):
+                    "用户", "user", "我", "你", "我这", "我这里", "你这", "主人",
+                    "me", "myself", "my place", "to me", "the user", "here to me"):
                 data["place_query"], data["to_user"] = None, True
-            if any(w in key for w in ("过来", "回来", "到我这", "来我这", "跟我")) \
+            if any(w in key for w in ("过来", "回来", "到我这", "来我这", "跟我",
+                                      "come here", "come back", "come over", "come to me",
+                                      "come on", "return")) \
                     and not self._known(data.get("place_query")):
                 data["place_query"], data["place_deictic"] = None, False
                 data["to_user"] = True
@@ -273,10 +336,16 @@ class CommandParser:
         # 标 object_deictic 会让视线绑定把盯着的落点当成要抓的(实测 -009 把纸箱子
         # 抓走了);填 object_query 会变成再去拿一个(实测「放回网球L」-> grab 球L)。
         # 提示词管不住,这里确定性纠偏。带"把/将"或物指代词的不算裸放置。
-        if any(v in key for v in ("放", "搁", "摆")) \
-                and not any(v in key for v in ("拿", "抓", "取", "夹", "递", "带", "给")) \
-                and not any(w in key for w in ("把", "将", "放下", "放开")) \
-                and not any(w in key for w in ("这个", "那个", "这只", "这颗", "这些", "这俩")):
+        bare_zh = any(v in key for v in ("放", "搁", "摆")) \
+            and not any(v in key for v in ("拿", "抓", "取", "夹", "递", "带", "给")) \
+            and not any(w in key for w in ("把", "将", "放下", "放开")) \
+            and not any(w in key for w in ("这个", "那个", "这只", "这颗", "这些", "这俩"))
+        # 英文裸放置:"put it here / put it on the table"——有 put/place 类动词、没有拿类动词、
+        # 没有 this/that 指物('put this there' 是拿这个放那儿,不算裸放置;'it' 指手里的)
+        bare_en = bool(re.search(r"\b(put|place|drop|set|leave)\b", key)) \
+            and not re.search(r"\b(grab|bring|get|take|fetch|pick|hand|give|carry|hold)\b", key) \
+            and not re.search(r"\b(this|that|these|those)\b", key)
+        if bare_zh or bare_en:
             if not data.get("dest_deictic") and not self._known(data.get("dest_query")):
                 # 送达地空着,或填了句外词(实测用户嘴瓢说出"place",LLM 就把
                 # dest_query 填成 place):按 dest>object>place 取第一个对得上
@@ -289,6 +358,8 @@ class CommandParser:
             data["object_deictic"] = data["to_user"] = False
             if not data.get("dest_query") and not data.get("dest_deictic"):
                 data["dest_deictic"] = True  # 放类句必有去处:落点走视线
+            if data.get("action") in (None, "none", "grab") or (bare_en and data.get("action") != "stop"):
+                data["action"] = "fetch"  # 英文实测 "put it here" 被判 none / goto:裸放置一律 fetch+dest
         # grab 是私有约定:只跟"抓/夹"动词。LLM 把「拿一下这个」误判 grab 实测过——
         # 原地抓需要狗位,拿类动词被拦在那道门上。动词不符一律降级 fetch。
         if data.get("action") == "grab" and \

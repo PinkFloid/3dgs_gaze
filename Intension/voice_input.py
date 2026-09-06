@@ -109,8 +109,10 @@ class VoiceReader:
 
     def __init__(self, on_text, model="small", vocab=(), say=print, stop_test=None,
                  busy_probe=None, aggressiveness=2, silence_s=0.6, min_speech_s=0.3,
-                 device=None, min_rms=100, max_speech_s=12.0, dump_dir=None):
+                 device=None, min_rms=100, max_speech_s=12.0, dump_dir=None, lang="zh"):
         import sounddevice as sd
+        self.lang = lang  # "zh"/"en":whisper 语言、热词 prompt、急停词形都跟着切
+        self.stop_word = "停一下" if lang == "zh" else "stop"
         import webrtcvad
         from faster_whisper import WhisperModel
         self.on_text, self.say, self.vocab = on_text, say, vocab
@@ -248,8 +250,8 @@ class VoiceReader:
                 return False
         audio = a / 32768.0
         t0 = time.time()
-        kw = dict(language="zh", beam_size=1,
-                  initial_prompt="停一下。",  # 规约 v2:唯一停词;多热一个形就多一种幻听
+        kw = dict(language=self.lang, beam_size=1,
+                  initial_prompt=("停一下。" if self.lang == "zh" else "Stop."),  # 规约 v2:唯一停词;多热一个形就多一种幻听
                   condition_on_previous_text=False,
                   temperature=0.0,  # 单温度:不走回退梯子,时延封顶
                   vad_filter=True)  # (金标 1/8 曾梯到 11.5s;
@@ -272,7 +274,7 @@ class VoiceReader:
         self.say(f"[语音] 快诊原文「{txt[:24]}」(lp={lp:.2f} ns={ns:.2f})")
         # fast 参数带原文+置信上行:events.jsonl 里只剩归一「停一下」时,真停
         # 幻听事后不可分辨(17:24 排障靠的是 WAV 人耳复核,观测性欠账在此还上)
-        self.on_text("停一下", wall, time.time() - t0, None,
+        self.on_text(self.stop_word, wall, time.time() - t0, None,
                      f"{txt[:24]}|lp{lp:.2f}|ns{ns:.2f}")
         return True
 
@@ -293,10 +295,17 @@ class VoiceReader:
         # 光给物体名压不住动词错字
         # 「停一下」必须显式在场:prompt 里只有"拿一下这个"时,"X一下"的
         # 先验全在拿/看那边,实测把「停一下」听成「看一下」——急停丢失。
-        prompt = ("机器人指令。词表:" + "、".join(vocab[:40])
-                  + "、拿一下这个、把这个拿来、抓这个、去这里拿、"
-                  "放到那里、放回、过来、回来、停、停一下、停下。") if vocab else None
-        segs, _ = self.model.transcribe(audio, language="zh", beam_size=1,
+        if self.lang == "en":
+            from core.en_names import gloss
+            en_vocab = sorted({gloss(v) for v in vocab[:40]})
+            prompt = ("Robot commands. Vocabulary: " + ", ".join(en_vocab)
+                      + "; bring me this, grab this, pick this up, go there, put it here, "
+                      "put it on the table, give it to me, come here, come back, stop.")
+        else:
+            prompt = ("机器人指令。词表:" + "、".join(vocab[:40])
+                      + "、拿一下这个、把这个拿来、抓这个、去这里拿、"
+                      "放到那里、放回、过来、回来、停、停一下、停下。") if vocab else None
+        segs, _ = self.model.transcribe(audio, language=self.lang, beam_size=1,
                                         initial_prompt=prompt,
                                         word_timestamps=True,  # 逐词墙钟:指示词各带时刻
                                         vad_filter=True)  # 闸③:silero 复核,专杀幻听源
@@ -316,8 +325,8 @@ class VoiceReader:
             self.say(f"[语音] 置信不足丢弃「{text[:24]}」(lp={lp:.2f} ns={ns:.2f})")
             return
         if skip_sniff:  # 段中已急停的段:掐掉句首停词,只上行停后的增量指令
-            text = re.sub(r"^[\s。,,、!!??]*(?:停一下|停下|停止|别动|停)+[\s。,,、!!??]*",
-                          "", text)
+            text = re.sub(r"^[\s。,,、!!??.]*(?:停一下|停下|停止|别动|停|stop(?: it| now)?)+[\s。,,、!!??.]*",
+                          "", text, flags=re.IGNORECASE)
             if not text:
                 return  # 整段只有停词:快诊已消费,不再重复上行
             self.say(f"[语音] 停后增量指令「{text[:24]}」")
@@ -338,6 +347,7 @@ def main() -> int:
                     help="能量闸:低于此 rms 的段当环境底噪丢弃(丢弃时打印实测值;"
                          "默认=DJI 麦 --meter 校准值,底噪14/说话207 的几何均值,换麦必重跑)")
     ap.add_argument("--list", action="store_true", help="列出音频设备后退出")
+    ap.add_argument("--lang", choices=["zh", "en"], default="zh", help="转写语言(英文演示用 en)")
     ap.add_argument("--meter", type=float, default=0.0,
                     help="电平表 N 秒:每 0.3s 打 rms 条+VAD 判定,前半安静后半说话,"
                          "结束给 --min-rms 建议值(换麦必跑)")
@@ -383,7 +393,7 @@ def main() -> int:
         print(f"[转写] 「{text}」  (asr {asr_s:.2f}s + 尾判 0.6s)")
         got.append(text)
 
-    vr = VoiceReader(on_text, model=args.model, device=dev, min_rms=args.min_rms)
+    vr = VoiceReader(on_text, model=args.model, device=dev, min_rms=args.min_rms, lang=args.lang)
     threading.Thread(target=vr.run, daemon=True).start()
     try:
         while not (args.once and got):

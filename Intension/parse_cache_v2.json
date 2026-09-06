@@ -2462,5 +2462,159 @@
   "dest_query": null,
   "dest_deictic": false,
   "to_user": true
+ },
+ "bring me this banana": {
+  "action": "fetch",
+  "object_query": "香蕉",
+  "object_deictic": true,
+  "noun_class": "banana",
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "grab this cup": {
+  "action": "grab",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": "cup",
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "bring me this tennis ball": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": "ball",
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "grab this red apple": {
+  "action": "grab",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": "apple",
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "put it here": {
+  "action": "none",
+  "object_query": null,
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": true,
+  "to_user": false
+ },
+ "grab the orange": {
+  "action": "grab",
+  "object_query": "橘子",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "put it on the table": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": "物品台",
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "give it to me": {
+  "action": "goto",
+  "object_query": null,
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "come back": {
+  "action": "goto",
+  "object_query": null,
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "go there": {
+  "action": "goto",
+  "object_query": null,
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": true,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": false
+ },
+ "bring me this pink apple": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": "apple",
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "bring me the orange": {
+  "action": "fetch",
+  "object_query": "橘子",
+  "object_deictic": false,
+  "noun_class": null,
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "bring me this, tennis": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": "tennis",
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
+ },
+ "bring me this cup": {
+  "action": "fetch",
+  "object_query": null,
+  "object_deictic": true,
+  "noun_class": "cup",
+  "place_query": null,
+  "place_deictic": false,
+  "dest_query": null,
+  "dest_deictic": false,
+  "to_user": true
  }
 }
