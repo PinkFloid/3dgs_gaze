@@ -18,7 +18,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / "docs/E1_DATA"
 
-BINS = [0.5, 0.75, 1.0, 1.5, 2.5, 4.0, 6.0, 20.0]   # 与 collect_e1.py 一致
+BINS = [0.0, 0.75, 1.0, 1.5, 2.5, 4.0, 6.0, 20.0]   # 与 collect_e1.py 一致(09-07 首箱 [0,0.75) 含 θ<0.5)
 SIGMA_DEG = 1.0        # 论文口径:标定注视锥 σ≈1°(戳实测 0.7-0.85°)
 OCC_LIMIT_DEG = 0.96   # 物理遮挡极限:球径 6.7cm @ 4m(低 θ 站位)
 CHANCE = 1 / 3         # 三球卡乱猜
@@ -49,7 +49,7 @@ def load_bins():
         m = (th >= lo) & (th < hi)
         if m.sum() == 0:
             continue
-        rows.append(dict(x=float(np.sqrt(lo * hi)), lo=lo, hi=hi,
+        rows.append(dict(x=float(np.sqrt(max(lo, 0.45) * hi)), lo=lo, hi=hi,
                          n=int(m.sum()), hits=int(ok[m].sum())))
     # 与 collect_e1.py 产出的 curve.csv 校验(n/hits 必须一致)
     ref = list(csv.DictReader((DATA / "curve.csv").open(encoding="utf-8")))
@@ -131,7 +131,7 @@ def main():
     below = [r for r in main if float(r["theta_deg"]) < BINS[0]]
     print(f"main set {len(main)} trials; {len(below)} below first bin ({BINS[0]}°), not drawn: "
           + ", ".join(f"{r['rec']}/{r['target']}/{r['outcome']}" for r in below))
-    for lo, hi in ((0.0, SIGMA_DEG), (BINS[0], SIGMA_DEG), (SIGMA_DEG, 2.5)):
+    for lo, hi in ((0.0, SIGMA_DEG), (SIGMA_DEG, 2.5)):
         for cond in ("clear", "occluded"):
             s = [r for r in main if lo <= float(r["theta_deg"]) < hi
                  and (("beyond_occ" in r["tags"].split("|")) == (cond == "occluded"))]

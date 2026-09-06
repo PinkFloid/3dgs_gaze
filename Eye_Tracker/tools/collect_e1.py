@@ -60,7 +60,7 @@ RECS = [
     (R/"2026_09_07/v6_near/v6_score.csv",      "v6", "新房", "v10", "1.23m α-24°", set()),
     (R/"2026_09_07/v6_move/v6_score.csv",      "v6", "新房", "v10", "1.1m 边走", {"walking"}),
 ]
-BINS = [0.5, 0.75, 1.0, 1.5, 2.5, 4.0, 6.0, 20.0]
+BINS = [0.0, 0.75, 1.0, 1.5, 2.5, 4.0, 6.0, 20.0]  # 09-07 用户裁定:首箱不扩,θ<0.5 的 trial 一起包进 [0,0.75)
 
 
 def unit_rows(csv_path, card, room, mapv, station, tags):
@@ -136,7 +136,7 @@ def main():
                 continue
             acc = ok[m].mean()
             w.writerow([lo, hi, int(m.sum()), int(ok[m].sum()), round(float(acc), 3)])
-            pts.append((np.sqrt(lo * hi), acc, int(m.sum())))
+            pts.append((np.sqrt(max(lo, 0.45) * hi), acc, int(m.sum())))  # 首箱下沿 0 时取轴下限定位
     n_all, n_hit = len(trials), int(ok.sum())
     print(f"主曲线 trial {n_all}(命中 {n_hit},{n_hit/n_all:.1%});"
           f"另 stress {sum(1 for r in all_rows if 'stress' in r['tags'] and r['outcome'] in ('hit','miss'))} trial、"
@@ -153,7 +153,7 @@ def main():
                     xytext=(0, -14), ha="center", fontsize=7, color="#666")
     ax.axhline(1/3, ls=":", color="#b23", lw=1)
     ax.text(BINS[-2], 1/3 + 0.02, "3-ball chance", fontsize=7.5, color="#b23", ha="right")
-    ax.axvspan(BINS[0], 0.96, color="#c0392b", alpha=0.08)
+    ax.axvspan(max(BINS[0], 0.45), 0.96, color="#c0392b", alpha=0.08)
     ax.text(0.7, 0.97, "past occlusion\nlimit (4m)", fontsize=7, color="#b23",
             ha="center", va="top")
     ax.set_xscale("log")
