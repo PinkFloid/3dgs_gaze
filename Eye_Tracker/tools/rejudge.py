@@ -16,6 +16,9 @@ intents_e4_<cfg>.jsonl,eval_e1 / e4_table 照常打分。这样"完全相同的�
               valid = 0.05<depth<12 且(--noocc-range-gate on 时)depth·tmul < D + depth_margin —— 与 full 同一距离闸,
               D 取同一条注视记录的落点距离。其余全部相同:核 w_i、W、候选集(names 减 places)、r_k / c_k、
               capture=q/c、share、排序键、接受闸门。被遮挡的实例在此得到"仿佛没有遮挡物"的证据。
+--mode vis    可见性=z 检验、不做最近高斯认领:逐实例渲染同 noocc,但像素只在该实例自身深度 ≤ 整幅渲染深度 + vis_tol
+              时计票(即它就是该像素最前面的表面)。与 full 的差别只剩"标签来自实例自身渲染 vs 反投影点 5cm 内最近标注高斯";
+              与 noocc 的差别只剩可见性。三者并列可把 full-noocc 的差异拆成 可见性 / 最近高斯认领 两部分。
 --rank capture|mass  排序键:capture = 面积归一;mass = 原始锥质量份额(v1 口径)。
 
 输出记录比 gaze_live 多:W(核总质量)、candidates 全列表(m/q/c/capture/share/miss_deg/labels)、ambiguity
@@ -50,7 +53,8 @@ def parse_args():
     p.add_argument("--seg-dir", required=True, help="录制时地图存档(points.npz/instances.json/names.json/places.json)")
     p.add_argument("--ckpt", required=True)
     p.add_argument("--places", default=None)
-    p.add_argument("--mode", choices=["full", "noocc"], default="full")
+    p.add_argument("--mode", choices=["full", "noocc", "vis"], default="full")
+    p.add_argument("--vis-tol", type=float, default=0.05, help="vis 模式:实例自身深度与整幅深度之差 ≤ 此值(m)的像素才算可见")
     p.add_argument("--rank", choices=["capture", "mass"], default="capture")
     p.add_argument("--sigma-deg", type=float, default=None, help="默认取每条记录的 sigma_deg")
     p.add_argument("--span-sigmas", type=float, default=2.0)
@@ -96,7 +100,9 @@ def render_subset(splat, sub, w2c, K, S):
     return out[0, ..., 3].cpu().numpy(), alpha[0, ..., 0].cpu().numpy()
 
 
-def noocc_votes(splat, lab_idx, origin, pt, sigma_rad, span, S, depth_margin, range_gate=True):
+def noocc_votes(splat, lab_idx, origin, pt, sigma_rad, span, S, depth_margin, range_gate=True,
+                full_depth=None, vis_tol=0.05):
+    """full_depth 非空时 = vis 模式:实例像素只在 depth_k <= full_depth + vis_tol 时计票(z 检验可见性)。"""
     d0 = pt - origin
     dist0 = float(np.linalg.norm(d0))
     if dist0 < 0.05:
@@ -110,6 +116,8 @@ def noocc_votes(splat, lab_idx, origin, pt, sigma_rad, span, S, depth_margin, ra
         ok = (depth > 0.05) & (depth < 12.0) & (alpha > 0)
         if range_gate and depth_margin > 0:
             ok &= (depth * tmul) < dist0 + depth_margin
+        if full_depth is not None:
+            ok &= depth <= full_depth + vis_tol
         m = float((w * alpha)[ok].sum())
         if m > 0:
             votes[int(lab)] = m
@@ -188,7 +196,7 @@ def main():
     splat = SplatDepth(Path(a.ckpt))
     splat.depth_along_ray(np.zeros(3), np.array([0.0, 0.0, 1.0]))  # CUDA 预热(首次渲染有冷启动伪影)
     lab_idx = None
-    if a.mode == "noocc":
+    if a.mode in ("noocc", "vis"):
         means = splat.means.detach().cpu().numpy()
         d, idx = cKDTree(means).query(xyz, k=1)
         if float(d.max()) > 1e-6:
@@ -226,9 +234,12 @@ def main():
             dist = e.get("distance_m") or float(np.linalg.norm(c - o))
             v_full, kern = cone_votes(splat, tree, label, o, c, sr, a.span_sigmas, S, a.hit_eps, a.depth_margin)
             rk_full = rank_all(v_full, kern, name_of, targets, cents, radii, sr, dist, a.rank)
-            if a.mode == "noocc":
+            if a.mode in ("noocc", "vis"):
+                fd = None
+                if a.mode == "vis":
+                    fd, _, _, _ = splat.patch_along_ray(o, (c - o) / np.linalg.norm(c - o), a.span_sigmas * sr, S)
                 v_no, kern2 = noocc_votes(splat, lab_idx, o, c, sr, a.span_sigmas, S, a.depth_margin,
-                                          range_gate=(a.noocc_range_gate == "on"))
+                                          range_gate=(a.noocc_range_gate == "on"), full_depth=fd, vis_tol=a.vis_tol)
                 rk = rank_all(v_no, kern2, name_of, targets, cents, radii, sr, dist, a.rank)
                 if rk is None and kern2 is not None:  # 没有任何目标实例落进锥:无目标
                     rk = {"p_none": 1.0, "rank_by": a.rank, "W": _r(kern2["W"], 4), "surface": None,
@@ -249,7 +260,7 @@ def main():
             rec.update(sigma_deg=round(sigma_deg, 2), mode="cone", evid=a.mode, provisional=False,
                        topic="gaze.intent", src_object=e.get("object"), src_capture=e.get("capture"),
                        src_share=e.get("vote_share"))
-            if a.mode == "noocc" and rk_full is not None:
+            if a.mode in ("noocc", "vis") and rk_full is not None:
                 rec["full"] = {k: rk_full.get(k) for k in
                                ("object", "object_label", "vote_share", "q", "capture", "miss_deg",
                                 "p_none", "ambiguity", "ambiguity_share")}

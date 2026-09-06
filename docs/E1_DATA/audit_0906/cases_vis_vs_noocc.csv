@@ -1,0 +1,47 @@
+rec,k,target,tier,occl,flags,theta_unit,dist_m,reliable,vis_first,vis_obj,vis_cap,vis_share,vis_A,vis_any,vis_lcs,noocc_first,noocc_obj,noocc_cap,noocc_share,noocc_A,noocc_any,noocc_lcs,vis_best_target_cap,noocc_best_target_cap,vis_best_wrong_cap,noocc_best_wrong_cap
+2026_08_20/000,2,香蕉,<1.0°,clear,,0.41,2.25,1,wrong,球M,1.262,0.664,0.123,wrong_only,miss,none,,,,,none,miss,,,1.262,1.262
+2026_08_20/000,6,水瓶,<1.0°,clear,,0.41,2.3,1,wrong,白杯1,0.758,0.588,0.677,mixed,miss,wrong,白杯1,0.797,0.425,0.644,mixed,hit,0.566,0.726,0.843,0.843
+2026_08_20/000,7,红杯,1.0–2.5°,clear,,1.84,2.31,1,wrong,白杯2,0.883,0.572,0.472,wrong_only,miss,correct,红杯,0.929,0.558,0.692,correct_only,miss,,0.929,1.072,1.072
+2026_08_20/000,8,苹果红,<1.0°,clear,,0.41,2.26,1,wrong,球L,0.983,0.486,0.633,wrong_only,miss,none,,,,,none,hit,,0.575,1.24,1.24
+2026_08_20/000,9,球M,1.0–2.5°,clear,,1.83,2.23,1,correct,球M,0.563,0.714,0.115,mixed,hit,wrong,水瓶,0.2,0.834,0.62,wrong_only,hit,1.249,1.25,0.646,0.646
+2026_08_20/000,10,橘子,<1.0°,clear,,0.41,2.35,1,wrong,苹果红,0.645,0.471,0.361,wrong_only,miss,none,,,,,none,hit,,0.811,0.645,
+2026_08_20/001,7,球M,<1.0°,clear,,0.89,3.27,0,correct,球M,0.912,0.628,0.071,correct_only,hit,none,,,,,none,hit,1.001,1.02,,
+2026_08_20/001,10,球R,1.0–2.5°,clear,,1.28,3.28,0,correct,球R,1.283,0.448,0.282,correct_only,hit,wrong,苹果粉,1.447,0.567,0.514,wrong_only,hit,1.283,1.346,0.735,1.447
+2026_08_20/001,11,球M,<1.0°,clear,,0.89,3.25,0,correct,球M,0.32,0.668,0.175,correct_only,hit,none,,,,,none,hit,0.877,0.922,0.045,0.086
+2026_08_20/001,12,白杯2,,clear,,,3.27,0,correct,白杯2,0.897,0.472,0.921,correct_only,hit,none,,,,,none,hit,0.897,0.908,,0.773
+2026_08_20/001,13,白杯2,,clear,,,3.27,0,correct,白杯2,0.897,0.472,0.921,correct_only,miss,none,,,,,none,miss,0.897,0.908,,0.773
+2026_08_20/001,14,球L,1.0–2.5°,clear,,1.03,3.23,0,correct,球L,1.155,0.401,0.477,correct_only,hit,wrong,苹果粉,1.108,0.51,0.655,wrong_only,hit,1.155,1.178,,1.108
+2026_08_20/002,6,球L,<1.0°,occluded(beyond limit),beyond_occ,0.84,4.2,0,correct,球L,0.342,0.687,0.211,correct_only,hit,none,,,,,none,hit,0.717,0.862,,
+2026_08_20/002,7,球R,<1.0°,occluded(beyond limit),beyond_occ,0.84,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,hit,,,,
+2026_08_20/002,11,球L,<1.0°,occluded(beyond limit),beyond_occ,0.84,4.29,0,correct,球L,0.515,0.592,0.332,correct_only,hit,none,,,,,none,hit,1.228,1.363,,1.155
+2026_08_20/003,1,球L,<1.0°,occluded(beyond limit),beyond_occ,0.64,4.27,0,correct,球L,0.456,0.577,0.428,correct_only,hit,none,,,,,none,hit,0.456,1.591,,
+2026_08_20/003,9,球L,<1.0°,occluded(beyond limit),beyond_occ,0.64,4.34,0,none,,,,,none,miss,none,,,,,none,hit,0.038,0.751,,
+2026_08_20/003,10,球M,<1.0°,occluded(beyond limit),beyond_occ,0.63,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,hit,,,,
+2026_08_20/003,11,球L,<1.0°,occluded(beyond limit),beyond_occ,0.64,4.36,0,none,,,,,none,miss,none,,,,,none,hit,0.108,1.021,,0.772
+2026_08_20/003,12,球M,<1.0°,occluded(beyond limit),beyond_occ,0.63,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,hit,,,,
+2026_08_20/003,13,球R,<1.0°,occluded(beyond limit),beyond_occ,0.63,4.39,0,none,,,,,none,hit,none,,,,,none,miss,0.055,0.628,,
+2026_08_20/003,15,球R,<1.0°,occluded(beyond limit),beyond_occ,0.63,4.35,0,none,,,,,none,miss,correct,球R,1.253,0.367,0.674,correct_only,miss,0.137,1.253,,
+2026_08_25/c1_1,9,球L,<1.0°,occluded(beyond limit),beyond_occ,0.92,4.16,0,none,,,,,none,hit,none,,,,,none,miss,0.089,0.117,,
+2026_08_25/c1_1,11,球L,<1.0°,occluded(beyond limit),beyond_occ,0.92,4.18,0,correct,球L,0.455,0.554,0.624,correct_only,hit,none,,,,,none,hit,0.455,0.518,,
+2026_08_25/c1_2,4,球M,<1.0°,clear,,0.65,4.25,1,correct,球M,0.517,0.427,0.646,correct_only,hit,none,,,,,none,hit,0.517,0.576,,
+2026_08_25/c1_2,6,球L,1.0–2.5°,clear,,1.04,4.24,1,correct,球L,0.933,0.465,0.362,correct_only,hit,none,,,,,none,hit,0.933,1.073,,
+2026_08_25/c1_2,9,球L,1.0–2.5°,clear,,1.04,4.26,1,correct,球L,0.219,0.474,0.954,correct_only,hit,none,,,,,none,hit,0.219,0.247,,
+2026_08_25/c1_2,11,球L,1.0–2.5°,clear,,1.04,4.22,1,correct,球L,1.009,0.435,0.619,correct_only,hit,none,,,,,none,hit,1.009,1.09,,
+2026_08_25/c1_2,14,球M,<1.0°,clear,,0.65,4.26,1,correct,球M,0.635,0.4,0.66,correct_only,hit,none,,,,,none,hit,0.734,0.789,,
+2026_08_25/c1_3,1,球L,1.0–2.5°,clear,,1.19,3.72,0,correct,球L,0.713,0.624,0.342,correct_only,hit,none,,,,,none,hit,0.713,0.744,,0.08
+2026_08_25/c1_3,2,球R,<1.0°,clear,,0.96,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,hit,,,,
+2026_08_25/c1_3,4,球M,<1.0°,clear,,0.77,3.74,0,correct,球M,0.398,0.539,0.379,correct_only,hit,none,,,,,none,hit,1.22,1.243,,0.801
+2026_08_25/c1_3,5,球M,<1.0°,clear,,0.77,3.74,0,correct,球M,0.398,0.539,0.379,correct_only,hit,none,,,,,none,miss,1.22,1.243,,0.801
+2026_08_25/c1_3,6,球L,1.0–2.5°,clear,,1.19,3.73,0,none,,,,,none,hit,none,,,,,none,miss,1.083,1.124,,
+2026_08_25/c1_3,7,球R,<1.0°,clear,,0.96,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,hit,,,,
+2026_08_25/c1_3,10,球M,<1.0°,clear,,0.77,3.73,0,correct,球M,0.42,0.538,0.379,correct_only,hit,none,,,,,none,hit,0.42,0.433,,
+2026_08_25/c1_3,11,球L,1.0–2.5°,clear,,1.19,3.71,0,correct,球L,1.077,0.513,0.485,correct_only,hit,none,,,,,none,hit,1.077,1.132,,
+2026_08_25/c1_3,12,球M,<1.0°,clear,,0.77,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,hit,,,,
+2026_08_25/u3,1,球L,1.0–2.5°,clear,walking,1.36,2.8,1,correct,球L,0.214,0.695,0.075,correct_only,hit,none,,,,,none,hit,0.317,0.317,,
+2026_08_25/u3,3,球R,1.0–2.5°,clear,walking,1.75,2.27,1,none,,,,,none,hit,none,,,,,none,miss,0.048,,0.118,0.118
+2026_08_25/u3,4,球M,1.0–2.5°,clear,walking,1.44,2.82,1,none,,,,,none,hit,wrong,水瓶,0.215,0.811,0.791,wrong_only,miss,0.167,,,0.215
+2026_08_25/u3,6,球L,1.0–2.5°,clear,walking,1.36,2.86,1,correct,球L,0.258,0.557,0.267,correct_only,hit,wrong,苹果粉,0.264,0.372,0.981,wrong_only,hit,0.258,0.167,,0.264
+2026_08_25/u3,7,球M,1.0–2.5°,clear,walking,1.44,2.63,1,correct,球M,1.133,0.456,0.177,mixed,hit,none,,,,,none,hit,1.133,1.136,0.501,0.503
+2026_08_25/u3,12,球M,1.0–2.5°,clear,walking,1.44,2.46,1,correct,球M,0.712,0.424,0.228,correct_only,hit,none,,,,,none,hit,0.712,0.713,,
+2026_08_25/u3,14,球L,1.0–2.5°,clear,walking,1.36,3.1,1,correct,球L,0.395,0.696,0.106,correct_only,hit,wrong,苹果粉,0.2,0.374,0.96,wrong_only,hit,0.395,0.4,,0.202
+2026_08_25/u3,15,球M,1.0–2.5°,clear,walking,1.44,1.97,1,correct,球M,0.953,0.599,0.116,correct_only,hit,wrong,水瓶,0.293,0.78,1.0,wrong_only,hit,0.981,0.981,,0.31

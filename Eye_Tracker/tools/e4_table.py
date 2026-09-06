@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from collect_e1 import RECS, unit_rows  # noqa: E402
 
 OUT = Path(__file__).resolve().parents[2] / "docs/E1_DATA"
-CFGS = ["full", "naive", "votescope_all", "priors_off", "cluster0", "v2", "v2mass", "v2selfcal", "v2tag", "v2selfcal2", "v2selfcal3", "v2s25", "v2s40", "v2s10", "v2s05", "v2s02", "v2sphere", "v2table", "v2cluster0", "v2sphere10", "v2table10", "v2cluster010", "v2mass10", "v2noocc10", "v2noocc10ng", "v2noocc"]  # v2*: 09-02 面积归一后验(docs/CONE_POSTERIOR_V2.md)
+CFGS = ["full", "naive", "votescope_all", "priors_off", "cluster0", "v2", "v2mass", "v2selfcal", "v2tag", "v2selfcal2", "v2selfcal3", "v2s25", "v2s40", "v2s10", "v2s05", "v2s02", "v2sphere", "v2table", "v2cluster0", "v2sphere10", "v2table10", "v2cluster010", "v2mass10", "v2noocc10", "v2noocc10ng", "v2noocc", "v2vis10"]  # v2*: 09-02 面积归一后验(docs/CONE_POSTERIOR_V2.md)
 TIERS = [("≥2.5°", 2.5, 99.0), ("1.0–2.5°", 1.0, 2.5), ("<1.0°", 0.0, 1.0)]
 
 

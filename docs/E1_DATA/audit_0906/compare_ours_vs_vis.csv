@@ -1,0 +1,232 @@
+rec,k,target,tier,occl,flags,theta_unit,dist_m,reliable,ours_first,ours_obj,ours_cap,ours_share,ours_A,ours_any,ours_lcs,vis_first,vis_obj,vis_cap,vis_share,vis_A,vis_any,vis_lcs,ours_best_target_cap,vis_best_target_cap,ours_best_wrong_cap,vis_best_wrong_cap
+2026_08_16/000,1,苹果,≥2.5°,clear,,4.22,1.66,1,correct,苹果,1.005,0.999,0.001,mixed,hit,correct,苹果,0.996,0.999,0.001,mixed,hit,1.005,0.996,0.404,0.399
+2026_08_16/000,2,球M,≥2.5°,clear,,8.3,1.42,1,correct,球M,0.367,1.0,0.0,correct_only,hit,correct,球M,0.362,1.0,0.0,correct_only,hit,0.898,0.873,,
+2026_08_16/000,3,石榴,≥2.5°,clear,,6.01,1.64,1,correct,石榴,0.513,1.0,0.0,correct_only,hit,correct,石榴,0.486,1.0,0.0,correct_only,hit,0.513,0.487,,
+2026_08_16/000,4,香蕉,≥2.5°,clear,,4.22,1.52,1,correct,香蕉,0.529,1.0,0.0,correct_only,hit,correct,香蕉,0.487,1.0,0.0,correct_only,hit,0.602,0.572,,
+2026_08_16/000,5,球R,≥2.5°,clear,,6.01,1.48,1,none,,,,,none,hit,none,,,,,none,hit,0.183,0.186,,
+2026_08_16/000,6,球L,≥2.5°,clear,,5.53,1.46,1,correct,球L,0.533,0.985,0.011,mixed,hit,correct,球L,0.621,0.99,0.008,mixed,hit,0.562,0.621,0.346,0.325
+2026_08_16/000,7,球M,≥2.5°,clear,,8.3,1.46,1,correct,球M,0.408,1.0,0.0,correct_only,hit,correct,球M,0.407,1.0,0.0,correct_only,hit,0.599,0.579,,
+2026_08_16/000,8,石榴,≥2.5°,clear,,6.01,1.65,1,correct,石榴,0.298,1.0,0.0,correct_only,hit,correct,石榴,0.268,1.0,0.0,correct_only,hit,0.298,0.268,,
+2026_08_16/000,9,香蕉,≥2.5°,clear,,4.22,1.6,1,correct,香蕉,0.512,1.0,0.0,correct_only,hit,correct,香蕉,0.501,1.0,0.0,correct_only,hit,0.544,0.531,,
+2026_08_16/000,10,球L,≥2.5°,clear,,5.53,1.49,1,none,,,,,none,hit,none,,,,,none,hit,0.189,0.197,,
+2026_08_16/000,11,苹果,≥2.5°,clear,,4.22,1.66,1,correct,苹果,0.341,0.99,0.006,correct_only,hit,correct,苹果,0.343,0.994,0.006,correct_only,hit,0.341,0.343,,
+2026_08_16/000,12,球R,≥2.5°,clear,,6.01,1.47,1,none,,,,,none,hit,none,,,,,none,hit,0.135,0.135,,
+2026_08_16/001,1,球L,1.0–2.5°,occluded(front-capture),stress,2.1,3.17,0,none,,,,,none,hit,none,,,,,none,hit,0.005,0.185,,
+2026_08_16/001,2,球R,1.0–2.5°,occluded(front-capture),stress,1.56,3.31,0,wrong,球L,0.528,0.714,0.119,mixed,hit,wrong,球L,1.089,0.834,0.056,mixed,hit,0.624,1.004,0.528,1.089
+2026_08_16/001,3,苹果,1.0–2.5°,occluded(front-capture),stress,1.38,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_16/001,4,石榴,1.0–2.5°,occluded(front-capture),stress,1.56,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_16/001,5,球M,≥2.5°,occluded(front-capture),stress,3.21,3.61,0,none,,,,,none,hit,none,,,,,none,hit,0.093,0.008,,
+2026_08_16/001,6,香蕉,1.0–2.5°,occluded(front-capture),stress,1.38,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_16/001,7,苹果,1.0–2.5°,occluded(front-capture),stress,1.38,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_16/001,8,石榴,1.0–2.5°,occluded(front-capture),stress,1.56,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_16/001,9,香蕉,1.0–2.5°,occluded(front-capture),stress,1.38,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_16/001,10,球R,1.0–2.5°,occluded(front-capture),stress,1.56,3.33,0,correct,球R,0.391,0.719,0.286,correct_only,hit,correct,球R,0.575,0.779,0.207,correct_only,hit,0.391,0.575,,
+2026_08_16/001,11,球L,1.0–2.5°,occluded(front-capture),stress,2.1,3.28,0,none,,,,,none,hit,correct,球L,0.486,0.819,0.072,correct_only,hit,0.188,0.486,,
+2026_08_16/001,12,球M,≥2.5°,occluded(front-capture),stress,3.21,3.71,0,correct,球M,0.212,1.0,0.0,correct_only,hit,correct,球M,0.304,1.0,0.0,correct_only,miss,0.513,0.304,,
+2026_08_16/s1,1,球R,≥2.5°,clear,,5.41,1.61,1,correct,球R,0.839,1.0,0.0,correct_only,hit,correct,球R,0.91,1.0,0.0,correct_only,hit,1.018,1.056,,
+2026_08_16/s1,2,球L,≥2.5°,clear,,5.02,1.53,1,correct,球L,0.915,1.0,0.0,correct_only,hit,correct,球L,1.012,1.0,0.0,correct_only,hit,0.915,1.012,,
+2026_08_16/s1,3,球M,≥2.5°,clear,,7.69,1.49,1,correct,球M,1.03,1.0,0.0,correct_only,hit,correct,球M,0.998,1.0,0.0,correct_only,hit,1.03,0.998,,
+2026_08_16/s1,4,球L,≥2.5°,clear,,5.02,1.54,1,correct,球L,0.738,1.0,0.0,correct_only,hit,correct,球L,0.746,1.0,0.0,correct_only,hit,0.891,0.988,0.141,0.132
+2026_08_16/s1,5,球M,≥2.5°,clear,,7.69,1.5,1,correct,球M,1.056,1.0,0.0,correct_only,hit,correct,球M,1.019,1.0,0.0,correct_only,hit,1.056,1.019,,
+2026_08_16/s1,6,球M,≥2.5°,clear,,7.69,1.49,1,correct,球M,1.072,1.0,0.0,correct_only,hit,correct,球M,1.006,1.0,0.0,correct_only,hit,1.127,1.089,,
+2026_08_16/s1,7,球R,≥2.5°,clear,,5.41,1.59,1,correct,球R,1.061,1.0,0.0,correct_only,hit,correct,球R,1.106,1.0,0.0,correct_only,hit,1.087,1.106,,
+2026_08_16/s1,8,球L,≥2.5°,clear,,5.02,1.56,1,correct,球L,0.664,1.0,0.0,correct_only,hit,correct,球L,0.745,1.0,0.0,correct_only,hit,0.888,0.933,,
+2026_08_16/s1,9,球L,≥2.5°,clear,,5.02,1.58,1,correct,球L,0.58,1.0,0.0,correct_only,hit,correct,球L,0.607,1.0,0.0,correct_only,hit,0.58,0.607,,
+2026_08_16/s1,10,球M,≥2.5°,clear,,7.69,1.56,1,correct,球M,0.653,1.0,0.0,correct_only,hit,correct,球M,0.573,1.0,0.0,correct_only,hit,1.125,1.07,,
+2026_08_16/s1,11,球R,≥2.5°,clear,,5.41,1.6,1,correct,球R,0.472,1.0,0.0,correct_only,hit,correct,球R,0.463,1.0,0.0,correct_only,hit,0.472,0.463,,
+2026_08_16/s1,12,球M,≥2.5°,clear,,7.69,1.5,1,correct,球M,0.824,1.0,0.0,correct_only,hit,correct,球M,0.721,1.0,0.0,correct_only,hit,1.191,1.127,,
+2026_08_16/s1,13,球R,≥2.5°,clear,,5.41,1.61,1,correct,球R,0.997,1.0,0.0,correct_only,hit,correct,球R,0.996,1.0,0.0,correct_only,hit,0.997,0.996,,
+2026_08_16/s1,14,球R,≥2.5°,clear,,5.41,1.62,1,correct,球R,0.849,1.0,0.0,correct_only,hit,correct,球R,0.848,1.0,0.0,correct_only,hit,0.849,0.848,,
+2026_08_16/s1,15,球L,≥2.5°,clear,,5.02,1.59,1,correct,球L,0.521,1.0,0.0,correct_only,hit,correct,球L,0.535,1.0,0.0,correct_only,hit,0.521,0.535,,
+2026_08_16/s2,1,球M,≥2.5°,clear,,4.47,2.35,1,correct,球M,0.904,1.0,0.0,correct_only,hit,correct,球M,0.868,1.0,0.0,correct_only,hit,0.904,0.868,,
+2026_08_16/s2,2,球R,≥2.5°,clear,,2.55,2.48,1,correct,球R,0.561,0.995,0.004,correct_only,hit,correct,球R,0.704,0.995,0.004,correct_only,hit,0.561,0.704,,
+2026_08_16/s2,3,球M,≥2.5°,clear,,4.47,2.45,1,correct,球M,1.145,1.0,0.0,correct_only,hit,correct,球M,1.126,1.0,0.0,correct_only,hit,1.254,1.224,,
+2026_08_16/s2,4,球R,≥2.5°,clear,,2.55,2.49,1,correct,球R,1.007,0.962,0.029,correct_only,hit,correct,球R,1.192,0.965,0.027,correct_only,hit,1.078,1.283,,
+2026_08_16/s2,5,球L,≥2.5°,clear,,2.85,2.43,1,correct,球L,0.7,0.746,0.116,mixed,hit,correct,球L,0.952,0.79,0.085,correct_only,hit,0.7,0.962,0.208,0.178
+2026_08_16/s2,6,球R,≥2.5°,clear,,2.55,2.46,1,correct,球R,0.937,0.955,0.034,correct_only,hit,correct,球R,1.083,0.959,0.031,correct_only,hit,0.937,1.083,,
+2026_08_16/s2,7,球M,≥2.5°,clear,,4.47,2.45,1,correct,球M,1.372,1.0,0.0,mixed,hit,correct,球M,1.325,1.0,0.0,mixed,hit,1.372,1.325,0.37,0.371
+2026_08_16/s2,8,球L,≥2.5°,clear,,2.85,2.47,1,correct,球L,0.774,0.807,0.071,correct_only,hit,correct,球L,1.058,0.855,0.051,correct_only,hit,0.774,1.058,,
+2026_08_16/s2,9,球R,≥2.5°,clear,,2.55,2.55,1,correct,球R,0.806,0.993,0.005,correct_only,hit,correct,球R,1.028,0.991,0.007,correct_only,hit,0.806,1.028,,
+2026_08_16/s2,10,球R,≥2.5°,clear,,2.55,2.52,1,correct,球R,1.083,0.907,0.078,correct_only,hit,correct,球R,1.289,0.911,0.074,correct_only,hit,1.113,1.301,,
+2026_08_16/s2,11,球M,≥2.5°,clear,,4.47,2.39,1,correct,球M,1.286,1.0,0.0,correct_only,hit,correct,球M,1.246,1.0,0.0,correct_only,hit,1.381,1.306,,
+2026_08_16/s2,12,球L,≥2.5°,clear,,2.85,2.47,1,correct,球L,0.673,0.861,0.065,correct_only,hit,correct,球L,1.113,0.917,0.037,correct_only,hit,0.673,1.113,,
+2026_08_16/s2,13,球M,≥2.5°,clear,,4.47,2.4,1,correct,球M,0.972,1.0,0.0,correct_only,hit,correct,球M,0.96,1.0,0.0,correct_only,hit,1.41,1.308,,
+2026_08_16/s2,14,球L,≥2.5°,clear,,2.85,2.47,1,correct,球L,0.65,0.656,0.182,correct_only,hit,correct,球L,0.888,0.728,0.123,correct_only,hit,0.732,1.099,0.177,0.185
+2026_08_16/s2,15,球L,≥2.5°,clear,,2.85,2.46,1,correct,球L,0.791,0.753,0.096,correct_only,hit,correct,球L,1.031,0.794,0.078,correct_only,hit,0.791,1.058,0.111,0.086
+2026_08_16/s3,1,球M,≥2.5°,clear,,3.19,3.45,1,none,,,,,none,hit,none,,,,,none,hit,0.15,0.067,,
+2026_08_16/s3,2,球L,1.0–2.5°,clear,,2.0,3.35,1,none,,,,,none,hit,correct,球L,0.53,0.974,0.009,correct_only,hit,0.147,0.53,,
+2026_08_16/s3,3,球L,1.0–2.5°,clear,,2.0,3.35,1,none,,,,,none,hit,correct,球L,0.537,1.0,0.0,correct_only,hit,0.19,0.537,,
+2026_08_16/s3,4,球M,≥2.5°,clear,,3.19,3.91,1,correct,球M,0.924,0.99,0.003,correct_only,hit,correct,球M,0.683,0.978,0.007,correct_only,hit,1.174,0.95,,
+2026_08_16/s3,5,球R,1.0–2.5°,clear,,1.53,3.4,1,correct,球R,0.21,1.0,0.0,correct_only,hit,correct,球R,0.414,1.0,0.0,correct_only,hit,0.21,0.414,,
+2026_08_16/s3,6,球R,1.0–2.5°,clear,,1.53,3.39,1,correct,球R,0.253,1.0,0.0,correct_only,hit,correct,球R,0.497,1.0,0.0,correct_only,hit,0.253,0.497,,
+2026_08_16/s3,7,球L,1.0–2.5°,clear,,2.0,3.34,1,correct,球L,0.503,0.825,0.056,correct_only,hit,correct,球L,0.643,0.957,0.014,correct_only,hit,0.523,1.175,0.096,0.102
+2026_08_16/s3,8,球L,1.0–2.5°,clear,,2.0,3.35,1,correct,球L,0.212,1.0,0.0,correct_only,hit,correct,球L,0.583,1.0,0.0,correct_only,hit,0.212,0.583,,
+2026_08_16/s3,9,球M,≥2.5°,clear,,3.19,3.4,1,correct,球M,1.519,0.99,0.003,correct_only,hit,correct,球M,1.298,0.981,0.006,correct_only,hit,1.519,1.375,,
+2026_08_16/s3,10,球R,1.0–2.5°,clear,,1.53,3.4,1,wrong,球M,0.247,1.0,0.0,mixed,hit,wrong,球M,0.256,1.0,0.0,mixed,hit,0.741,1.138,0.247,0.418
+2026_08_16/s3,11,球L,1.0–2.5°,clear,,2.0,3.35,1,correct,球L,0.39,0.809,0.074,correct_only,hit,correct,球L,0.986,0.915,0.027,correct_only,hit,0.39,0.986,,
+2026_08_16/s3,12,球M,≥2.5°,clear,,3.19,4.0,1,correct,球M,1.031,1.0,0.0,correct_only,hit,correct,球M,0.761,1.0,0.0,correct_only,hit,1.031,0.761,,
+2026_08_16/s3,13,球R,1.0–2.5°,clear,,1.53,3.38,1,none,,,,,none,hit,correct,球R,0.299,1.0,0.0,correct_only,hit,0.135,0.299,,
+2026_08_16/s3,14,球M,≥2.5°,clear,,3.19,3.39,1,correct,球M,0.306,1.0,0.0,correct_only,hit,correct,球M,0.266,1.0,0.0,mixed,hit,1.321,1.225,0.162,0.496
+2026_08_16/s3,15,球R,1.0–2.5°,clear,,1.53,3.38,1,correct,球R,0.517,0.938,0.048,correct_only,hit,correct,球R,0.86,0.945,0.042,correct_only,hit,0.517,0.86,,
+2026_08_16/s4,1,球L,1.0–2.5°,clear,,1.67,3.81,1,none,,,,,none,hit,none,,,,,none,hit,0.071,0.083,,
+2026_08_16/s4,2,球L,1.0–2.5°,clear,,1.67,3.8,1,none,,,,,none,hit,none,,,,,none,hit,0.062,0.077,,
+2026_08_16/s4,3,球M,≥2.5°,clear,,2.82,3.8,1,wrong,球L,0.611,0.929,0.026,mixed,miss,wrong,球L,0.805,0.928,0.026,mixed,miss,0.413,0.556,0.611,0.805
+2026_08_16/s4,4,球R,1.0–2.5°,clear,,1.28,3.95,1,none,,,,,none,hit,none,,,,,none,hit,0.015,0.046,0.008,0.018
+2026_08_16/s4,5,球R,1.0–2.5°,clear,,1.28,3.87,1,none,,,,,none,hit,none,,,,,none,hit,0.002,0.022,,
+2026_08_16/s4,6,球M,≥2.5°,clear,,2.82,3.87,1,wrong,球R,0.303,0.985,0.017,mixed,hit,wrong,球R,0.46,0.968,0.035,mixed,hit,0.435,0.596,0.303,0.46
+2026_08_16/s4,7,球M,≥2.5°,clear,,2.82,3.9,1,correct,球M,0.651,0.99,0.003,correct_only,hit,correct,球M,0.894,0.992,0.003,correct_only,hit,0.755,1.001,,
+2026_08_16/s4,8,球L,1.0–2.5°,clear,,1.67,3.79,1,wrong,球M,0.854,1.0,0.0,mixed,hit,wrong,球M,1.066,1.0,0.0,mixed,hit,0.832,1.069,0.854,1.066
+2026_08_16/s4,9,球R,1.0–2.5°,clear,,1.28,3.79,1,wrong,球L,0.23,1.0,0.0,mixed,hit,wrong,球L,0.337,0.974,0.009,mixed,hit,0.389,0.583,0.23,0.337
+2026_08_16/s4,10,球M,≥2.5°,clear,,2.82,3.8,1,wrong,球R,0.613,0.939,0.064,wrong_only,miss,wrong,球R,0.895,0.945,0.058,wrong_only,miss,,,0.613,0.895
+2026_08_16/s4,11,球R,1.0–2.5°,clear,,1.28,3.8,1,wrong,球M,0.642,0.744,0.104,wrong_only,hit,wrong,球M,0.813,0.775,0.09,mixed,hit,0.168,0.295,0.642,0.813
+2026_08_16/s4,12,球R,1.0–2.5°,clear,,1.28,3.91,1,correct,球R,0.202,1.0,0.0,correct_only,hit,correct,球R,0.305,0.999,0.0,correct_only,hit,0.202,0.305,,
+2026_08_16/s4,13,球M,≥2.5°,clear,,2.82,3.81,1,correct,球M,0.841,1.0,0.0,correct_only,hit,correct,球M,1.031,1.0,0.0,correct_only,hit,0.841,1.031,,
+2026_08_16/s4,14,球L,1.0–2.5°,clear,,1.67,3.77,1,correct,球L,0.545,0.936,0.026,correct_only,hit,correct,球L,0.723,0.94,0.024,correct_only,hit,0.545,0.723,,
+2026_08_16/s4,15,球L,1.0–2.5°,clear,,1.67,3.77,1,correct,球L,0.312,0.829,0.071,correct_only,hit,correct,球L,0.442,0.825,0.072,correct_only,hit,0.633,0.836,,
+2026_08_16/s6,1,球L,<1.0°,clear,,0.56,4.43,1,correct,球L,0.294,0.992,0.003,correct_only,hit,correct,球L,0.383,0.979,0.018,correct_only,hit,0.69,0.812,,
+2026_08_16/s6,2,球M,1.0–2.5°,clear,,1.79,4.53,1,correct,球M,0.407,0.999,0.002,correct_only,hit,correct,球M,0.483,0.999,0.002,correct_only,hit,0.407,0.483,,0.065
+2026_08_16/s6,3,球R,1.0–2.5°,clear,,1.85,4.56,1,none,,,,,none,hit,none,,,,,none,hit,0.062,0.143,,
+2026_08_16/s6,4,球R,1.0–2.5°,clear,,1.85,4.54,1,correct,球R,0.277,1.0,0.0,correct_only,hit,correct,球R,0.474,0.998,0.002,correct_only,hit,0.277,0.474,,
+2026_08_16/s6,5,球M,1.0–2.5°,clear,,1.79,4.46,1,correct,球M,0.728,0.986,0.019,correct_only,hit,correct,球M,0.87,0.983,0.022,correct_only,hit,0.74,0.87,,
+2026_08_16/s6,6,球R,1.0–2.5°,clear,,1.85,4.54,1,wrong,球M,0.685,0.891,0.105,wrong_only,hit,correct,球R,0.225,0.991,0.009,mixed,hit,0.095,0.225,0.685,0.786
+2026_08_16/s6,7,球R,1.0–2.5°,clear,,1.85,4.6,1,correct,球R,0.293,0.962,0.044,correct_only,hit,correct,球R,0.499,0.963,0.034,correct_only,hit,0.293,0.499,,
+2026_08_16/s6,8,球M,1.0–2.5°,clear,,1.79,4.55,1,correct,球M,0.358,1.0,0.0,correct_only,hit,correct,球M,0.404,0.988,0.012,correct_only,hit,0.358,0.404,,
+2026_08_16/s6,9,球L,<1.0°,clear,,0.56,4.45,1,correct,球L,0.707,0.872,0.044,correct_only,hit,correct,球L,0.877,0.906,0.027,correct_only,hit,0.707,0.877,,
+2026_08_16/s6,10,球M,1.0–2.5°,clear,,1.79,4.51,1,correct,球M,0.791,0.886,0.109,correct_only,hit,correct,球M,0.883,0.862,0.139,correct_only,hit,0.833,0.921,,
+2026_08_16/s6,11,球L,<1.0°,clear,,0.56,4.41,1,correct,球L,1.103,0.806,0.065,mixed,hit,correct,球L,1.326,0.866,0.051,mixed,hit,1.103,1.326,0.849,1.072
+2026_08_16/s6,12,球M,1.0–2.5°,clear,,1.79,4.55,1,correct,球M,1.151,0.901,0.146,mixed,hit,correct,球M,1.292,0.896,0.154,mixed,hit,1.151,1.292,0.417,0.685
+2026_08_16/s6,13,球L,<1.0°,clear,,0.56,4.48,1,wrong,球M,0.543,0.867,0.122,mixed,hit,wrong,球M,0.733,0.903,0.086,mixed,hit,1.082,1.318,1.289,1.47
+2026_08_16/s6,14,球R,1.0–2.5°,clear,,1.85,4.53,1,correct,球R,0.548,0.865,0.195,mixed,hit,correct,球R,0.869,0.889,0.147,mixed,hit,0.872,1.204,1.299,1.469
+2026_08_16/s6,15,球L,<1.0°,clear,,0.56,4.39,1,correct,球L,1.186,0.775,0.085,correct_only,hit,correct,球L,1.414,0.806,0.069,correct_only,hit,1.186,1.414,,
+2026_08_18/000,1,球L,≥2.5°,clear,,2.61,3.24,1,correct,球L,0.589,0.996,0.003,correct_only,hit,correct,球L,0.575,0.994,0.007,correct_only,hit,0.589,0.575,,0.001
+2026_08_18/000,2,球L,≥2.5°,clear,,2.61,3.01,1,correct,球L,0.405,1.0,0.0,correct_only,hit,correct,球L,0.383,1.0,0.0,correct_only,hit,0.527,0.5,,
+2026_08_18/000,3,球R,1.0–2.5°,clear,,2.19,3.29,1,correct,球R,0.266,0.86,0.147,mixed,hit,correct,球R,0.294,0.903,0.099,mixed,hit,0.266,0.294,0.722,0.715
+2026_08_18/000,4,球R,1.0–2.5°,clear,,2.19,3.37,1,wrong,球M,0.377,0.736,0.395,wrong_only,miss,correct,球R,0.214,0.913,0.084,mixed,miss,0.182,0.214,0.377,0.363
+2026_08_18/000,5,球M,1.0–2.5°,clear,,2.19,3.01,1,correct,球M,0.631,0.865,0.163,correct_only,hit,correct,球M,0.622,0.847,0.201,correct_only,hit,0.631,0.622,,
+2026_08_18/000,6,球L,≥2.5°,clear,,2.61,3.02,1,correct,球L,1.206,0.937,0.041,correct_only,hit,correct,球L,1.2,0.934,0.045,correct_only,hit,1.207,1.2,,
+2026_08_18/000,7,球M,1.0–2.5°,clear,,2.19,2.98,1,correct,球M,0.838,0.889,0.064,correct_only,hit,correct,球M,0.867,0.906,0.074,correct_only,hit,0.838,0.867,,0.187
+2026_08_18/000,8,球R,1.0–2.5°,clear,,2.19,3.08,1,wrong,球M,0.595,0.768,0.333,wrong_only,hit,wrong,球M,0.604,0.734,0.404,wrong_only,hit,,,0.847,0.875
+2026_08_18/000,9,球R,1.0–2.5°,clear,,2.19,3.26,1,correct,球R,0.525,0.635,0.524,correct_only,miss,correct,球R,0.625,0.688,0.413,correct_only,miss,0.525,0.625,,
+2026_08_18/000,10,球M,1.0–2.5°,clear,,2.19,2.99,1,correct,球M,0.642,0.929,0.061,correct_only,hit,correct,球M,0.665,0.951,0.029,correct_only,hit,0.76,0.76,,
+2026_08_18/000,11,球L,≥2.5°,clear,,2.61,3.02,1,correct,球L,1.096,0.959,0.022,mixed,hit,correct,球L,1.1,0.957,0.026,mixed,hit,1.244,1.2,0.608,0.64
+2026_08_18/000,12,球M,1.0–2.5°,clear,,2.19,3.08,1,correct,球M,0.81,0.872,0.112,mixed,hit,correct,球M,0.82,0.87,0.138,mixed,hit,0.844,0.856,0.585,0.685
+2026_08_18/000,13,球R,1.0–2.5°,clear,,2.19,3.33,1,correct,球R,0.721,0.948,0.05,mixed,hit,correct,球R,0.808,0.954,0.043,mixed,hit,0.781,0.902,0.673,0.676
+2026_08_18/000,14,球M,1.0–2.5°,clear,,2.19,3.08,1,correct,球M,0.856,0.894,0.112,correct_only,hit,correct,球M,0.86,0.883,0.14,correct_only,hit,0.856,0.86,,
+2026_08_18/000,15,球L,≥2.5°,clear,,2.61,3.02,1,correct,球L,1.173,0.884,0.048,correct_only,hit,correct,球L,1.183,0.882,0.048,correct_only,hit,1.173,1.183,,
+2026_08_20/000,1,球R,1.0–2.5°,clear,,2.17,2.16,1,correct,球R,0.358,0.775,0.081,correct_only,hit,correct,球R,0.371,0.749,0.094,correct_only,hit,0.498,0.499,,
+2026_08_20/000,2,香蕉,<1.0°,clear,,0.41,2.25,1,wrong,球M,1.302,0.689,0.109,wrong_only,miss,wrong,球M,1.262,0.664,0.123,wrong_only,miss,,,1.302,1.262
+2026_08_20/000,3,纸箱子,≥2.5°,clear,,24.07,3.06,1,correct,纸箱子,0.854,1.0,0.0,correct_only,hit,correct,纸箱子,1.193,1.0,0.0,correct_only,hit,0.854,1.193,,
+2026_08_20/000,4,苹果粉,1.0–2.5°,clear,,2.09,2.24,1,correct,苹果粉,0.594,0.966,0.015,mixed,hit,correct,苹果粉,0.711,0.875,0.075,mixed,hit,0.594,0.711,0.957,0.953
+2026_08_20/000,5,白杯1,1.0–2.5°,clear,,1.84,2.3,1,correct,白杯1,0.612,0.608,0.657,correct_only,hit,correct,白杯1,0.622,0.61,0.645,correct_only,hit,0.612,0.622,0.381,0.404
+2026_08_20/000,6,水瓶,<1.0°,clear,,0.41,2.3,1,wrong,白杯1,0.762,0.611,0.651,mixed,miss,wrong,白杯1,0.758,0.588,0.677,mixed,miss,0.568,0.566,0.887,0.843
+2026_08_20/000,7,红杯,1.0–2.5°,clear,,1.84,2.31,1,wrong,白杯2,0.882,0.593,0.46,wrong_only,miss,wrong,白杯2,0.883,0.572,0.472,wrong_only,miss,,,1.043,1.072
+2026_08_20/000,8,苹果红,<1.0°,clear,,0.41,2.26,1,wrong,球L,1.003,0.503,0.621,wrong_only,miss,wrong,球L,0.983,0.486,0.633,wrong_only,miss,,,1.25,1.24
+2026_08_20/000,9,球M,1.0–2.5°,clear,,1.83,2.23,1,correct,球M,0.587,0.745,0.095,mixed,hit,correct,球M,0.563,0.714,0.115,mixed,hit,1.278,1.249,0.659,0.646
+2026_08_20/000,10,橘子,<1.0°,clear,,0.41,2.35,1,wrong,苹果红,0.648,0.561,0.34,wrong_only,miss,wrong,苹果红,0.645,0.471,0.361,wrong_only,miss,,,0.648,0.645
+2026_08_20/000,11,球L,1.0–2.5°,clear,,1.71,2.29,1,correct,球L,0.663,0.749,0.133,mixed,hit,correct,球L,0.676,0.59,0.213,mixed,hit,1.02,1.019,0.68,0.675
+2026_08_20/000,12,白杯2,1.0–2.5°,clear,,2.03,2.31,1,correct,白杯2,0.99,0.681,0.243,mixed,hit,correct,白杯2,1.003,0.664,0.268,mixed,hit,0.99,1.003,1.014,1.021
+2026_08_20/001,1,球R,1.0–2.5°,clear,,1.28,2.72,0,correct,球R,1.01,0.679,0.103,correct_only,hit,correct,球R,1.082,0.649,0.111,correct_only,hit,1.01,1.082,,
+2026_08_20/001,2,球R,1.0–2.5°,clear,,1.28,3.19,0,correct,球R,0.525,0.388,0.333,correct_only,hit,none,,,,,none,hit,0.525,0.556,,
+2026_08_20/001,3,苹果红,<1.0°,clear,,0.13,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_20/001,4,球L,1.0–2.5°,clear,,1.03,3.13,0,correct,球L,1.264,0.51,0.289,correct_only,hit,wrong,苹果粉,0.239,0.687,0.485,mixed,hit,1.443,1.489,0.177,0.239
+2026_08_20/001,5,苹果粉,1.0–2.5°,clear,,1.31,3.22,0,correct,苹果粉,0.82,0.891,0.123,correct_only,hit,correct,苹果粉,0.95,0.865,0.117,correct_only,hit,0.82,0.95,,
+2026_08_20/001,6,白杯1,1.0–2.5°,clear,,1.28,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_20/001,7,球M,<1.0°,clear,,0.89,3.27,0,correct,球M,0.912,0.624,0.082,correct_only,hit,correct,球M,0.912,0.628,0.071,correct_only,hit,0.947,1.001,,
+2026_08_20/001,8,白杯1,1.0–2.5°,clear,,1.28,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_20/001,9,苹果粉,1.0–2.5°,clear,,1.31,3.3,0,correct,苹果粉,0.297,0.829,0.293,correct_only,hit,correct,苹果粉,0.369,0.776,0.257,correct_only,hit,0.297,0.369,,
+2026_08_20/001,10,球R,1.0–2.5°,clear,,1.28,3.28,0,correct,球R,1.234,0.471,0.281,correct_only,hit,correct,球R,1.283,0.448,0.282,correct_only,hit,1.234,1.283,0.673,0.735
+2026_08_20/001,11,球M,<1.0°,clear,,0.89,3.25,0,correct,球M,0.322,0.647,0.165,correct_only,hit,correct,球M,0.32,0.668,0.175,correct_only,hit,0.839,0.877,0.038,0.045
+2026_08_20/001,12,白杯2,,clear,,,3.27,0,correct,白杯2,0.817,0.484,0.864,correct_only,hit,correct,白杯2,0.897,0.472,0.921,correct_only,hit,0.817,0.897,,
+2026_08_20/001,13,白杯2,,clear,,,3.27,0,correct,白杯2,0.817,0.484,0.864,correct_only,miss,correct,白杯2,0.897,0.472,0.921,correct_only,miss,0.817,0.897,,
+2026_08_20/001,14,球L,1.0–2.5°,clear,,1.03,3.23,0,correct,球L,0.656,0.481,0.45,correct_only,hit,correct,球L,1.155,0.401,0.477,correct_only,hit,1.053,1.155,,
+2026_08_20/001,15,苹果红,<1.0°,clear,,0.13,3.24,0,none,,,,,none,hit,none,,,,,none,hit,0.847,0.887,,
+2026_08_20/002,1,球L,<1.0°,occluded(beyond limit),beyond_occ,0.84,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_20/002,2,球R,<1.0°,occluded(beyond limit),beyond_occ,0.84,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_20/002,3,球R,<1.0°,occluded(beyond limit),beyond_occ,0.84,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_20/002,4,球M,<1.0°,occluded(beyond limit),beyond_occ,0.66,4.18,0,none,,,,,none,hit,none,,,,,none,hit,0.994,1.073,,
+2026_08_20/002,5,球M,<1.0°,occluded(beyond limit),beyond_occ,0.66,4.18,0,none,,,,,none,miss,none,,,,,none,miss,0.994,1.073,,
+2026_08_20/002,6,球L,<1.0°,occluded(beyond limit),beyond_occ,0.84,4.2,0,correct,球L,0.304,0.664,0.204,correct_only,hit,correct,球L,0.342,0.687,0.211,correct_only,hit,0.693,0.717,,
+2026_08_20/002,7,球R,<1.0°,occluded(beyond limit),beyond_occ,0.84,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_20/002,8,球L,<1.0°,occluded(beyond limit),beyond_occ,0.84,4.26,0,none,,,,,none,hit,none,,,,,none,hit,1.161,1.211,,
+2026_08_20/002,9,球L,<1.0°,occluded(beyond limit),beyond_occ,0.84,4.26,0,none,,,,,none,miss,none,,,,,none,miss,1.161,1.211,,
+2026_08_20/002,10,球M,<1.0°,occluded(beyond limit),beyond_occ,0.66,4.26,0,none,,,,,none,hit,none,,,,,none,hit,0.334,0.39,,
+2026_08_20/002,11,球L,<1.0°,occluded(beyond limit),beyond_occ,0.84,4.29,0,correct,球L,0.469,0.619,0.26,correct_only,hit,correct,球L,0.515,0.592,0.332,correct_only,hit,1.188,1.228,,
+2026_08_20/002,12,球M,<1.0°,occluded(beyond limit),beyond_occ,0.66,4.35,0,none,,,,,none,hit,none,,,,,none,hit,0.706,0.776,,
+2026_08_20/002,13,球R,<1.0°,occluded(beyond limit),beyond_occ,0.84,4.33,0,none,,,,,none,hit,none,,,,,none,hit,1.05,1.165,,
+2026_08_20/002,14,球M,<1.0°,occluded(beyond limit),beyond_occ,0.66,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,hit,,,,
+2026_08_20/002,15,球R,<1.0°,occluded(beyond limit),beyond_occ,0.84,4.22,0,none,,,,,none,hit,none,,,,,none,hit,0.315,0.394,,
+2026_08_20/003,1,球L,<1.0°,occluded(beyond limit),beyond_occ,0.64,4.27,0,correct,球L,0.402,0.587,0.376,correct_only,hit,correct,球L,0.456,0.577,0.428,correct_only,hit,0.575,0.456,,
+2026_08_20/003,2,球R,<1.0°,occluded(beyond limit),beyond_occ,0.63,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,hit,,,,
+2026_08_20/003,3,球R,<1.0°,occluded(beyond limit),beyond_occ,0.63,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_20/003,4,球M,<1.0°,occluded(beyond limit),beyond_occ,0.63,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_20/003,5,球M,<1.0°,occluded(beyond limit),beyond_occ,0.63,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_20/003,6,球L,<1.0°,occluded(beyond limit),beyond_occ,0.64,4.36,0,correct,球L,0.235,0.358,0.549,correct_only,hit,none,,,,,none,hit,0.235,,,0.04
+2026_08_20/003,7,球R,<1.0°,occluded(beyond limit),beyond_occ,0.63,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,hit,,,,
+2026_08_20/003,8,球L,<1.0°,occluded(beyond limit),beyond_occ,0.64,4.34,0,none,,,,,none,hit,none,,,,,none,hit,0.195,0.038,,
+2026_08_20/003,9,球L,<1.0°,occluded(beyond limit),beyond_occ,0.64,4.34,0,none,,,,,none,miss,none,,,,,none,miss,0.195,0.038,,
+2026_08_20/003,10,球M,<1.0°,occluded(beyond limit),beyond_occ,0.63,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_20/003,11,球L,<1.0°,occluded(beyond limit),beyond_occ,0.64,4.36,0,none,,,,,none,hit,none,,,,,none,miss,0.332,0.108,,
+2026_08_20/003,12,球M,<1.0°,occluded(beyond limit),beyond_occ,0.63,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_20/003,13,球R,<1.0°,occluded(beyond limit),beyond_occ,0.63,4.39,0,none,,,,,none,hit,none,,,,,none,hit,0.199,0.055,,
+2026_08_20/003,14,球M,<1.0°,occluded(beyond limit),beyond_occ,0.63,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,hit,,,,
+2026_08_20/003,15,球R,<1.0°,occluded(beyond limit),beyond_occ,0.63,4.35,0,none,,,,,none,hit,none,,,,,none,miss,0.491,0.137,,
+2026_08_25/c1_1,1,球L,<1.0°,occluded(beyond limit),beyond_occ,0.92,4.04,0,none,,,,,none,hit,none,,,,,none,hit,0.007,0.017,,
+2026_08_25/c1_1,2,球R,<1.0°,occluded(beyond limit),beyond_occ,0.9,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_25/c1_1,3,球R,<1.0°,occluded(beyond limit),beyond_occ,0.9,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_25/c1_1,4,球M,<1.0°,occluded(beyond limit),beyond_occ,0.68,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,hit,,,,
+2026_08_25/c1_1,5,球M,<1.0°,occluded(beyond limit),beyond_occ,0.68,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_25/c1_1,6,球L,<1.0°,occluded(beyond limit),beyond_occ,0.92,4.12,0,none,,,,,none,hit,none,,,,,none,hit,0.001,0.002,,
+2026_08_25/c1_1,7,球R,<1.0°,occluded(beyond limit),beyond_occ,0.9,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_25/c1_1,8,球L,<1.0°,occluded(beyond limit),beyond_occ,0.92,4.13,0,none,,,,,none,hit,none,,,,,none,hit,0.013,0.015,,0.024
+2026_08_25/c1_1,9,球L,<1.0°,occluded(beyond limit),beyond_occ,0.92,4.16,0,none,,,,,none,hit,none,,,,,none,hit,0.071,0.089,,
+2026_08_25/c1_1,10,球M,<1.0°,occluded(beyond limit),beyond_occ,0.68,4.18,0,none,,,,,none,hit,none,,,,,none,hit,0.04,0.055,,
+2026_08_25/c1_1,11,球L,<1.0°,occluded(beyond limit),beyond_occ,0.92,4.18,0,correct,球L,0.418,0.574,0.565,correct_only,hit,correct,球L,0.455,0.554,0.624,correct_only,hit,0.418,0.455,,
+2026_08_25/c1_1,12,球M,<1.0°,occluded(beyond limit),beyond_occ,0.68,4.2,0,none,,,,,none,hit,none,,,,,none,hit,0.675,0.782,,
+2026_08_25/c1_1,13,球R,<1.0°,occluded(beyond limit),beyond_occ,0.9,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_25/c1_1,14,球M,<1.0°,occluded(beyond limit),beyond_occ,0.68,4.19,0,none,,,,,none,hit,none,,,,,none,hit,0.894,1.0,,
+2026_08_25/c1_1,15,球R,<1.0°,occluded(beyond limit),beyond_occ,0.9,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_25/c1_2,1,球L,1.0–2.5°,clear,,1.04,4.23,1,none,,,,,none,hit,none,,,,,none,hit,0.072,0.098,,
+2026_08_25/c1_2,2,球R,<1.0°,clear,,0.81,4.27,1,none,,,,,none,hit,none,,,,,none,hit,0.101,0.12,,
+2026_08_25/c1_2,3,球R,<1.0°,clear,,0.81,4.29,1,correct,球R,0.39,0.578,0.451,correct_only,hit,correct,球R,0.434,0.527,0.456,correct_only,hit,0.39,0.434,,
+2026_08_25/c1_2,4,球M,<1.0°,clear,,0.65,4.25,1,correct,球M,0.49,0.415,0.631,correct_only,hit,correct,球M,0.517,0.427,0.646,correct_only,hit,0.49,0.517,,
+2026_08_25/c1_2,5,球M,<1.0°,clear,,0.65,4.25,1,none,,,,,none,hit,none,,,,,none,hit,0.926,0.989,,
+2026_08_25/c1_2,6,球L,1.0–2.5°,clear,,1.04,4.24,1,correct,球L,0.874,0.45,0.379,correct_only,hit,correct,球L,0.933,0.465,0.362,correct_only,hit,0.874,0.933,,
+2026_08_25/c1_2,7,球R,<1.0°,clear,,0.81,4.26,1,none,,,,,none,hit,none,,,,,none,hit,0.718,0.712,,
+2026_08_25/c1_2,8,球L,1.0–2.5°,clear,,1.04,4.26,1,none,,,,,none,hit,none,,,,,none,hit,0.109,0.142,,
+2026_08_25/c1_2,9,球L,1.0–2.5°,clear,,1.04,4.26,1,none,,,,,none,hit,correct,球L,0.219,0.474,0.954,correct_only,hit,0.181,0.219,,
+2026_08_25/c1_2,10,球M,<1.0°,clear,,0.65,4.27,1,none,,,,,none,hit,none,,,,,none,hit,0.139,0.157,,
+2026_08_25/c1_2,11,球L,1.0–2.5°,clear,,1.04,4.22,1,correct,球L,0.847,0.413,0.643,correct_only,hit,correct,球L,1.009,0.435,0.619,correct_only,hit,0.847,1.009,,
+2026_08_25/c1_2,12,球M,<1.0°,clear,,0.65,4.25,1,none,,,,,none,hit,none,,,,,none,hit,0.781,0.905,,
+2026_08_25/c1_2,13,球R,<1.0°,clear,,0.81,4.26,1,correct,球R,0.452,0.54,0.549,correct_only,hit,correct,球R,0.452,0.487,0.633,correct_only,hit,0.452,0.452,,
+2026_08_25/c1_2,14,球M,<1.0°,clear,,0.65,4.26,1,correct,球M,0.541,0.391,0.704,correct_only,hit,correct,球M,0.635,0.4,0.66,correct_only,hit,0.62,0.734,,
+2026_08_25/c1_2,15,球R,<1.0°,clear,,0.81,4.26,1,correct,球R,0.242,0.604,0.405,correct_only,hit,correct,球R,0.246,0.527,0.443,correct_only,hit,0.739,0.777,,
+2026_08_25/c1_3,1,球L,1.0–2.5°,clear,,1.19,3.72,0,correct,球L,0.592,0.606,0.4,correct_only,hit,correct,球L,0.713,0.624,0.342,correct_only,hit,0.604,0.713,,
+2026_08_25/c1_3,2,球R,<1.0°,clear,,0.96,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_25/c1_3,3,球R,<1.0°,clear,,0.96,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_25/c1_3,4,球M,<1.0°,clear,,0.77,3.74,0,correct,球M,0.342,0.541,0.398,correct_only,hit,correct,球M,0.398,0.539,0.379,correct_only,hit,1.146,1.22,,
+2026_08_25/c1_3,5,球M,<1.0°,clear,,0.77,3.74,0,correct,球M,0.342,0.541,0.398,correct_only,hit,correct,球M,0.398,0.539,0.379,correct_only,hit,1.146,1.22,,
+2026_08_25/c1_3,6,球L,1.0–2.5°,clear,,1.19,3.73,0,none,,,,,none,hit,none,,,,,none,hit,0.983,1.083,,
+2026_08_25/c1_3,7,球R,<1.0°,clear,,0.96,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_25/c1_3,8,球L,1.0–2.5°,clear,,1.19,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_25/c1_3,9,球L,1.0–2.5°,clear,,1.19,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_25/c1_3,10,球M,<1.0°,clear,,0.77,3.73,0,correct,球M,0.363,0.498,0.416,correct_only,hit,correct,球M,0.42,0.538,0.379,correct_only,hit,0.363,0.42,,
+2026_08_25/c1_3,11,球L,1.0–2.5°,clear,,1.19,3.71,0,correct,球L,0.938,0.478,0.512,correct_only,hit,correct,球L,1.077,0.513,0.485,correct_only,hit,0.938,1.077,,
+2026_08_25/c1_3,12,球M,<1.0°,clear,,0.77,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,miss,,,,
+2026_08_25/c1_3,13,球R,<1.0°,clear,,0.96,3.73,0,correct,球R,0.991,0.466,0.628,correct_only,hit,correct,球R,1.074,0.465,0.618,correct_only,hit,0.991,1.074,,
+2026_08_25/c1_3,14,球M,<1.0°,clear,,0.77,3.72,0,none,,,,,none,hit,none,,,,,none,hit,1.262,1.294,,
+2026_08_25/c1_3,15,球R,<1.0°,clear,,0.96,3.72,0,none,,,,,none,hit,none,,,,,none,hit,1.122,1.196,,
+2026_08_25/u3,1,球L,1.0–2.5°,clear,walking,1.36,2.8,1,correct,球L,0.307,0.787,0.121,correct_only,hit,correct,球L,0.214,0.695,0.075,correct_only,hit,0.307,0.317,,
+2026_08_25/u3,2,球M,1.0–2.5°,clear,walking,1.44,2.82,1,wrong,球L,0.69,0.881,0.023,mixed,hit,wrong,球L,0.749,0.808,0.043,mixed,hit,0.312,0.304,0.69,0.749
+2026_08_25/u3,3,球R,1.0–2.5°,clear,walking,1.75,2.27,1,none,,,,,none,hit,none,,,,,none,hit,0.049,0.048,0.133,0.118
+2026_08_25/u3,4,球M,1.0–2.5°,clear,walking,1.44,2.84,1,none,,,,,none,miss,none,,,,,none,hit,0.168,0.167,0.008,
+2026_08_25/u3,5,球R,1.0–2.5°,clear,walking,1.75,2.54,1,none,,,,,none,hit,none,,,,,none,hit,0.248,0.266,,
+2026_08_25/u3,6,球L,1.0–2.5°,clear,walking,1.36,2.92,1,correct,球L,0.235,0.749,0.179,correct_only,hit,correct,球L,0.258,0.557,0.267,correct_only,hit,0.235,0.258,,
+2026_08_25/u3,7,球M,1.0–2.5°,clear,walking,1.44,2.63,1,correct,球M,1.16,0.504,0.142,mixed,hit,correct,球M,1.133,0.456,0.177,mixed,hit,1.16,1.133,0.487,0.501
+2026_08_25/u3,8,球R,1.0–2.5°,clear,walking,1.75,2.49,1,correct,球R,0.291,0.757,0.096,correct_only,hit,correct,球R,0.292,0.767,0.092,correct_only,hit,0.515,0.507,0.108,0.094
+2026_08_25/u3,9,球L,1.0–2.5°,clear,walking,1.36,2.71,1,wrong,球M,0.487,0.739,0.076,mixed,hit,wrong,球M,0.467,0.669,0.107,mixed,hit,0.809,0.847,0.487,0.467
+2026_08_25/u3,10,球R,1.0–2.5°,clear,walking,1.75,2.6,1,correct,球R,0.474,0.828,0.036,correct_only,hit,correct,球R,0.495,0.734,0.075,correct_only,hit,0.474,0.495,0.0,0.001
+2026_08_25/u3,11,球L,1.0–2.5°,clear,walking,1.36,2.48,1,correct,球L,0.484,0.971,0.01,correct_only,hit,correct,球L,0.496,0.889,0.046,correct_only,hit,0.612,0.625,,
+2026_08_25/u3,12,球M,1.0–2.5°,clear,walking,1.44,2.46,1,correct,球M,0.708,0.397,0.335,correct_only,hit,correct,球M,0.712,0.424,0.228,correct_only,hit,0.71,0.712,,
+2026_08_25/u3,13,球R,1.0–2.5°,clear,walking,1.75,2.71,1,correct,球R,0.58,0.782,0.09,mixed,miss,correct,球R,0.595,0.745,0.096,mixed,miss,0.58,0.595,0.812,0.764
+2026_08_25/u3,14,球L,1.0–2.5°,clear,walking,1.36,3.1,1,correct,球L,0.356,0.857,0.067,correct_only,hit,correct,球L,0.395,0.696,0.106,correct_only,hit,0.356,0.395,,
+2026_08_25/u3,15,球M,1.0–2.5°,clear,walking,1.44,1.97,1,correct,球M,0.968,0.614,0.106,correct_only,hit,correct,球M,0.953,0.599,0.116,correct_only,hit,0.968,0.981,,

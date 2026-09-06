@@ -27,7 +27,8 @@ $R/2026_08_20/003:c4:v9  $R/2026_08_25/c1_1:c4:v9 $R/2026_08_25/c1_2:c4:v9
 $R/2026_08_25/c1_3:c4:v9 $R/2026_08_25/u3:u3:v9   $R/2026_08_25/u1:u1:v9
 "
 # cfg:输入日志:flags
-CFGS="v2mass10:intents_e4_v2s10.jsonl:--mode full --rank mass
+CFGS="v2vis10:intents_e4_v2s10.jsonl:--mode vis --rank capture
+v2mass10:intents_e4_v2s10.jsonl:--mode full --rank mass
 v2noocc10:intents_e4_v2s10.jsonl:--mode noocc --rank capture
 v2noocc10ng:intents_e4_v2s10.jsonl:--mode noocc --rank capture --noocc-range-gate off
 v2noocc:intents_e4_v2.jsonl:--mode noocc --rank capture"

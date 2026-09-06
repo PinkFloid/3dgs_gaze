@@ -31,17 +31,17 @@ from collect_e1 import unit_rows  # noqa: E402
 from core.attention import accepted  # noqa: E402
 
 R = Path("/home/liuchy/recordings")
-CFGS = {"v1": "intents.jsonl", "ours": "intents_e4_v2s10.jsonl", "noocc": "intents_e4_v2noocc10.jsonl",
+CFGS = {"v1": "intents.jsonl", "ours": "intents_e4_v2s10.jsonl", "noocc": "intents_e4_v2noocc10.jsonl", "vis": "intents_e4_v2vis10.jsonl",
         "noocc_ng": "intents_e4_v2noocc10ng.jsonl", "mass10": "intents_e4_v2mass10.jsonl",
         "v2s15": "intents_e4_v2.jsonl", "mass15": "intents_e4_v2mass.jsonl", "noocc15": "intents_e4_v2noocc.jsonl",
         "sphere10": "intents_e4_v2sphere10.jsonl", "naive": "intents_e4_naive.jsonl"}
-CSV_OF = {"v1": None, "ours": "e4_v2s10_score.csv", "noocc": "e4_v2noocc10_score.csv",
+CSV_OF = {"v1": None, "ours": "e4_v2s10_score.csv", "noocc": "e4_v2noocc10_score.csv", "vis": "e4_v2vis10_score.csv",
           "noocc_ng": "e4_v2noocc10ng_score.csv", "mass10": "e4_v2mass10_score.csv", "v2s15": "e4_v2_score.csv",
           "mass15": "e4_v2mass_score.csv", "noocc15": "e4_v2noocc_score.csv", "sphere10": "e4_v2sphere10_score.csv",
           "naive": "e4_naive_score.csv"}
 GATES = {"live": dict(min_vote=0.45, margin=1.4, min_capture=0.2), "e2": dict(min_vote=0.5, margin=0.0, min_capture=0.2)}
 TIERS = [("≥2.5°", 2.5, 99.0), ("1.0–2.5°", 1.0, 2.5), ("<1.0°", 0.0, 1.0)]
-PAIRS = [("ours", "noocc"), ("ours", "mass10"), ("v2s15", "mass15"), ("ours", "noocc_ng"), ("ours", "v1")]
+PAIRS = [("ours", "noocc"), ("ours", "vis"), ("vis", "noocc"), ("ours", "mass10"), ("v2s15", "mass15"), ("ours", "noocc_ng"), ("ours", "v1")]
 
 
 def canon(n):
@@ -356,7 +356,7 @@ def main():
     # 分档
     md.append("\n## 2. 主集按 θ 档 / 遮挡(首个接受判定)\n")
     md.append("| 配置 | 分组 | trial | 首个正确 | 首个错误 | 无接受 | 任一正确 | LCS |\n|---|---|---|---|---|---|---|---|")
-    for cfg in ("v1", "ours", "noocc", "mass10", "noocc_ng"):
+    for cfg in ("v1", "ours", "vis", "noocc", "mass10", "noocc_ng"):
         trs = subset(all_trials.get(cfg, []), "main")
         if not trs:
             continue
@@ -469,6 +469,50 @@ def main():
             wcsv = csv.DictWriter(f, fieldnames=list(rows_s[0]))
             wcsv.writeheader()
             wcsv.writerows(rows_s)
+    # 隐藏竞争者子集:目标前面/旁边有被挡物体(noocc capture>=0.2 而 full capture<=0.05)的 trial
+    md.append("\n## 6b. 有隐藏竞争者的 trial(时段内多数 final 里存在 noocc capture≥0.2 而 full capture≤0.05 的非目标候选)\n")
+    hidden = {}
+    for rec, card, era, flags in RECS:
+        if rec not in wins or "excluded" in flags:
+            continue
+        p = R / rec / CFGS["noocc"]
+        if not p.exists():
+            continue
+        fin = load_finals(p)
+        for it in wins[rec]["items"]:
+            if it.get("win_start_abs") is None:
+                continue
+            s0 = (it["stare_start_abs"] - 0.3) if it.get("stare_start_abs") is not None else it["win_start_abs"]
+            w0, w1 = it["win_start_abs"], it["win_end_abs"]
+            tgt = canon(it["target"])
+            n = nh = 0
+            names = set()
+            for e in fin:
+                ov = overlap(e["t_start"], e["t_end"], s0, w1)
+                if not (ov >= 0.5 or (e["t_start"] >= w0 and e["t_end"] <= w1)) or not e.get("object"):
+                    continue
+                n += 1
+                fullc = {canon(c["name"]): (c.get("capture") or 0.0) for c in ((e.get("full") or {}).get("candidates") or [])}
+                hid = [c["name"] for c in e["candidates"] if c["name"] != tgt and (c.get("capture") or 0.0) >= 0.2 and fullc.get(c["name"], 0.0) <= 0.05]
+                if hid:
+                    nh += 1
+                    names |= set(hid)
+            if n:
+                hidden[(rec, it["k"])] = (n, nh, names)
+    H = {k for k, v in hidden.items() if v[1] >= max(1, v[0] // 2)}
+    NH = {k for k, v in hidden.items() if v[1] == 0}
+    md.append("| 配置 | 子集 | trial | 首个正确 | 首个错误 | 无接受 | 首判=隐藏物体 | LCS |\n|---|---|---|---|---|---|---|---|")
+    for cfg in ("v1", "ours", "vis", "noocc", "mass10"):
+        tmap = {(t["rec"], t["k"]): t for t in subset(all_trials.get(cfg, []), "main")}
+        for label, keys in (("有隐藏竞争者", H), ("无隐藏竞争者", NH)):
+            rows = [tmap[k] for k in keys if k in tmap]
+            if not rows:
+                continue
+            c = Counter(r["outcome_first"] for r in rows)
+            picked = sum(1 for r in rows if r["outcome_first"] == "wrong" and r.get("first_obj") in hidden[(r["rec"], r["k"])][2])
+            md.append(f"| {cfg} | {label} | {len(rows)} | {c.get('correct',0)} | {c.get('wrong',0)} | {c.get('none',0)} | {picked} | "
+                      f"{sum(r['lcs']=='hit' for r in rows)}/{len(rows)} |")
+    md.append("隐藏竞争者构成:" + ", ".join(f"{n}×{c}" for n, c in Counter(n for k in H for n in hidden[k][2]).most_common(6)))
     # 配置对照
     md.append("\n## 7. 配置对照(逐 trial,主集+压力段+边走;首个接受判定的结果)\n")
     for a_, b_ in PAIRS:
