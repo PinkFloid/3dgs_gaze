@@ -125,6 +125,20 @@ def main():
     n = sum(r["n"] for r in rows)
     h = sum(r["hits"] for r in rows)
     print(f"total {n} trials, {h} hits ({h/n:.1%})")
+    # 正文 TBD{E1-far} 的清晰/遮挡拆分(beyond_occ 逐 trial 标签;θ<1° 含首箱以下的 trial)
+    main = [r for r in csv.DictReader((DATA / "trials.csv").open(encoding="utf-8"))
+            if r["outcome"] in ("hit", "miss") and not ({"stress", "walking"} & set(r["tags"].split("|"))) and r["theta_deg"]]
+    below = [r for r in main if float(r["theta_deg"]) < BINS[0]]
+    print(f"main set {len(main)} trials; {len(below)} below first bin ({BINS[0]}°), not drawn: "
+          + ", ".join(f"{r['rec']}/{r['target']}/{r['outcome']}" for r in below))
+    for lo, hi in ((0.0, SIGMA_DEG), (BINS[0], SIGMA_DEG), (SIGMA_DEG, 2.5)):
+        for cond in ("clear", "occluded"):
+            s = [r for r in main if lo <= float(r["theta_deg"]) < hi
+                 and (("beyond_occ" in r["tags"].split("|")) == (cond == "occluded"))]
+            if not s:
+                continue
+            hh = sum(1 for r in s if r["outcome"] == "hit"); wl, wh = wilson(hh, len(s))
+            print(f"theta [{lo},{hi}) {cond:>8}: {hh}/{len(s)} = {hh/len(s):.1%}  Wilson [{wl:.1%}, {wh:.1%}]")
     print(f"-> {DATA}/fig4.pdf fig4.png")
 
 

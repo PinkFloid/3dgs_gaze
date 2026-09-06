@@ -23,6 +23,7 @@ R = Path("/home/liuchy/recordings")
 
 # (csv 路径, 卡, 房间, 地图, 站位描述, 标签集)
 # 标签:stress=前排俘获压力段(不进主曲线);beyond_occ=超物理遮挡极限(进曲线,单独标记)
+# occ=甲|乙 = 目标级遮挡:该录像里目标为甲/乙的 trial 打 beyond_occ(其余目标不打),用于同一站位只有第二排被挡的情形
 RECS = [
     (R/"2026_08_16/000/e1_score.csv", "e1", "老房", "v7", "1.4-1.7m 正对", set()),
     (R/"2026_08_16/001/e2_score.csv", "e2", "老房", "v7", "3.1m 正对", {"stress"}),
@@ -52,7 +53,9 @@ RECS = [
     (R/"2026_09_07/v1_near/v1_score.csv",      "v1", "新房", "v10", "1.34m α-17°", set()),
     (R/"2026_09_07/v2_near/v2_score.csv",      "v2", "新房", "v10", "1.26m α+23°", set()),
     (R/"2026_09_07/v2_near_p2/v2_score.csv",   "v2", "新房", "v10", "1.05m α-25°", {"p2"}),
-    (R/"2026_09_07/v6_far/v6_score.csv",       "v6", "新房", "v10", "2.99m 正对", set()),
+    # 目标级遮挡标签(09-07):正对 2.99 m 时第二排目标按"可见高度比 <50%"判遮挡(v10 地图几何,眼高 1.55 m:
+    # 香蕉在苹果红后 0%、橘子在白杯1后 18%、白杯2在网球R后 45%;苹果粉在网球L后 100% 不标);v6_mid 1.80 m 全部 ≥65% 不标
+    (R/"2026_09_07/v6_far/v6_score.csv",       "v6", "新房", "v10", "2.99m 正对", {"occ=香蕉|橘子|白杯2"}),
     (R/"2026_09_07/v6_mid/v6_score.csv",       "v6", "新房", "v10", "1.80m 正对", set()),
     (R/"2026_09_07/v6_near/v6_score.csv",      "v6", "新房", "v10", "1.23m α-24°", set()),
     (R/"2026_09_07/v6_move/v6_score.csv",      "v6", "新房", "v10", "1.1m 边走", {"walking"}),
@@ -69,12 +72,18 @@ def unit_rows(csv_path, card, room, mapv, station, tags):
         if th:
             thetas.append(float(th))
     med = float(np.median(thetas)) if thetas else ""
+    occ_targets = set()
+    for t in tags:
+        if t.startswith("occ="):
+            occ_targets |= set(t[4:].split("|"))
+    base_tags = {t for t in tags if not t.startswith("occ=")}
     for r in csv.DictReader(csv_path.open(encoding="utf-8")):
         v = r["verdict"]
         m = re.match(r"^(.*?)(?:×(\d+))?$", r["want"])
         name, k = m.group(1), int(m.group(2) or 1)
+        row_tags = base_tags | ({"beyond_occ"} if name in occ_targets else set())
         base = dict(rec=str(csv_path.parent.name), card=card, room=room, map=mapv,
-                    station=station, tags="|".join(sorted(tags)),
+                    station=station, tags="|".join(sorted(row_tags)),
                     target=name, vote=r["vote"], dur_s=r["dur_s"], dist_m=r["dist_m"])
         tu = r.get("theta_unit_deg", "")
         if v == "＋多余":
