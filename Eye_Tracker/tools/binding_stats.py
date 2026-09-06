@@ -239,6 +239,10 @@ def main():
                 for e in objf:
                     dur_by[e["object"]] += e["duration_s"]
                 maj = max(dur_by, key=dur_by.get) if dur_by else None
+                gdur = defaultdict(float)
+                for e in acc:
+                    gdur[e["object"]] += e["duration_s"]
+                gmaj = max(gdur, key=gdur.get) if gdur else None
                 best_t = max([e.get("capture") or 0.0 for e in objf if e["object"] == tgt], default=None)
                 best_w = max([e.get("capture") or 0.0 for e in objf if e["object"] != tgt], default=None)
                 best_t_s = max([e.get("vote_share") or 0.0 for e in objf if e["object"] == tgt], default=None)
@@ -260,6 +264,9 @@ def main():
                     first_e2=("correct" if (acc2 and acc2[0]["object"] == tgt) else ("wrong" if acc2 else "none")),
                     ungated_first=("correct" if (objf and objf[0]["object"] == tgt) else ("wrong" if objf else "none")),
                     ungated_majority=("correct" if maj == tgt else ("wrong" if maj else "none")),
+                    ungated_majority_obj=(maj or ""), ungated_majority_dur=(round(dur_by[maj], 2) if maj else ""),
+                    gated_majority=("correct" if gmaj == tgt else ("wrong" if gmaj else "none")),
+                    gated_majority_obj=(gmaj or ""), gated_majority_dur=(round(gdur[gmaj], 2) if gmaj else ""),
                     best_target_capture=best_t, best_wrong_capture=best_w, best_target_share=best_t_s, best_wrong_share=best_w_s,
                     dist_m=(round(float(np.median(dists)), 2) if dists else "")))
             # 逐录像
@@ -346,6 +353,46 @@ def main():
         trs = [t for t in all_trials.get(cfg, []) if t["reliable"]]
         if trs:
             md.append(f"| {cfg} | main | " + fmt(summ(subset(trs, "main"))) + " |")
+    md.append("\n### 1d. 顺序 + 最长注视法:每项按卡序取其时段内累计注视时长最长的对象作为系统答案(不设闸=全部判定;设闸=只算通过接受闸的判定)\n")
+    md.append("| 配置 | 子集 | trial(有时段) | 不设闸:正确 | 错误 | 无 | 设闸:正确 | 错误 | 无 |\n|---|---|---|---|---|---|---|---|---|")
+    for cfg in cfgs:
+        trs = all_trials.get(cfg, [])
+        for which in ("main", "walking", "stress"):
+            hw = [t for t in subset(trs, which) if t.get("has_window")]
+            if not hw:
+                continue
+            u = Counter(t.get("ungated_majority") for t in hw)
+            g = Counter(t.get("gated_majority") for t in hw)
+            md.append(f"| {cfg} | {which} | {len(hw)} | {u.get('correct',0)} ({u.get('correct',0)/len(hw):.0%}) | {u.get('wrong',0)} | {u.get('none',0)} | "
+                      f"{g.get('correct',0)} ({g.get('correct',0)/len(hw):.0%}) | {g.get('wrong',0)} | {g.get('none',0)} |")
+    md.append("\n最长注视法的两个诚实口径:(a) 仅口播时刻表可靠的 10 条录像(129 trial,时段与识别无关);"
+              "(b) 主集全部 204 trial,回退录像里没有时段的项按'无'计(回退窗来自卡序对齐的命中段,其窗内多数判定必然正确,单看有窗项会高估)。\n")
+    md.append("| 配置 | (a) 可靠 129:不设闸 正确/错误/无 | (a) 设闸 正确/错误/无 | (b) 204:不设闸 正确/错误/无 | (b) 设闸 正确/错误/无 | 论文 LCS 204 |\n|---|---|---|---|---|---|")
+    for cfg in cfgs:
+        trs = subset(all_trials.get(cfg, []), "main")
+        if not trs:
+            continue
+        rel = [t for t in trs if t["reliable"] and t.get("has_window")]
+        def cnt(rows, key, n_total):
+            c = Counter(t.get(key) for t in rows)
+            return f"{c.get('correct',0)}/{c.get('wrong',0)}/{n_total - c.get('correct',0) - c.get('wrong',0)}"
+        md.append(f"| {cfg} | {cnt(rel,'ungated_majority',len(rel))} ({Counter(t.get('ungated_majority') for t in rel).get('correct',0)/max(len(rel),1):.0%}) | "
+                  f"{cnt(rel,'gated_majority',len(rel))} ({Counter(t.get('gated_majority') for t in rel).get('correct',0)/max(len(rel),1):.0%}) | "
+                  f"{cnt(trs,'ungated_majority',len(trs))} ({Counter(t.get('ungated_majority') for t in trs).get('correct',0)/len(trs):.0%}) | "
+                  f"{cnt(trs,'gated_majority',len(trs))} ({Counter(t.get('gated_majority') for t in trs).get('correct',0)/len(trs):.0%}) | "
+                  f"{sum(t['lcs']=='hit' for t in trs)}/{len(trs)} |")
+    md.append("\n按 θ 档 / 遮挡(主集,最长注视法):\n")
+    md.append("| 配置 | 分组 | trial | 不设闸:正确/错误/无 | 设闸:正确/错误/无 |\n|---|---|---|---|---|")
+    for cfg in ("v1", "ours", "vis", "noocc", "mass10"):
+        trs = [t for t in subset(all_trials.get(cfg, []), "main") if t.get("has_window")]
+        groups = [(t[0], [x for x in trs if x["tier"] == t[0]]) for t in TIERS]
+        groups += [(o, [x for x in trs if x["occl"] == o]) for o in ("clear", "occluded(beyond limit)")]
+        for gname, g in groups:
+            if not g:
+                continue
+            u = Counter(t.get("ungated_majority") for t in g)
+            gg = Counter(t.get("gated_majority") for t in g)
+            md.append(f"| {cfg} | {gname} | {len(g)} | {u.get('correct',0)}/{u.get('wrong',0)}/{u.get('none',0)} | {gg.get('correct',0)}/{gg.get('wrong',0)}/{gg.get('none',0)} |")
     md.append("\n### 1c. 主集,E2 冻结闸门(0.5 / 无 margin / 0.2)下的首个接受判定\n")
     md.append("| 配置 | 首个正确 | 首个错误 | 无接受 |\n|---|---|---|---|")
     for cfg in cfgs:

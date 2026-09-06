@@ -1,232 +1,232 @@
-rec,card,era,flags,cfg,k,target,size,theta_unit,tier,occl,walking,stress,window_src,reliable,lcs,has_window,win_start_rel,win_end_rel,n_finals,n_obj_finals,n_acc,n_acc_e2,outcome_first,first_obj,first_lat_end,first_lat_start,first_lat_stare,first_share,first_capture,first_A,first_p_none,first_dur,outcome_any,any_correct,any_wrong,flip_wrong_then_correct,flip_correct_then_wrong,wrong_objs,first_e2,ungated_first,ungated_majority,best_target_capture,best_wrong_capture,best_target_share,best_wrong_share,dist_m
-2026_08_16/000,e1,v7,,sphere10,1,苹果,fruit(4-5cm),4.22,≥2.5°,clear,0,0,schedule,1,hit,1,41.39,46.95,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,0.892,0.596,1.66
-2026_08_16/000,e1,v7,,sphere10,2,球M,ball(3cm),8.3,≥2.5°,clear,0,0,schedule,1,hit,1,48.11,53.86,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,1.42
-2026_08_16/000,e1,v7,,sphere10,3,石榴,fruit(4-5cm),6.01,≥2.5°,clear,0,0,schedule,1,hit,1,55.02,60.64,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.94,,1.64
-2026_08_16/000,e1,v7,,sphere10,4,香蕉,banana,4.22,≥2.5°,clear,0,0,schedule,1,hit,1,61.8,67.43,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.757,,1.52
-2026_08_16/000,e1,v7,,sphere10,5,球R,ball(3cm),6.01,≥2.5°,clear,0,0,schedule,1,hit,1,68.59,74.27,2,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,1.48
-2026_08_16/000,e1,v7,,sphere10,6,球L,ball(3cm),5.53,≥2.5°,clear,0,0,schedule,1,hit,1,75.43,81.18,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,0.831,0.708,1.46
-2026_08_16/000,e1,v7,,sphere10,7,球M,ball(3cm),8.3,≥2.5°,clear,0,0,schedule,1,hit,1,82.88,88.66,7,7,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,1.46
-2026_08_16/000,e1,v7,,sphere10,8,石榴,fruit(4-5cm),6.01,≥2.5°,clear,0,0,schedule,1,hit,1,89.82,95.4,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.909,,1.65
-2026_08_16/000,e1,v7,,sphere10,9,香蕉,banana,4.22,≥2.5°,clear,0,0,schedule,1,hit,1,96.56,102.11,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,0.63,0.608,1.6
-2026_08_16/000,e1,v7,,sphere10,10,球L,ball(3cm),5.53,≥2.5°,clear,0,0,schedule,1,hit,1,103.27,109.12,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.561,1.49
-2026_08_16/000,e1,v7,,sphere10,11,苹果,fruit(4-5cm),4.22,≥2.5°,clear,0,0,schedule,1,hit,1,110.28,116.1,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.813,,1.66
-2026_08_16/000,e1,v7,,sphere10,12,球R,ball(3cm),6.01,≥2.5°,clear,0,0,schedule,1,hit,1,117.26,123.17,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,1.47
-2026_08_16/001,e2,v7,stress,sphere10,1,球L,ball(3cm),2.1,1.0–2.5°,occluded(front-capture),0,1,lcs_episode,0,hit,1,15.68,19.4,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.783,,3.17
-2026_08_16/001,e2,v7,stress,sphere10,2,球R,ball(3cm),1.56,1.0–2.5°,occluded(front-capture),0,1,lcs_episode,0,hit,1,32.06,40.2,6,6,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,0.0,0.0,0.944,0.675,3.31
-2026_08_16/001,e2,v7,stress,sphere10,3,苹果,fruit(4-5cm),1.38,1.0–2.5°,occluded(front-capture),0,1,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_16/001,e2,v7,stress,sphere10,4,石榴,fruit(4-5cm),1.56,1.0–2.5°,occluded(front-capture),0,1,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_16/001,e2,v7,stress,sphere10,5,球M,ball(3cm),3.21,≥2.5°,occluded(front-capture),0,1,lcs_episode,0,miss,1,43.24,45.72,1,0,0,0,none,,,,,,,,,,none,0,0,0,0,,none,none,none,,,,,
-2026_08_16/001,e2,v7,stress,sphere10,6,香蕉,banana,1.38,1.0–2.5°,occluded(front-capture),0,1,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_16/001,e2,v7,stress,sphere10,7,苹果,fruit(4-5cm),1.38,1.0–2.5°,occluded(front-capture),0,1,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_16/001,e2,v7,stress,sphere10,8,石榴,fruit(4-5cm),1.56,1.0–2.5°,occluded(front-capture),0,1,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_16/001,e2,v7,stress,sphere10,9,香蕉,banana,1.38,1.0–2.5°,occluded(front-capture),0,1,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_16/001,e2,v7,stress,sphere10,10,球R,ball(3cm),1.56,1.0–2.5°,occluded(front-capture),0,1,lcs_episode,0,hit,1,59.99,66.81,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,3.33
-2026_08_16/001,e2,v7,stress,sphere10,11,球L,ball(3cm),2.1,1.0–2.5°,occluded(front-capture),0,1,lcs_episode,0,hit,1,66.7,74.18,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.664,,3.28
-2026_08_16/001,e2,v7,stress,sphere10,12,球M,ball(3cm),3.21,≥2.5°,occluded(front-capture),0,1,lcs_episode,0,miss,1,92.73,95.86,3,0,0,0,none,,,,,,,,,,none,0,0,0,0,,none,none,none,,,,,
-2026_08_16/s1,s1,v7,,sphere10,1,球R,ball(3cm),5.41,≥2.5°,clear,0,0,schedule,1,hit,1,16.77,22.45,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,1.61
-2026_08_16/s1,s1,v7,,sphere10,2,球L,ball(3cm),5.02,≥2.5°,clear,0,0,schedule,1,hit,1,23.61,29.38,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.869,,1.53
-2026_08_16/s1,s1,v7,,sphere10,3,球M,ball(3cm),7.69,≥2.5°,clear,0,0,schedule,1,hit,1,30.54,36.34,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,1.49
-2026_08_16/s1,s1,v7,,sphere10,4,球L,ball(3cm),5.02,≥2.5°,clear,0,0,schedule,1,hit,1,37.5,43.32,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,0.843,0.543,1.54
-2026_08_16/s1,s1,v7,,sphere10,5,球M,ball(3cm),7.69,≥2.5°,clear,0,0,schedule,1,hit,1,44.48,50.18,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,1.5
-2026_08_16/s1,s1,v7,,sphere10,6,球M,ball(3cm),7.69,≥2.5°,clear,0,0,schedule,1,hit,1,51.34,57.08,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,1.49
-2026_08_16/s1,s1,v7,,sphere10,7,球R,ball(3cm),5.41,≥2.5°,clear,0,0,schedule,1,hit,1,58.24,63.97,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,1.59
-2026_08_16/s1,s1,v7,,sphere10,8,球L,ball(3cm),5.02,≥2.5°,clear,0,0,schedule,1,hit,1,65.37,71.11,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.868,,1.56
-2026_08_16/s1,s1,v7,,sphere10,9,球L,ball(3cm),5.02,≥2.5°,clear,0,0,schedule,1,hit,1,72.27,78.0,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.776,,1.58
-2026_08_16/s1,s1,v7,,sphere10,10,球M,ball(3cm),7.69,≥2.5°,clear,0,0,schedule,1,hit,1,79.16,84.98,6,6,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,1.56
-2026_08_16/s1,s1,v7,,sphere10,11,球R,ball(3cm),5.41,≥2.5°,clear,0,0,schedule,1,hit,1,86.14,92.08,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,1.6
-2026_08_16/s1,s1,v7,,sphere10,12,球M,ball(3cm),7.69,≥2.5°,clear,0,0,schedule,1,hit,1,93.24,99.18,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,1.5
-2026_08_16/s1,s1,v7,,sphere10,13,球R,ball(3cm),5.41,≥2.5°,clear,0,0,schedule,1,hit,1,100.34,106.28,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,1.61
-2026_08_16/s1,s1,v7,,sphere10,14,球R,ball(3cm),5.41,≥2.5°,clear,0,0,schedule,1,hit,1,107.44,113.4,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,0.995,0.501,1.62
-2026_08_16/s1,s1,v7,,sphere10,15,球L,ball(3cm),5.02,≥2.5°,clear,0,0,schedule,1,hit,1,114.56,120.57,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.734,,1.59
-2026_08_16/s2,s2,v7,,sphere10,1,球M,ball(3cm),4.47,≥2.5°,clear,0,0,schedule,1,hit,1,18.18,23.88,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,2.35
-2026_08_16/s2,s2,v7,,sphere10,2,球R,ball(3cm),2.55,≥2.5°,clear,0,0,schedule,1,hit,1,25.04,30.76,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,2.48
-2026_08_16/s2,s2,v7,,sphere10,3,球M,ball(3cm),4.47,≥2.5°,clear,0,0,schedule,1,hit,1,31.92,37.72,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,2.45
-2026_08_16/s2,s2,v7,,sphere10,4,球R,ball(3cm),2.55,≥2.5°,clear,0,0,schedule,1,hit,1,38.88,44.65,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,2.49
-2026_08_16/s2,s2,v7,,sphere10,5,球L,ball(3cm),2.85,≥2.5°,clear,0,0,schedule,1,hit,1,45.81,51.53,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.77,,2.43
-2026_08_16/s2,s2,v7,,sphere10,6,球R,ball(3cm),2.55,≥2.5°,clear,0,0,schedule,1,hit,1,52.69,58.39,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.996,,2.46
-2026_08_16/s2,s2,v7,,sphere10,7,球M,ball(3cm),4.47,≥2.5°,clear,0,0,schedule,1,hit,1,59.55,65.33,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,1.0,0.467,2.45
-2026_08_16/s2,s2,v7,,sphere10,8,球L,ball(3cm),2.85,≥2.5°,clear,0,0,schedule,1,hit,1,66.69,72.44,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.819,,2.47
-2026_08_16/s2,s2,v7,,sphere10,9,球R,ball(3cm),2.55,≥2.5°,clear,0,0,schedule,1,hit,1,73.6,79.28,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.876,,2.55
-2026_08_16/s2,s2,v7,,sphere10,10,球R,ball(3cm),2.55,≥2.5°,clear,0,0,schedule,1,hit,1,80.44,86.23,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.92,,2.52
-2026_08_16/s2,s2,v7,,sphere10,11,球M,ball(3cm),4.47,≥2.5°,clear,0,0,schedule,1,hit,1,87.39,93.38,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,2.39
-2026_08_16/s2,s2,v7,,sphere10,12,球L,ball(3cm),2.85,≥2.5°,clear,0,0,schedule,1,hit,1,94.54,100.51,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.741,,2.47
-2026_08_16/s2,s2,v7,,sphere10,13,球M,ball(3cm),4.47,≥2.5°,clear,0,0,schedule,1,hit,1,101.67,107.63,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,2.4
-2026_08_16/s2,s2,v7,,sphere10,14,球L,ball(3cm),2.85,≥2.5°,clear,0,0,schedule,1,hit,1,108.79,114.8,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,0.775,0.354,2.47
-2026_08_16/s2,s2,v7,,sphere10,15,球L,ball(3cm),2.85,≥2.5°,clear,0,0,schedule,1,hit,1,115.96,121.97,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,0.813,0.574,2.46
-2026_08_16/s3,s3,v7,,sphere10,1,球M,ball(3cm),3.19,≥2.5°,clear,0,0,schedule,1,hit,1,18.24,23.94,4,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,3.4
-2026_08_16/s3,s3,v7,,sphere10,2,球L,ball(3cm),2.0,1.0–2.5°,clear,0,0,schedule,1,hit,1,25.1,30.88,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.74,,3.35
-2026_08_16/s3,s3,v7,,sphere10,3,球L,ball(3cm),2.0,1.0–2.5°,clear,0,0,schedule,1,hit,1,32.04,37.86,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.87,,3.35
-2026_08_16/s3,s3,v7,,sphere10,4,球M,ball(3cm),3.19,≥2.5°,clear,0,0,schedule,1,hit,1,39.02,44.84,4,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.957,,3.37
-2026_08_16/s3,s3,v7,,sphere10,5,球R,ball(3cm),1.53,1.0–2.5°,clear,0,0,schedule,1,hit,1,46.0,51.67,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,3.4
-2026_08_16/s3,s3,v7,,sphere10,6,球R,ball(3cm),1.53,1.0–2.5°,clear,0,0,schedule,1,hit,1,52.83,58.53,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.994,,3.39
-2026_08_16/s3,s3,v7,,sphere10,7,球L,ball(3cm),2.0,1.0–2.5°,clear,0,0,schedule,1,hit,1,59.69,65.49,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,0.771,0.432,3.34
-2026_08_16/s3,s3,v7,,sphere10,8,球L,ball(3cm),2.0,1.0–2.5°,clear,0,0,schedule,1,hit,1,66.69,72.43,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.806,,3.35
-2026_08_16/s3,s3,v7,,sphere10,9,球M,ball(3cm),3.19,≥2.5°,clear,0,0,schedule,1,hit,1,73.59,79.32,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,3.4
-2026_08_16/s3,s3,v7,,sphere10,10,球R,ball(3cm),1.53,1.0–2.5°,clear,0,0,schedule,1,hit,1,80.48,86.27,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,0.0,0.0,0.729,0.766,3.4
-2026_08_16/s3,s3,v7,,sphere10,11,球L,ball(3cm),2.0,1.0–2.5°,clear,0,0,schedule,1,hit,1,87.43,93.42,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.703,,3.35
-2026_08_16/s3,s3,v7,,sphere10,12,球M,ball(3cm),3.19,≥2.5°,clear,0,0,schedule,1,hit,1,94.58,100.52,2,0,0,0,none,,,,,,,,,,none,0,0,0,0,,none,none,none,,,,,
-2026_08_16/s3,s3,v7,,sphere10,13,球R,ball(3cm),1.53,1.0–2.5°,clear,0,0,schedule,1,hit,1,101.68,107.62,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,3.38
-2026_08_16/s3,s3,v7,,sphere10,14,球M,ball(3cm),3.19,≥2.5°,clear,0,0,schedule,1,hit,1,108.78,114.79,3,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,0.0,0.0,1.0,0.614,3.37
-2026_08_16/s3,s3,v7,,sphere10,15,球R,ball(3cm),1.53,1.0–2.5°,clear,0,0,schedule,1,hit,1,115.95,121.92,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.918,,3.38
-2026_08_16/s4,s4,v8,,sphere10,1,球L,ball(3cm),1.67,1.0–2.5°,clear,0,0,schedule,1,hit,1,15.68,21.4,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,3.81
-2026_08_16/s4,s4,v8,,sphere10,2,球L,ball(3cm),1.67,1.0–2.5°,clear,0,0,schedule,1,hit,1,22.56,28.34,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,3.83
-2026_08_16/s4,s4,v8,,sphere10,3,球M,ball(3cm),2.82,≥2.5°,clear,0,0,schedule,1,miss,1,29.5,35.29,6,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,0.0,0.0,0.996,1.0,3.8
-2026_08_16/s4,s4,v8,,sphere10,4,球R,ball(3cm),1.28,1.0–2.5°,clear,0,0,schedule,1,hit,1,36.45,42.22,5,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,3.81
-2026_08_16/s4,s4,v8,,sphere10,5,球R,ball(3cm),1.28,1.0–2.5°,clear,0,0,schedule,1,hit,1,43.38,49.06,3,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,3.84
-2026_08_16/s4,s4,v8,,sphere10,6,球M,ball(3cm),2.82,≥2.5°,clear,0,0,schedule,1,hit,1,50.22,55.97,5,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,0.0,0.0,0.925,1.0,3.87
-2026_08_16/s4,s4,v8,,sphere10,7,球M,ball(3cm),2.82,≥2.5°,clear,0,0,schedule,1,hit,1,57.13,62.9,4,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,3.86
-2026_08_16/s4,s4,v8,,sphere10,8,球L,ball(3cm),1.67,1.0–2.5°,clear,0,0,schedule,1,hit,1,72.63,78.38,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,0.0,0.0,0.829,1.0,3.79
-2026_08_16/s4,s4,v8,,sphere10,9,球R,ball(3cm),1.28,1.0–2.5°,clear,0,0,schedule,1,hit,1,79.54,85.21,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,0.0,0.0,1.0,0.99,3.79
-2026_08_16/s4,s4,v8,,sphere10,10,球M,ball(3cm),2.82,≥2.5°,clear,0,0,schedule,1,miss,1,86.37,92.19,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,1.0,3.81
-2026_08_16/s4,s4,v8,,sphere10,11,球R,ball(3cm),1.28,1.0–2.5°,clear,0,0,schedule,1,hit,1,93.35,99.29,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,0.0,0.0,1.0,0.499,3.8
-2026_08_16/s4,s4,v8,,sphere10,12,球R,ball(3cm),1.28,1.0–2.5°,clear,0,0,schedule,1,hit,1,100.45,106.37,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,3.91
-2026_08_16/s4,s4,v8,,sphere10,13,球M,ball(3cm),2.82,≥2.5°,clear,0,0,schedule,1,hit,1,107.53,113.49,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.988,,3.81
-2026_08_16/s4,s4,v8,,sphere10,14,球L,ball(3cm),1.67,1.0–2.5°,clear,0,0,schedule,1,hit,1,114.65,120.66,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.792,,3.77
-2026_08_16/s4,s4,v8,,sphere10,15,球L,ball(3cm),1.67,1.0–2.5°,clear,0,0,schedule,1,hit,1,121.82,127.84,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.834,,3.77
-2026_08_16/s6,s6,v8,,sphere10,1,球L,ball(3cm),0.56,<1.0°,clear,0,0,schedule,1,hit,1,21.14,26.87,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,0.0,0.0,0.382,0.528,4.43
-2026_08_16/s6,s6,v8,,sphere10,2,球M,ball(3cm),1.79,1.0–2.5°,clear,0,0,schedule,1,hit,1,28.03,33.77,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,1.0,1.0,4.53
-2026_08_16/s6,s6,v8,,sphere10,3,球R,ball(3cm),1.85,1.0–2.5°,clear,0,0,schedule,1,hit,1,34.93,40.68,2,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,4.56
-2026_08_16/s6,s6,v8,,sphere10,4,球R,ball(3cm),1.85,1.0–2.5°,clear,0,0,schedule,1,hit,1,41.84,47.61,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,4.54
-2026_08_16/s6,s6,v8,,sphere10,5,球M,ball(3cm),1.79,1.0–2.5°,clear,0,0,schedule,1,hit,1,48.77,54.47,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,4.46
-2026_08_16/s6,s6,v8,,sphere10,6,球R,ball(3cm),1.85,1.0–2.5°,clear,0,0,schedule,1,hit,1,55.63,61.33,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,1.0,0.742,4.54
-2026_08_16/s6,s6,v8,,sphere10,7,球R,ball(3cm),1.85,1.0–2.5°,clear,0,0,schedule,1,hit,1,62.49,68.22,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,4.6
-2026_08_16/s6,s6,v8,,sphere10,8,球M,ball(3cm),1.79,1.0–2.5°,clear,0,0,schedule,1,hit,1,77.95,83.67,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.986,,4.55
-2026_08_16/s6,s6,v8,,sphere10,9,球L,ball(3cm),0.56,<1.0°,clear,0,0,schedule,1,hit,1,84.83,90.55,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,0.505,0.516,4.45
-2026_08_16/s6,s6,v8,,sphere10,10,球M,ball(3cm),1.79,1.0–2.5°,clear,0,0,schedule,1,hit,1,91.71,97.53,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.649,,4.51
-2026_08_16/s6,s6,v8,,sphere10,11,球L,ball(3cm),0.56,<1.0°,clear,0,0,schedule,1,hit,1,98.69,104.68,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,0.0,0.0,0.498,1.0,4.41
-2026_08_16/s6,s6,v8,,sphere10,12,球M,ball(3cm),1.79,1.0–2.5°,clear,0,0,schedule,1,hit,1,105.84,111.78,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,1.0,1.0,4.55
-2026_08_16/s6,s6,v8,,sphere10,13,球L,ball(3cm),0.56,<1.0°,clear,0,0,schedule,1,miss,1,112.94,118.93,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,1.0,4.48
-2026_08_16/s6,s6,v8,,sphere10,14,球R,ball(3cm),1.85,1.0–2.5°,clear,0,0,schedule,1,hit,1,120.09,126.05,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,1.0,1.0,4.53
-2026_08_16/s6,s6,v8,,sphere10,15,球L,ball(3cm),0.56,<1.0°,clear,0,0,schedule,1,miss,1,127.21,133.23,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,0.0,0.0,0.671,0.51,4.39
-2026_08_18/000,s7,v8,,sphere10,1,球L,ball(3cm),2.61,≥2.5°,clear,0,0,schedule,1,hit,1,16.67,22.39,2,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.772,,3.01
-2026_08_18/000,s7,v8,,sphere10,2,球L,ball(3cm),2.61,≥2.5°,clear,0,0,schedule,1,hit,1,23.55,29.33,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.79,,3.01
-2026_08_18/000,s7,v8,,sphere10,3,球R,ball(3cm),2.19,1.0–2.5°,clear,0,0,schedule,1,hit,1,30.49,36.23,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,1.0,1.0,3.29
-2026_08_18/000,s7,v8,,sphere10,4,球R,ball(3cm),2.19,1.0–2.5°,clear,0,0,schedule,1,hit,1,37.39,43.17,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,1.0,0.795,3.37
-2026_08_18/000,s7,v8,,sphere10,5,球M,ball(3cm),2.19,1.0–2.5°,clear,0,0,schedule,1,hit,1,44.33,50.03,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,wrong,0.0,0.0,0.678,0.89,3.01
-2026_08_18/000,s7,v8,,sphere10,6,球L,ball(3cm),2.61,≥2.5°,clear,0,0,schedule,1,hit,1,51.19,56.93,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.874,,3.02
-2026_08_18/000,s7,v8,,sphere10,7,球M,ball(3cm),2.19,1.0–2.5°,clear,0,0,schedule,1,miss,1,58.09,63.87,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.924,2.98
-2026_08_18/000,s7,v8,,sphere10,8,球R,ball(3cm),2.19,1.0–2.5°,clear,0,0,schedule,1,hit,1,73.07,78.77,9,9,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,1.0,3.08
-2026_08_18/000,s7,v8,,sphere10,9,球R,ball(3cm),2.19,1.0–2.5°,clear,0,0,schedule,1,miss,1,79.93,85.61,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,0.0,0.0,0.838,0.731,3.26
-2026_08_18/000,s7,v8,,sphere10,10,球M,ball(3cm),2.19,1.0–2.5°,clear,0,0,schedule,1,hit,1,86.77,92.59,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,0.0,0.0,1.0,0.886,2.99
-2026_08_18/000,s7,v8,,sphere10,11,球L,ball(3cm),2.61,≥2.5°,clear,0,0,schedule,1,hit,1,93.75,99.74,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.896,,3.02
-2026_08_18/000,s7,v8,,sphere10,12,球M,ball(3cm),2.19,1.0–2.5°,clear,0,0,schedule,1,hit,1,100.9,106.84,6,6,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,0.0,0.0,1.0,0.95,3.08
-2026_08_18/000,s7,v8,,sphere10,13,球R,ball(3cm),2.19,1.0–2.5°,clear,0,0,schedule,1,hit,1,108.0,113.94,7,7,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,0.719,1.0,3.33
-2026_08_18/000,s7,v8,,sphere10,14,球M,ball(3cm),2.19,1.0–2.5°,clear,0,0,schedule,1,miss,1,115.1,121.11,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,0.0,0.0,1.0,0.745,3.08
-2026_08_18/000,s7,v8,,sphere10,15,球L,ball(3cm),2.61,≥2.5°,clear,0,0,schedule,1,hit,1,122.27,128.28,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.876,,3.02
-2026_08_20/000,c1,v9,,sphere10,1,球R,ball(3cm),2.17,1.0–2.5°,clear,0,0,schedule,1,hit,1,17.15,22.7,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.581,,2.16
-2026_08_20/000,c1,v9,,sphere10,2,香蕉,banana,0.41,<1.0°,clear,0,0,schedule,1,miss,1,23.86,29.44,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.546,2.25
-2026_08_20/000,c1,v9,,sphere10,3,纸箱子,box,24.07,≥2.5°,clear,0,0,schedule,1,hit,1,30.6,36.4,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,1.0,,3.06
-2026_08_20/000,c1,v9,,sphere10,4,苹果粉,fruit(4-5cm),2.09,1.0–2.5°,clear,0,0,schedule,1,hit,1,37.56,43.35,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,0.589,0.362,2.24
-2026_08_20/000,c1,v9,,sphere10,5,白杯1,cup,1.84,1.0–2.5°,clear,0,0,schedule,1,miss,1,44.51,50.19,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.536,2.3
-2026_08_20/000,c1,v9,,sphere10,6,水瓶,bottle,0.41,<1.0°,clear,0,0,schedule,1,hit,1,51.35,56.95,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.664,,2.3
-2026_08_20/000,c1,v9,,sphere10,7,红杯,cup,1.84,1.0–2.5°,clear,0,0,schedule,1,miss,1,66.68,72.24,6,6,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.462,2.31
-2026_08_20/000,c1,v9,,sphere10,8,苹果红,fruit(4-5cm),0.41,<1.0°,clear,0,0,schedule,1,miss,1,73.4,79.15,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.55,2.26
-2026_08_20/000,c1,v9,,sphere10,9,球M,ball(3cm),1.83,1.0–2.5°,clear,0,0,schedule,1,miss,1,80.31,85.86,9,9,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,wrong,0.0,0.0,0.613,0.583,2.23
-2026_08_20/000,c1,v9,,sphere10,10,橘子,fruit(4-5cm),0.41,<1.0°,clear,0,0,schedule,1,miss,1,87.02,92.63,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.38,2.35
-2026_08_20/000,c1,v9,,sphere10,11,球L,ball(3cm),1.71,1.0–2.5°,clear,0,0,schedule,1,hit,1,93.79,99.63,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,0.415,0.587,2.29
-2026_08_20/000,c1,v9,,sphere10,12,白杯2,cup,2.03,1.0–2.5°,clear,0,0,schedule,1,hit,1,100.79,106.71,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,0.0,0.0,0.525,0.497,2.31
-2026_08_20/001,c2,v9,,sphere10,1,球R,ball(3cm),1.28,1.0–2.5°,clear,0,0,lcs_episode,0,hit,1,15.89,19.72,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.622,,2.72
-2026_08_20/001,c2,v9,,sphere10,2,球R,ball(3cm),1.28,1.0–2.5°,clear,0,0,lcs_episode,0,miss,1,22.79,25.76,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.418,3.19
-2026_08_20/001,c2,v9,,sphere10,3,苹果红,fruit(4-5cm),0.13,<1.0°,clear,0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_20/001,c2,v9,,sphere10,4,球L,ball(3cm),1.03,1.0–2.5°,clear,0,0,lcs_episode,0,hit,1,29.36,32.08,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,0.0,0.0,0.369,0.574,3.13
-2026_08_20/001,c2,v9,,sphere10,5,苹果粉,fruit(4-5cm),1.31,1.0–2.5°,clear,0,0,lcs_episode,0,hit,1,42.68,50.12,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.622,,3.22
-2026_08_20/001,c2,v9,,sphere10,6,白杯1,cup,1.28,1.0–2.5°,clear,0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_20/001,c2,v9,,sphere10,7,球M,ball(3cm),0.89,<1.0°,clear,0,0,lcs_episode,0,miss,1,57.99,62.22,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.591,3.27
-2026_08_20/001,c2,v9,,sphere10,8,白杯1,cup,1.28,1.0–2.5°,clear,0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_20/001,c2,v9,,sphere10,9,苹果粉,fruit(4-5cm),1.31,1.0–2.5°,clear,0,0,lcs_episode,0,hit,1,79.55,82.3,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.619,,3.3
-2026_08_20/001,c2,v9,,sphere10,10,球R,ball(3cm),1.28,1.0–2.5°,clear,0,0,lcs_episode,0,hit,1,84.85,88.15,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,0.0,0.0,0.445,0.405,3.28
-2026_08_20/001,c2,v9,,sphere10,11,球M,ball(3cm),0.89,<1.0°,clear,0,0,lcs_episode,0,miss,1,90.0,97.11,7,7,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.595,3.25
-2026_08_20/001,c2,v9,,sphere10,12,白杯2,cup,,,clear,0,0,lcs_episode,0,hit,1,99.6,105.28,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.514,,3.27
-2026_08_20/001,c2,v9,,sphere10,13,白杯2,cup,,,clear,0,0,lcs_episode,0,miss,1,99.6,105.28,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.514,,3.27
-2026_08_20/001,c2,v9,,sphere10,14,球L,ball(3cm),1.03,1.0–2.5°,clear,0,0,lcs_episode,0,miss,1,115.9,120.49,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.518,3.23
-2026_08_20/001,c2,v9,,sphere10,15,苹果红,fruit(4-5cm),0.13,<1.0°,clear,0,0,lcs_episode,0,miss,1,121.48,123.31,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.598,3.24
-2026_08_20/002,c4,v9,beyond_occ,sphere10,1,球L,ball(3cm),0.84,<1.0°,occluded(beyond limit),0,0,none,0,hit,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_20/002,c4,v9,beyond_occ,sphere10,2,球R,ball(3cm),0.84,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_20/002,c4,v9,beyond_occ,sphere10,3,球R,ball(3cm),0.84,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_20/002,c4,v9,beyond_occ,sphere10,4,球M,ball(3cm),0.66,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,12.38,15.35,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.569,4.18
-2026_08_20/002,c4,v9,beyond_occ,sphere10,5,球M,ball(3cm),0.66,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,12.38,15.35,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.569,4.18
-2026_08_20/002,c4,v9,beyond_occ,sphere10,6,球L,ball(3cm),0.84,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,14.6,23.06,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,0.928,0.467,4.2
-2026_08_20/002,c4,v9,beyond_occ,sphere10,7,球R,ball(3cm),0.84,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_20/002,c4,v9,beyond_occ,sphere10,8,球L,ball(3cm),0.84,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,24.43,28.7,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.576,,4.26
-2026_08_20/002,c4,v9,beyond_occ,sphere10,9,球L,ball(3cm),0.84,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,24.43,28.7,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.576,,4.26
-2026_08_20/002,c4,v9,beyond_occ,sphere10,10,球M,ball(3cm),0.66,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,27.95,29.83,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.801,4.26
-2026_08_20/002,c4,v9,beyond_occ,sphere10,11,球L,ball(3cm),0.84,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,29.09,64.63,11,11,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,0.779,0.65,4.29
-2026_08_20/002,c4,v9,beyond_occ,sphere10,12,球M,ball(3cm),0.66,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,99.06,102.51,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.704,4.35
-2026_08_20/002,c4,v9,beyond_occ,sphere10,13,球R,ball(3cm),0.84,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,106.98,109.52,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.703,4.33
-2026_08_20/002,c4,v9,beyond_occ,sphere10,14,球M,ball(3cm),0.66,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_20/002,c4,v9,beyond_occ,sphere10,15,球R,ball(3cm),0.84,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,125.11,126.94,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.765,4.22
-2026_08_20/003,c4,v9,beyond_occ,sphere10,1,球L,ball(3cm),0.64,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,5.35,8.33,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,0.858,0.513,4.27
-2026_08_20/003,c4,v9,beyond_occ,sphere10,2,球R,ball(3cm),0.63,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_20/003,c4,v9,beyond_occ,sphere10,3,球R,ball(3cm),0.63,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_20/003,c4,v9,beyond_occ,sphere10,4,球M,ball(3cm),0.63,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_20/003,c4,v9,beyond_occ,sphere10,5,球M,ball(3cm),0.63,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_20/003,c4,v9,beyond_occ,sphere10,6,球L,ball(3cm),0.64,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,9.56,11.55,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.993,,4.36
-2026_08_20/003,c4,v9,beyond_occ,sphere10,7,球R,ball(3cm),0.63,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_20/003,c4,v9,beyond_occ,sphere10,8,球L,ball(3cm),0.64,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,15.01,17.27,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.685,,4.34
-2026_08_20/003,c4,v9,beyond_occ,sphere10,9,球L,ball(3cm),0.64,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,15.01,17.27,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.685,,4.34
-2026_08_20/003,c4,v9,beyond_occ,sphere10,10,球M,ball(3cm),0.63,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_20/003,c4,v9,beyond_occ,sphere10,11,球L,ball(3cm),0.64,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,17.12,29.06,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.986,,4.36
-2026_08_20/003,c4,v9,beyond_occ,sphere10,12,球M,ball(3cm),0.63,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_20/003,c4,v9,beyond_occ,sphere10,13,球R,ball(3cm),0.63,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,28.64,31.23,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.987,4.39
-2026_08_20/003,c4,v9,beyond_occ,sphere10,14,球M,ball(3cm),0.63,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_20/003,c4,v9,beyond_occ,sphere10,15,球R,ball(3cm),0.63,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,33.36,36.19,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,1.0,4.35
-2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,1,球L,ball(3cm),0.92,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,10.78,14.83,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.928,,4.04
-2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,2,球R,ball(3cm),0.9,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,3,球R,ball(3cm),0.9,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,4,球M,ball(3cm),0.68,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,5,球M,ball(3cm),0.68,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,6,球L,ball(3cm),0.92,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,23.51,30.27,1,0,0,0,none,,,,,,,,,,none,0,0,0,0,,none,none,none,,,,,
-2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,7,球R,ball(3cm),0.9,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,8,球L,ball(3cm),0.92,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,32.21,37.98,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.941,,4.13
-2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,9,球L,ball(3cm),0.92,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,42.9,51.87,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.908,,4.16
-2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,10,球M,ball(3cm),0.68,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,86.24,93.75,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.965,4.18
-2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,11,球L,ball(3cm),0.92,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,93.11,107.62,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.969,,4.18
-2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,12,球M,ball(3cm),0.68,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,107.12,114.75,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.662,4.2
-2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,13,球R,ball(3cm),0.9,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,14,球M,ball(3cm),0.68,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,121.13,127.51,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.604,4.19
-2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,15,球R,ball(3cm),0.9,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_25/c1_2,c4,v9,,sphere10,1,球L,ball(3cm),1.04,1.0–2.5°,clear,0,0,schedule,1,hit,1,17.49,23.05,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.935,,4.23
-2026_08_25/c1_2,c4,v9,,sphere10,2,球R,ball(3cm),0.81,<1.0°,clear,0,0,schedule,1,miss,1,24.21,29.81,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,1.0,4.27
-2026_08_25/c1_2,c4,v9,,sphere10,3,球R,ball(3cm),0.81,<1.0°,clear,0,0,schedule,1,miss,1,30.97,36.6,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.567,4.29
-2026_08_25/c1_2,c4,v9,,sphere10,4,球M,ball(3cm),0.65,<1.0°,clear,0,0,schedule,1,miss,1,37.76,43.41,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.603,4.25
-2026_08_25/c1_2,c4,v9,,sphere10,5,球M,ball(3cm),0.65,<1.0°,clear,0,0,schedule,1,miss,1,44.57,50.13,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.505,4.25
-2026_08_25/c1_2,c4,v9,,sphere10,6,球L,ball(3cm),1.04,1.0–2.5°,clear,0,0,schedule,1,hit,1,51.29,56.89,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.375,,4.24
-2026_08_25/c1_2,c4,v9,,sphere10,7,球R,ball(3cm),0.81,<1.0°,clear,0,0,schedule,1,miss,1,58.05,63.66,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.497,4.26
-2026_08_25/c1_2,c4,v9,,sphere10,8,球L,ball(3cm),1.04,1.0–2.5°,clear,0,0,schedule,1,hit,1,73.56,79.14,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.939,,4.26
-2026_08_25/c1_2,c4,v9,,sphere10,9,球L,ball(3cm),1.04,1.0–2.5°,clear,0,0,schedule,1,hit,1,80.3,85.88,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.867,,4.26
-2026_08_25/c1_2,c4,v9,,sphere10,10,球M,ball(3cm),0.65,<1.0°,clear,0,0,schedule,1,hit,1,87.04,92.7,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.799,4.27
-2026_08_25/c1_2,c4,v9,,sphere10,11,球L,ball(3cm),1.04,1.0–2.5°,clear,0,0,schedule,1,hit,1,93.86,99.7,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.517,,4.22
-2026_08_25/c1_2,c4,v9,,sphere10,12,球M,ball(3cm),0.65,<1.0°,clear,0,0,schedule,1,miss,1,100.86,106.66,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.528,4.25
-2026_08_25/c1_2,c4,v9,,sphere10,13,球R,ball(3cm),0.81,<1.0°,clear,0,0,schedule,1,miss,1,107.82,113.64,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.495,4.26
-2026_08_25/c1_2,c4,v9,,sphere10,14,球M,ball(3cm),0.65,<1.0°,clear,0,0,schedule,1,hit,1,114.8,120.64,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.572,4.26
-2026_08_25/c1_2,c4,v9,,sphere10,15,球R,ball(3cm),0.81,<1.0°,clear,0,0,schedule,1,miss,1,121.8,127.64,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.529,4.26
-2026_08_25/c1_3,c4,v9,,sphere10,1,球L,ball(3cm),1.19,1.0–2.5°,clear,0,0,lcs_episode,0,hit,1,14.34,24.1,9,7,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.885,,3.73
-2026_08_25/c1_3,c4,v9,,sphere10,2,球R,ball(3cm),0.96,<1.0°,clear,0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_25/c1_3,c4,v9,,sphere10,3,球R,ball(3cm),0.96,<1.0°,clear,0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_25/c1_3,c4,v9,,sphere10,4,球M,ball(3cm),0.77,<1.0°,clear,0,0,lcs_episode,0,hit,1,23.56,37.75,6,6,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.559,3.74
-2026_08_25/c1_3,c4,v9,,sphere10,5,球M,ball(3cm),0.77,<1.0°,clear,0,0,lcs_episode,0,miss,1,23.56,37.75,6,6,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.559,3.74
-2026_08_25/c1_3,c4,v9,,sphere10,6,球L,ball(3cm),1.19,1.0–2.5°,clear,0,0,lcs_episode,0,hit,1,37.12,42.82,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.395,,3.73
-2026_08_25/c1_3,c4,v9,,sphere10,7,球R,ball(3cm),0.96,<1.0°,clear,0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_25/c1_3,c4,v9,,sphere10,8,球L,ball(3cm),1.19,1.0–2.5°,clear,0,0,none,0,hit,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_25/c1_3,c4,v9,,sphere10,9,球L,ball(3cm),1.19,1.0–2.5°,clear,0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_25/c1_3,c4,v9,,sphere10,10,球M,ball(3cm),0.77,<1.0°,clear,0,0,lcs_episode,0,miss,1,42.07,49.13,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.535,3.73
-2026_08_25/c1_3,c4,v9,,sphere10,11,球L,ball(3cm),1.19,1.0–2.5°,clear,0,0,lcs_episode,0,hit,1,50.78,57.93,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.36,,3.71
-2026_08_25/c1_3,c4,v9,,sphere10,12,球M,ball(3cm),0.77,<1.0°,clear,0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,
-2026_08_25/c1_3,c4,v9,,sphere10,13,球R,ball(3cm),0.96,<1.0°,clear,0,0,lcs_episode,0,miss,1,57.37,63.87,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.505,3.73
-2026_08_25/c1_3,c4,v9,,sphere10,14,球M,ball(3cm),0.77,<1.0°,clear,0,0,lcs_episode,0,miss,1,107.32,114.07,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.358,3.72
-2026_08_25/c1_3,c4,v9,,sphere10,15,球R,ball(3cm),0.96,<1.0°,clear,0,0,lcs_episode,0,miss,1,121.1,125.55,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,,0.0,,0.521,3.72
-2026_08_25/u3,u3,v9,walking,sphere10,1,球L,ball(3cm),1.36,1.0–2.5°,clear,1,0,schedule,1,hit,1,17.8,23.36,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,0.965,0.446,2.8
-2026_08_25/u3,u3,v9,walking,sphere10,2,球M,ball(3cm),1.44,1.0–2.5°,clear,1,0,schedule,1,hit,1,24.52,30.12,4,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,0.0,0.0,0.691,0.692,2.77
-2026_08_25/u3,u3,v9,walking,sphere10,3,球R,ball(3cm),1.75,1.0–2.5°,clear,1,0,schedule,1,miss,1,31.28,36.91,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,0.0,0.0,0.473,0.487,2.27
-2026_08_25/u3,u3,v9,walking,sphere10,4,球M,ball(3cm),1.44,1.0–2.5°,clear,1,0,schedule,1,hit,1,38.07,43.72,6,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,,0.602,,2.81
-2026_08_25/u3,u3,v9,walking,sphere10,5,球R,ball(3cm),1.75,1.0–2.5°,clear,1,0,schedule,1,hit,1,44.88,50.44,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,0.0,0.0,0.556,0.484,2.54
-2026_08_25/u3,u3,v9,walking,sphere10,6,球L,ball(3cm),1.36,1.0–2.5°,clear,1,0,schedule,1,hit,1,51.6,57.2,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,0.947,0.473,2.86
-2026_08_25/u3,u3,v9,walking,sphere10,7,球M,ball(3cm),1.44,1.0–2.5°,clear,1,0,schedule,1,hit,1,58.36,63.96,7,7,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,0.0,0.0,0.626,0.586,2.63
-2026_08_25/u3,u3,v9,walking,sphere10,8,球R,ball(3cm),1.75,1.0–2.5°,clear,1,0,schedule,1,hit,1,72.22,77.8,7,7,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,0.0,0.0,0.652,0.509,2.49
-2026_08_25/u3,u3,v9,walking,sphere10,9,球L,ball(3cm),1.36,1.0–2.5°,clear,1,0,schedule,1,hit,1,78.96,84.54,7,7,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,0.0,0.0,0.978,0.561,2.71
-2026_08_25/u3,u3,v9,walking,sphere10,10,球R,ball(3cm),1.75,1.0–2.5°,clear,1,0,schedule,1,hit,1,85.7,91.35,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,0.74,0.605,2.6
-2026_08_25/u3,u3,v9,walking,sphere10,11,球L,ball(3cm),1.36,1.0–2.5°,clear,1,0,schedule,1,miss,1,92.51,98.36,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,0.0,0.0,0.792,0.252,2.48
-2026_08_25/u3,u3,v9,walking,sphere10,12,球M,ball(3cm),1.44,1.0–2.5°,clear,1,0,schedule,1,miss,1,99.52,105.31,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,0.0,0.0,0.492,0.59,2.46
-2026_08_25/u3,u3,v9,walking,sphere10,13,球R,ball(3cm),1.75,1.0–2.5°,clear,1,0,schedule,1,hit,1,106.47,112.29,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,wrong,0.0,0.0,0.416,0.566,2.71
-2026_08_25/u3,u3,v9,walking,sphere10,14,球L,ball(3cm),1.36,1.0–2.5°,clear,1,0,schedule,1,hit,1,113.45,119.32,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,0.0,0.0,0.367,0.468,3.1
-2026_08_25/u3,u3,v9,walking,sphere10,15,球M,ball(3cm),1.44,1.0–2.5°,clear,1,0,schedule,1,hit,1,120.48,126.33,7,7,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,0.0,0.0,0.589,0.563,1.97
+rec,card,era,flags,cfg,k,target,size,theta_unit,tier,occl,walking,stress,window_src,reliable,lcs,has_window,win_start_rel,win_end_rel,n_finals,n_obj_finals,n_acc,n_acc_e2,outcome_first,first_obj,first_lat_end,first_lat_start,first_lat_stare,first_share,first_capture,first_A,first_p_none,first_dur,outcome_any,any_correct,any_wrong,flip_wrong_then_correct,flip_correct_then_wrong,wrong_objs,first_e2,ungated_first,ungated_majority,ungated_majority_obj,ungated_majority_dur,gated_majority,gated_majority_obj,gated_majority_dur,best_target_capture,best_wrong_capture,best_target_share,best_wrong_share,dist_m
+2026_08_16/000,e1,v7,,sphere10,1,苹果,fruit(4-5cm),4.22,≥2.5°,clear,0,0,schedule,1,hit,1,41.39,46.95,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,苹果,4.61,none,,,0.0,0.0,0.892,0.596,1.66
+2026_08_16/000,e1,v7,,sphere10,2,球M,ball(3cm),8.3,≥2.5°,clear,0,0,schedule,1,hit,1,48.11,53.86,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,3.35,none,,,0.0,,1.0,,1.42
+2026_08_16/000,e1,v7,,sphere10,3,石榴,fruit(4-5cm),6.01,≥2.5°,clear,0,0,schedule,1,hit,1,55.02,60.64,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,石榴,5.72,none,,,0.0,,0.94,,1.64
+2026_08_16/000,e1,v7,,sphere10,4,香蕉,banana,4.22,≥2.5°,clear,0,0,schedule,1,hit,1,61.8,67.43,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,香蕉,4.83,none,,,0.0,,0.757,,1.52
+2026_08_16/000,e1,v7,,sphere10,5,球R,ball(3cm),6.01,≥2.5°,clear,0,0,schedule,1,hit,1,68.59,74.27,2,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,2.51,none,,,0.0,,1.0,,1.48
+2026_08_16/000,e1,v7,,sphere10,6,球L,ball(3cm),5.53,≥2.5°,clear,0,0,schedule,1,hit,1,75.43,81.18,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,2.08,none,,,0.0,0.0,0.831,0.708,1.46
+2026_08_16/000,e1,v7,,sphere10,7,球M,ball(3cm),8.3,≥2.5°,clear,0,0,schedule,1,hit,1,82.88,88.66,7,7,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,5.02,none,,,0.0,,1.0,,1.46
+2026_08_16/000,e1,v7,,sphere10,8,石榴,fruit(4-5cm),6.01,≥2.5°,clear,0,0,schedule,1,hit,1,89.82,95.4,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,石榴,3.53,none,,,0.0,,0.909,,1.65
+2026_08_16/000,e1,v7,,sphere10,9,香蕉,banana,4.22,≥2.5°,clear,0,0,schedule,1,hit,1,96.56,102.11,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,香蕉,2.98,none,,,0.0,0.0,0.63,0.608,1.6
+2026_08_16/000,e1,v7,,sphere10,10,球L,ball(3cm),5.53,≥2.5°,clear,0,0,schedule,1,hit,1,103.27,109.12,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,香蕉,3.6,none,,,,0.0,,0.561,1.49
+2026_08_16/000,e1,v7,,sphere10,11,苹果,fruit(4-5cm),4.22,≥2.5°,clear,0,0,schedule,1,hit,1,110.28,116.1,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,苹果,3.8,none,,,0.0,,0.813,,1.66
+2026_08_16/000,e1,v7,,sphere10,12,球R,ball(3cm),6.01,≥2.5°,clear,0,0,schedule,1,hit,1,117.26,123.17,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,5.75,none,,,0.0,,1.0,,1.47
+2026_08_16/001,e2,v7,stress,sphere10,1,球L,ball(3cm),2.1,1.0–2.5°,occluded(front-capture),0,1,lcs_episode,0,hit,1,15.68,19.4,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,2.55,none,,,0.0,,0.783,,3.17
+2026_08_16/001,e2,v7,stress,sphere10,2,球R,ball(3cm),1.56,1.0–2.5°,occluded(front-capture),0,1,lcs_episode,0,hit,1,32.06,40.2,6,6,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,球R,6.45,none,,,0.0,0.0,0.944,0.675,3.31
+2026_08_16/001,e2,v7,stress,sphere10,3,苹果,fruit(4-5cm),1.38,1.0–2.5°,occluded(front-capture),0,1,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_16/001,e2,v7,stress,sphere10,4,石榴,fruit(4-5cm),1.56,1.0–2.5°,occluded(front-capture),0,1,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_16/001,e2,v7,stress,sphere10,5,球M,ball(3cm),3.21,≥2.5°,occluded(front-capture),0,1,lcs_episode,0,miss,1,43.24,45.72,1,0,0,0,none,,,,,,,,,,none,0,0,0,0,,none,none,none,,,none,,,,,,,
+2026_08_16/001,e2,v7,stress,sphere10,6,香蕉,banana,1.38,1.0–2.5°,occluded(front-capture),0,1,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_16/001,e2,v7,stress,sphere10,7,苹果,fruit(4-5cm),1.38,1.0–2.5°,occluded(front-capture),0,1,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_16/001,e2,v7,stress,sphere10,8,石榴,fruit(4-5cm),1.56,1.0–2.5°,occluded(front-capture),0,1,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_16/001,e2,v7,stress,sphere10,9,香蕉,banana,1.38,1.0–2.5°,occluded(front-capture),0,1,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_16/001,e2,v7,stress,sphere10,10,球R,ball(3cm),1.56,1.0–2.5°,occluded(front-capture),0,1,lcs_episode,0,hit,1,59.99,66.81,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,5.8,none,,,0.0,,1.0,,3.33
+2026_08_16/001,e2,v7,stress,sphere10,11,球L,ball(3cm),2.1,1.0–2.5°,occluded(front-capture),0,1,lcs_episode,0,hit,1,66.7,74.18,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,6.23,none,,,0.0,,0.664,,3.28
+2026_08_16/001,e2,v7,stress,sphere10,12,球M,ball(3cm),3.21,≥2.5°,occluded(front-capture),0,1,lcs_episode,0,miss,1,92.73,95.86,3,0,0,0,none,,,,,,,,,,none,0,0,0,0,,none,none,none,,,none,,,,,,,
+2026_08_16/s1,s1,v7,,sphere10,1,球R,ball(3cm),5.41,≥2.5°,clear,0,0,schedule,1,hit,1,16.77,22.45,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,5.8,none,,,0.0,,1.0,,1.61
+2026_08_16/s1,s1,v7,,sphere10,2,球L,ball(3cm),5.02,≥2.5°,clear,0,0,schedule,1,hit,1,23.61,29.38,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,6.5,none,,,0.0,,0.869,,1.53
+2026_08_16/s1,s1,v7,,sphere10,3,球M,ball(3cm),7.69,≥2.5°,clear,0,0,schedule,1,hit,1,30.54,36.34,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,4.33,none,,,0.0,,1.0,,1.49
+2026_08_16/s1,s1,v7,,sphere10,4,球L,ball(3cm),5.02,≥2.5°,clear,0,0,schedule,1,hit,1,37.5,43.32,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,3.85,none,,,0.0,0.0,0.843,0.543,1.54
+2026_08_16/s1,s1,v7,,sphere10,5,球M,ball(3cm),7.69,≥2.5°,clear,0,0,schedule,1,hit,1,44.48,50.18,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,6.01,none,,,0.0,,1.0,,1.5
+2026_08_16/s1,s1,v7,,sphere10,6,球M,ball(3cm),7.69,≥2.5°,clear,0,0,schedule,1,hit,1,51.34,57.08,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,5.69,none,,,0.0,,1.0,,1.49
+2026_08_16/s1,s1,v7,,sphere10,7,球R,ball(3cm),5.41,≥2.5°,clear,0,0,schedule,1,hit,1,58.24,63.97,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,6.39,none,,,0.0,,1.0,,1.59
+2026_08_16/s1,s1,v7,,sphere10,8,球L,ball(3cm),5.02,≥2.5°,clear,0,0,schedule,1,hit,1,65.37,71.11,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,5.2,none,,,0.0,,0.868,,1.56
+2026_08_16/s1,s1,v7,,sphere10,9,球L,ball(3cm),5.02,≥2.5°,clear,0,0,schedule,1,hit,1,72.27,78.0,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,6.23,none,,,0.0,,0.776,,1.58
+2026_08_16/s1,s1,v7,,sphere10,10,球M,ball(3cm),7.69,≥2.5°,clear,0,0,schedule,1,hit,1,79.16,84.98,6,6,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,3.85,none,,,0.0,,1.0,,1.56
+2026_08_16/s1,s1,v7,,sphere10,11,球R,ball(3cm),5.41,≥2.5°,clear,0,0,schedule,1,hit,1,86.14,92.08,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,3.9,none,,,0.0,,1.0,,1.6
+2026_08_16/s1,s1,v7,,sphere10,12,球M,ball(3cm),7.69,≥2.5°,clear,0,0,schedule,1,hit,1,93.24,99.18,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,6.77,none,,,0.0,,1.0,,1.5
+2026_08_16/s1,s1,v7,,sphere10,13,球R,ball(3cm),5.41,≥2.5°,clear,0,0,schedule,1,hit,1,100.34,106.28,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,6.72,none,,,0.0,,1.0,,1.61
+2026_08_16/s1,s1,v7,,sphere10,14,球R,ball(3cm),5.41,≥2.5°,clear,0,0,schedule,1,hit,1,107.44,113.4,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,6.34,none,,,0.0,0.0,0.995,0.501,1.62
+2026_08_16/s1,s1,v7,,sphere10,15,球L,ball(3cm),5.02,≥2.5°,clear,0,0,schedule,1,hit,1,114.56,120.57,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,6.72,none,,,0.0,,0.734,,1.59
+2026_08_16/s2,s2,v7,,sphere10,1,球M,ball(3cm),4.47,≥2.5°,clear,0,0,schedule,1,hit,1,18.18,23.88,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,3.63,none,,,0.0,,1.0,,2.35
+2026_08_16/s2,s2,v7,,sphere10,2,球R,ball(3cm),2.55,≥2.5°,clear,0,0,schedule,1,hit,1,25.04,30.76,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,6.23,none,,,0.0,,1.0,,2.48
+2026_08_16/s2,s2,v7,,sphere10,3,球M,ball(3cm),4.47,≥2.5°,clear,0,0,schedule,1,hit,1,31.92,37.72,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,4.28,none,,,0.0,,1.0,,2.45
+2026_08_16/s2,s2,v7,,sphere10,4,球R,ball(3cm),2.55,≥2.5°,clear,0,0,schedule,1,hit,1,38.88,44.65,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,6.23,none,,,0.0,,1.0,,2.49
+2026_08_16/s2,s2,v7,,sphere10,5,球L,ball(3cm),2.85,≥2.5°,clear,0,0,schedule,1,hit,1,45.81,51.53,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,6.28,none,,,0.0,,0.77,,2.43
+2026_08_16/s2,s2,v7,,sphere10,6,球R,ball(3cm),2.55,≥2.5°,clear,0,0,schedule,1,hit,1,52.69,58.39,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,6.01,none,,,0.0,,0.996,,2.46
+2026_08_16/s2,s2,v7,,sphere10,7,球M,ball(3cm),4.47,≥2.5°,clear,0,0,schedule,1,hit,1,59.55,65.33,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,2.87,none,,,0.0,0.0,1.0,0.467,2.45
+2026_08_16/s2,s2,v7,,sphere10,8,球L,ball(3cm),2.85,≥2.5°,clear,0,0,schedule,1,hit,1,66.69,72.44,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,5.85,none,,,0.0,,0.819,,2.47
+2026_08_16/s2,s2,v7,,sphere10,9,球R,ball(3cm),2.55,≥2.5°,clear,0,0,schedule,1,hit,1,73.6,79.28,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,2.6,none,,,0.0,,0.876,,2.55
+2026_08_16/s2,s2,v7,,sphere10,10,球R,ball(3cm),2.55,≥2.5°,clear,0,0,schedule,1,hit,1,80.44,86.23,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,5.15,none,,,0.0,,0.92,,2.52
+2026_08_16/s2,s2,v7,,sphere10,11,球M,ball(3cm),4.47,≥2.5°,clear,0,0,schedule,1,hit,1,87.39,93.38,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,3.52,none,,,0.0,,1.0,,2.39
+2026_08_16/s2,s2,v7,,sphere10,12,球L,ball(3cm),2.85,≥2.5°,clear,0,0,schedule,1,hit,1,94.54,100.51,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,5.97,none,,,0.0,,0.741,,2.47
+2026_08_16/s2,s2,v7,,sphere10,13,球M,ball(3cm),4.47,≥2.5°,clear,0,0,schedule,1,hit,1,101.67,107.63,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,2.65,none,,,0.0,,1.0,,2.4
+2026_08_16/s2,s2,v7,,sphere10,14,球L,ball(3cm),2.85,≥2.5°,clear,0,0,schedule,1,hit,1,108.79,114.8,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,4.55,none,,,0.0,0.0,0.775,0.354,2.47
+2026_08_16/s2,s2,v7,,sphere10,15,球L,ball(3cm),2.85,≥2.5°,clear,0,0,schedule,1,hit,1,115.96,121.97,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,2.55,none,,,0.0,0.0,0.813,0.574,2.46
+2026_08_16/s3,s3,v7,,sphere10,1,球M,ball(3cm),3.19,≥2.5°,clear,0,0,schedule,1,hit,1,18.24,23.94,4,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,0.81,none,,,0.0,,1.0,,3.4
+2026_08_16/s3,s3,v7,,sphere10,2,球L,ball(3cm),2.0,1.0–2.5°,clear,0,0,schedule,1,hit,1,25.1,30.88,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,5.69,none,,,0.0,,0.74,,3.35
+2026_08_16/s3,s3,v7,,sphere10,3,球L,ball(3cm),2.0,1.0–2.5°,clear,0,0,schedule,1,hit,1,32.04,37.86,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,4.55,none,,,0.0,,0.87,,3.35
+2026_08_16/s3,s3,v7,,sphere10,4,球M,ball(3cm),3.19,≥2.5°,clear,0,0,schedule,1,hit,1,39.02,44.84,4,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,1.41,none,,,0.0,,0.957,,3.37
+2026_08_16/s3,s3,v7,,sphere10,5,球R,ball(3cm),1.53,1.0–2.5°,clear,0,0,schedule,1,hit,1,46.0,51.67,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,6.34,none,,,0.0,,1.0,,3.4
+2026_08_16/s3,s3,v7,,sphere10,6,球R,ball(3cm),1.53,1.0–2.5°,clear,0,0,schedule,1,hit,1,52.83,58.53,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,6.45,none,,,0.0,,0.994,,3.39
+2026_08_16/s3,s3,v7,,sphere10,7,球L,ball(3cm),2.0,1.0–2.5°,clear,0,0,schedule,1,hit,1,59.69,65.49,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,2.54,none,,,0.0,0.0,0.771,0.432,3.34
+2026_08_16/s3,s3,v7,,sphere10,8,球L,ball(3cm),2.0,1.0–2.5°,clear,0,0,schedule,1,hit,1,66.69,72.43,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,5.96,none,,,0.0,,0.806,,3.35
+2026_08_16/s3,s3,v7,,sphere10,9,球M,ball(3cm),3.19,≥2.5°,clear,0,0,schedule,1,hit,1,73.59,79.32,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,6.39,none,,,0.0,,1.0,,3.4
+2026_08_16/s3,s3,v7,,sphere10,10,球R,ball(3cm),1.53,1.0–2.5°,clear,0,0,schedule,1,hit,1,80.48,86.27,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球M,0.97,none,,,0.0,0.0,0.729,0.766,3.4
+2026_08_16/s3,s3,v7,,sphere10,11,球L,ball(3cm),2.0,1.0–2.5°,clear,0,0,schedule,1,hit,1,87.43,93.42,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,5.04,none,,,0.0,,0.703,,3.35
+2026_08_16/s3,s3,v7,,sphere10,12,球M,ball(3cm),3.19,≥2.5°,clear,0,0,schedule,1,hit,1,94.58,100.52,2,0,0,0,none,,,,,,,,,,none,0,0,0,0,,none,none,none,,,none,,,,,,,
+2026_08_16/s3,s3,v7,,sphere10,13,球R,ball(3cm),1.53,1.0–2.5°,clear,0,0,schedule,1,hit,1,101.68,107.62,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,6.34,none,,,0.0,,1.0,,3.38
+2026_08_16/s3,s3,v7,,sphere10,14,球M,ball(3cm),3.19,≥2.5°,clear,0,0,schedule,1,hit,1,108.78,114.79,3,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,球M,1.03,none,,,0.0,0.0,1.0,0.614,3.37
+2026_08_16/s3,s3,v7,,sphere10,15,球R,ball(3cm),1.53,1.0–2.5°,clear,0,0,schedule,1,hit,1,115.95,121.92,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,7.1,none,,,0.0,,0.918,,3.38
+2026_08_16/s4,s4,v8,,sphere10,1,球L,ball(3cm),1.67,1.0–2.5°,clear,0,0,schedule,1,hit,1,15.68,21.4,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,4.17,none,,,0.0,,1.0,,3.81
+2026_08_16/s4,s4,v8,,sphere10,2,球L,ball(3cm),1.67,1.0–2.5°,clear,0,0,schedule,1,hit,1,22.56,28.34,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,6.12,none,,,0.0,,1.0,,3.83
+2026_08_16/s4,s4,v8,,sphere10,3,球M,ball(3cm),2.82,≥2.5°,clear,0,0,schedule,1,miss,1,29.5,35.29,6,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,1.62,none,,,0.0,0.0,0.996,1.0,3.8
+2026_08_16/s4,s4,v8,,sphere10,4,球R,ball(3cm),1.28,1.0–2.5°,clear,0,0,schedule,1,hit,1,36.45,42.22,5,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,7.53,none,,,0.0,,1.0,,3.81
+2026_08_16/s4,s4,v8,,sphere10,5,球R,ball(3cm),1.28,1.0–2.5°,clear,0,0,schedule,1,hit,1,43.38,49.06,3,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,6.34,none,,,0.0,,1.0,,3.84
+2026_08_16/s4,s4,v8,,sphere10,6,球M,ball(3cm),2.82,≥2.5°,clear,0,0,schedule,1,hit,1,50.22,55.97,5,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,球M,1.14,none,,,0.0,0.0,0.925,1.0,3.87
+2026_08_16/s4,s4,v8,,sphere10,7,球M,ball(3cm),2.82,≥2.5°,clear,0,0,schedule,1,hit,1,57.13,62.9,4,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,1.3,none,,,0.0,,1.0,,3.86
+2026_08_16/s4,s4,v8,,sphere10,8,球L,ball(3cm),1.67,1.0–2.5°,clear,0,0,schedule,1,hit,1,72.63,78.38,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,球L,2.04,none,,,0.0,0.0,0.829,1.0,3.79
+2026_08_16/s4,s4,v8,,sphere10,9,球R,ball(3cm),1.28,1.0–2.5°,clear,0,0,schedule,1,hit,1,79.54,85.21,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,球R,2.45,none,,,0.0,0.0,1.0,0.99,3.79
+2026_08_16/s4,s4,v8,,sphere10,10,球M,ball(3cm),2.82,≥2.5°,clear,0,0,schedule,1,miss,1,86.37,92.19,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球R,1.22,none,,,,0.0,,1.0,3.81
+2026_08_16/s4,s4,v8,,sphere10,11,球R,ball(3cm),1.28,1.0–2.5°,clear,0,0,schedule,1,hit,1,93.35,99.29,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,球R,6.55,none,,,0.0,0.0,1.0,0.499,3.8
+2026_08_16/s4,s4,v8,,sphere10,12,球R,ball(3cm),1.28,1.0–2.5°,clear,0,0,schedule,1,hit,1,100.45,106.37,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,3.63,none,,,0.0,,1.0,,3.91
+2026_08_16/s4,s4,v8,,sphere10,13,球M,ball(3cm),2.82,≥2.5°,clear,0,0,schedule,1,hit,1,107.53,113.49,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,2.22,none,,,0.0,,0.988,,3.81
+2026_08_16/s4,s4,v8,,sphere10,14,球L,ball(3cm),1.67,1.0–2.5°,clear,0,0,schedule,1,hit,1,114.65,120.66,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,3.57,none,,,0.0,,0.792,,3.77
+2026_08_16/s4,s4,v8,,sphere10,15,球L,ball(3cm),1.67,1.0–2.5°,clear,0,0,schedule,1,hit,1,121.82,127.84,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,5.74,none,,,0.0,,0.834,,3.77
+2026_08_16/s6,s6,v8,,sphere10,1,球L,ball(3cm),0.56,<1.0°,clear,0,0,schedule,1,hit,1,21.14,26.87,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,香蕉,3.47,none,,,0.0,0.0,0.382,0.528,4.43
+2026_08_16/s6,s6,v8,,sphere10,2,球M,ball(3cm),1.79,1.0–2.5°,clear,0,0,schedule,1,hit,1,28.03,33.77,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,2.98,none,,,0.0,0.0,1.0,1.0,4.53
+2026_08_16/s6,s6,v8,,sphere10,3,球R,ball(3cm),1.85,1.0–2.5°,clear,0,0,schedule,1,hit,1,34.93,40.68,2,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,2.71,none,,,0.0,,1.0,,4.56
+2026_08_16/s6,s6,v8,,sphere10,4,球R,ball(3cm),1.85,1.0–2.5°,clear,0,0,schedule,1,hit,1,41.84,47.61,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,3.79,none,,,0.0,,1.0,,4.54
+2026_08_16/s6,s6,v8,,sphere10,5,球M,ball(3cm),1.79,1.0–2.5°,clear,0,0,schedule,1,hit,1,48.77,54.47,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,6.61,none,,,0.0,,1.0,,4.46
+2026_08_16/s6,s6,v8,,sphere10,6,球R,ball(3cm),1.85,1.0–2.5°,clear,0,0,schedule,1,hit,1,55.63,61.33,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,4.33,none,,,0.0,0.0,1.0,0.742,4.54
+2026_08_16/s6,s6,v8,,sphere10,7,球R,ball(3cm),1.85,1.0–2.5°,clear,0,0,schedule,1,hit,1,62.49,68.22,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,2.82,none,,,0.0,,1.0,,4.6
+2026_08_16/s6,s6,v8,,sphere10,8,球M,ball(3cm),1.79,1.0–2.5°,clear,0,0,schedule,1,hit,1,77.95,83.67,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,2.87,none,,,0.0,,0.986,,4.55
+2026_08_16/s6,s6,v8,,sphere10,9,球L,ball(3cm),0.56,<1.0°,clear,0,0,schedule,1,hit,1,84.83,90.55,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,2.82,none,,,0.0,0.0,0.505,0.516,4.45
+2026_08_16/s6,s6,v8,,sphere10,10,球M,ball(3cm),1.79,1.0–2.5°,clear,0,0,schedule,1,hit,1,91.71,97.53,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,6.07,none,,,0.0,,0.649,,4.51
+2026_08_16/s6,s6,v8,,sphere10,11,球L,ball(3cm),0.56,<1.0°,clear,0,0,schedule,1,hit,1,98.69,104.68,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,香蕉,3.57,none,,,0.0,0.0,0.498,1.0,4.41
+2026_08_16/s6,s6,v8,,sphere10,12,球M,ball(3cm),1.79,1.0–2.5°,clear,0,0,schedule,1,hit,1,105.84,111.78,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,5.04,none,,,0.0,0.0,1.0,1.0,4.55
+2026_08_16/s6,s6,v8,,sphere10,13,球L,ball(3cm),0.56,<1.0°,clear,0,0,schedule,1,miss,1,112.94,118.93,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,香蕉,2.22,none,,,,0.0,,1.0,4.48
+2026_08_16/s6,s6,v8,,sphere10,14,球R,ball(3cm),1.85,1.0–2.5°,clear,0,0,schedule,1,hit,1,120.09,126.05,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,2.27,none,,,0.0,0.0,1.0,1.0,4.53
+2026_08_16/s6,s6,v8,,sphere10,15,球L,ball(3cm),0.56,<1.0°,clear,0,0,schedule,1,miss,1,127.21,133.23,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,香蕉,1.73,none,,,0.0,0.0,0.671,0.51,4.39
+2026_08_18/000,s7,v8,,sphere10,1,球L,ball(3cm),2.61,≥2.5°,clear,0,0,schedule,1,hit,1,16.67,22.39,2,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,4.87,none,,,0.0,,0.772,,3.01
+2026_08_18/000,s7,v8,,sphere10,2,球L,ball(3cm),2.61,≥2.5°,clear,0,0,schedule,1,hit,1,23.55,29.33,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,6.66,none,,,0.0,,0.79,,3.01
+2026_08_18/000,s7,v8,,sphere10,3,球R,ball(3cm),2.19,1.0–2.5°,clear,0,0,schedule,1,hit,1,30.49,36.23,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,2.6,none,,,0.0,0.0,1.0,1.0,3.29
+2026_08_18/000,s7,v8,,sphere10,4,球R,ball(3cm),2.19,1.0–2.5°,clear,0,0,schedule,1,hit,1,37.39,43.17,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,4.87,none,,,0.0,0.0,1.0,0.795,3.37
+2026_08_18/000,s7,v8,,sphere10,5,球M,ball(3cm),2.19,1.0–2.5°,clear,0,0,schedule,1,hit,1,44.33,50.03,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,wrong,球L,3.63,none,,,0.0,0.0,0.678,0.89,3.01
+2026_08_18/000,s7,v8,,sphere10,6,球L,ball(3cm),2.61,≥2.5°,clear,0,0,schedule,1,hit,1,51.19,56.93,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,4.98,none,,,0.0,,0.874,,3.02
+2026_08_18/000,s7,v8,,sphere10,7,球M,ball(3cm),2.19,1.0–2.5°,clear,0,0,schedule,1,miss,1,58.09,63.87,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,2.99,none,,,,0.0,,0.924,2.98
+2026_08_18/000,s7,v8,,sphere10,8,球R,ball(3cm),2.19,1.0–2.5°,clear,0,0,schedule,1,hit,1,73.07,78.77,9,9,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球M,2.98,none,,,,0.0,,1.0,3.08
+2026_08_18/000,s7,v8,,sphere10,9,球R,ball(3cm),2.19,1.0–2.5°,clear,0,0,schedule,1,miss,1,79.93,85.61,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球M,2.6,none,,,0.0,0.0,0.838,0.731,3.26
+2026_08_18/000,s7,v8,,sphere10,10,球M,ball(3cm),2.19,1.0–2.5°,clear,0,0,schedule,1,hit,1,86.77,92.59,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,5.09,none,,,0.0,0.0,1.0,0.886,2.99
+2026_08_18/000,s7,v8,,sphere10,11,球L,ball(3cm),2.61,≥2.5°,clear,0,0,schedule,1,hit,1,93.75,99.74,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,5.25,none,,,0.0,,0.896,,3.02
+2026_08_18/000,s7,v8,,sphere10,12,球M,ball(3cm),2.19,1.0–2.5°,clear,0,0,schedule,1,hit,1,100.9,106.84,6,6,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,3.9,none,,,0.0,0.0,1.0,0.95,3.08
+2026_08_18/000,s7,v8,,sphere10,13,球R,ball(3cm),2.19,1.0–2.5°,clear,0,0,schedule,1,hit,1,108.0,113.94,7,7,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,3.42,none,,,0.0,0.0,0.719,1.0,3.33
+2026_08_18/000,s7,v8,,sphere10,14,球M,ball(3cm),2.19,1.0–2.5°,clear,0,0,schedule,1,miss,1,115.1,121.11,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,4.66,none,,,0.0,0.0,1.0,0.745,3.08
+2026_08_18/000,s7,v8,,sphere10,15,球L,ball(3cm),2.61,≥2.5°,clear,0,0,schedule,1,hit,1,122.27,128.28,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,5.65,none,,,0.0,,0.876,,3.02
+2026_08_20/000,c1,v9,,sphere10,1,球R,ball(3cm),2.17,1.0–2.5°,clear,0,0,schedule,1,hit,1,17.15,22.7,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,3.47,none,,,0.0,,0.581,,2.16
+2026_08_20/000,c1,v9,,sphere10,2,香蕉,banana,0.41,<1.0°,clear,0,0,schedule,1,miss,1,23.86,29.44,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,水瓶,4.9,none,,,,0.0,,0.546,2.25
+2026_08_20/000,c1,v9,,sphere10,3,纸箱子,box,24.07,≥2.5°,clear,0,0,schedule,1,hit,1,30.6,36.4,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,纸箱子,5.69,none,,,0.0,,1.0,,3.06
+2026_08_20/000,c1,v9,,sphere10,4,苹果粉,fruit(4-5cm),2.09,1.0–2.5°,clear,0,0,schedule,1,hit,1,37.56,43.35,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,苹果粉,3.49,none,,,0.0,0.0,0.589,0.362,2.24
+2026_08_20/000,c1,v9,,sphere10,5,白杯1,cup,1.84,1.0–2.5°,clear,0,0,schedule,1,miss,1,44.51,50.19,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,水瓶,3.79,none,,,,0.0,,0.536,2.3
+2026_08_20/000,c1,v9,,sphere10,6,水瓶,bottle,0.41,<1.0°,clear,0,0,schedule,1,hit,1,51.35,56.95,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,水瓶,1.54,none,,,0.0,,0.664,,2.3
+2026_08_20/000,c1,v9,,sphere10,7,红杯,cup,1.84,1.0–2.5°,clear,0,0,schedule,1,miss,1,66.68,72.24,6,6,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,白杯2,1.3,none,,,,0.0,,0.462,2.31
+2026_08_20/000,c1,v9,,sphere10,8,苹果红,fruit(4-5cm),0.41,<1.0°,clear,0,0,schedule,1,miss,1,73.4,79.15,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,水瓶,4.55,none,,,,0.0,,0.55,2.26
+2026_08_20/000,c1,v9,,sphere10,9,球M,ball(3cm),1.83,1.0–2.5°,clear,0,0,schedule,1,miss,1,80.31,85.86,9,9,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,wrong,水瓶,2.49,none,,,0.0,0.0,0.613,0.583,2.23
+2026_08_20/000,c1,v9,,sphere10,10,橘子,fruit(4-5cm),0.41,<1.0°,clear,0,0,schedule,1,miss,1,87.02,92.63,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,水瓶,5.04,none,,,,0.0,,0.38,2.35
+2026_08_20/000,c1,v9,,sphere10,11,球L,ball(3cm),1.71,1.0–2.5°,clear,0,0,schedule,1,hit,1,93.79,99.63,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,1.62,none,,,0.0,0.0,0.415,0.587,2.29
+2026_08_20/000,c1,v9,,sphere10,12,白杯2,cup,2.03,1.0–2.5°,clear,0,0,schedule,1,hit,1,100.79,106.71,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,白杯2,2.55,none,,,0.0,0.0,0.525,0.497,2.31
+2026_08_20/001,c2,v9,,sphere10,1,球R,ball(3cm),1.28,1.0–2.5°,clear,0,0,lcs_episode,0,hit,1,15.89,19.72,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,2.65,none,,,0.0,,0.622,,2.72
+2026_08_20/001,c2,v9,,sphere10,2,球R,ball(3cm),1.28,1.0–2.5°,clear,0,0,lcs_episode,0,miss,1,22.79,25.76,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,水瓶,2.17,none,,,,0.0,,0.418,3.19
+2026_08_20/001,c2,v9,,sphere10,3,苹果红,fruit(4-5cm),0.13,<1.0°,clear,0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_20/001,c2,v9,,sphere10,4,球L,ball(3cm),1.03,1.0–2.5°,clear,0,0,lcs_episode,0,hit,1,29.36,32.08,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,球L,1.68,none,,,0.0,0.0,0.369,0.574,3.13
+2026_08_20/001,c2,v9,,sphere10,5,苹果粉,fruit(4-5cm),1.31,1.0–2.5°,clear,0,0,lcs_episode,0,hit,1,42.68,50.12,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,苹果粉,5.96,none,,,0.0,,0.622,,3.22
+2026_08_20/001,c2,v9,,sphere10,6,白杯1,cup,1.28,1.0–2.5°,clear,0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_20/001,c2,v9,,sphere10,7,球M,ball(3cm),0.89,<1.0°,clear,0,0,lcs_episode,0,miss,1,57.99,62.22,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,水瓶,2.71,none,,,,0.0,,0.591,3.27
+2026_08_20/001,c2,v9,,sphere10,8,白杯1,cup,1.28,1.0–2.5°,clear,0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_20/001,c2,v9,,sphere10,9,苹果粉,fruit(4-5cm),1.31,1.0–2.5°,clear,0,0,lcs_episode,0,hit,1,79.55,82.3,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,苹果粉,1.95,none,,,0.0,,0.619,,3.3
+2026_08_20/001,c2,v9,,sphere10,10,球R,ball(3cm),1.28,1.0–2.5°,clear,0,0,lcs_episode,0,hit,1,84.85,88.15,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,球R,1.84,none,,,0.0,0.0,0.445,0.405,3.28
+2026_08_20/001,c2,v9,,sphere10,11,球M,ball(3cm),0.89,<1.0°,clear,0,0,lcs_episode,0,miss,1,90.0,97.11,7,7,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,水瓶,4.13,none,,,,0.0,,0.595,3.25
+2026_08_20/001,c2,v9,,sphere10,12,白杯2,cup,,,clear,0,0,lcs_episode,0,hit,1,99.6,105.28,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,白杯2,4.6,none,,,0.0,,0.514,,3.27
+2026_08_20/001,c2,v9,,sphere10,13,白杯2,cup,,,clear,0,0,lcs_episode,0,miss,1,99.6,105.28,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,白杯2,4.6,none,,,0.0,,0.514,,3.27
+2026_08_20/001,c2,v9,,sphere10,14,球L,ball(3cm),1.03,1.0–2.5°,clear,0,0,lcs_episode,0,miss,1,115.9,120.49,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,水瓶,2.06,none,,,,0.0,,0.518,3.23
+2026_08_20/001,c2,v9,,sphere10,15,苹果红,fruit(4-5cm),0.13,<1.0°,clear,0,0,lcs_episode,0,miss,1,121.48,123.31,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,水瓶,1.04,none,,,,0.0,,0.598,3.24
+2026_08_20/002,c4,v9,beyond_occ,sphere10,1,球L,ball(3cm),0.84,<1.0°,occluded(beyond limit),0,0,none,0,hit,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_20/002,c4,v9,beyond_occ,sphere10,2,球R,ball(3cm),0.84,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_20/002,c4,v9,beyond_occ,sphere10,3,球R,ball(3cm),0.84,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_20/002,c4,v9,beyond_occ,sphere10,4,球M,ball(3cm),0.66,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,12.38,15.35,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,2.17,none,,,,0.0,,0.569,4.18
+2026_08_20/002,c4,v9,beyond_occ,sphere10,5,球M,ball(3cm),0.66,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,12.38,15.35,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,2.17,none,,,,0.0,,0.569,4.18
+2026_08_20/002,c4,v9,beyond_occ,sphere10,6,球L,ball(3cm),0.84,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,14.6,23.06,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,6.39,none,,,0.0,0.0,0.928,0.467,4.2
+2026_08_20/002,c4,v9,beyond_occ,sphere10,7,球R,ball(3cm),0.84,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_20/002,c4,v9,beyond_occ,sphere10,8,球L,ball(3cm),0.84,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,24.43,28.7,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,3.47,none,,,0.0,,0.576,,4.26
+2026_08_20/002,c4,v9,beyond_occ,sphere10,9,球L,ball(3cm),0.84,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,24.43,28.7,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,3.47,none,,,0.0,,0.576,,4.26
+2026_08_20/002,c4,v9,beyond_occ,sphere10,10,球M,ball(3cm),0.66,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,27.95,29.83,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,1.08,none,,,,0.0,,0.801,4.26
+2026_08_20/002,c4,v9,beyond_occ,sphere10,11,球L,ball(3cm),0.84,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,29.09,64.63,11,11,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,24.78,none,,,0.0,0.0,0.779,0.65,4.29
+2026_08_20/002,c4,v9,beyond_occ,sphere10,12,球M,ball(3cm),0.66,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,99.06,102.51,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,2.65,none,,,,0.0,,0.704,4.35
+2026_08_20/002,c4,v9,beyond_occ,sphere10,13,球R,ball(3cm),0.84,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,106.98,109.52,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,1.74,none,,,,0.0,,0.703,4.33
+2026_08_20/002,c4,v9,beyond_occ,sphere10,14,球M,ball(3cm),0.66,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_20/002,c4,v9,beyond_occ,sphere10,15,球R,ball(3cm),0.84,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,125.11,126.94,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,1.03,none,,,,0.0,,0.765,4.22
+2026_08_20/003,c4,v9,beyond_occ,sphere10,1,球L,ball(3cm),0.64,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,5.35,8.33,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,1.62,none,,,0.0,0.0,0.858,0.513,4.27
+2026_08_20/003,c4,v9,beyond_occ,sphere10,2,球R,ball(3cm),0.63,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_20/003,c4,v9,beyond_occ,sphere10,3,球R,ball(3cm),0.63,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_20/003,c4,v9,beyond_occ,sphere10,4,球M,ball(3cm),0.63,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_20/003,c4,v9,beyond_occ,sphere10,5,球M,ball(3cm),0.63,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_20/003,c4,v9,beyond_occ,sphere10,6,球L,ball(3cm),0.64,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,9.56,11.55,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,1.19,none,,,0.0,,0.993,,4.36
+2026_08_20/003,c4,v9,beyond_occ,sphere10,7,球R,ball(3cm),0.63,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_20/003,c4,v9,beyond_occ,sphere10,8,球L,ball(3cm),0.64,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,15.01,17.27,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,1.46,none,,,0.0,,0.685,,4.34
+2026_08_20/003,c4,v9,beyond_occ,sphere10,9,球L,ball(3cm),0.64,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,15.01,17.27,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,1.46,none,,,0.0,,0.685,,4.34
+2026_08_20/003,c4,v9,beyond_occ,sphere10,10,球M,ball(3cm),0.63,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_20/003,c4,v9,beyond_occ,sphere10,11,球L,ball(3cm),0.64,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,17.12,29.06,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,10.54,none,,,0.0,,0.986,,4.36
+2026_08_20/003,c4,v9,beyond_occ,sphere10,12,球M,ball(3cm),0.63,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_20/003,c4,v9,beyond_occ,sphere10,13,球R,ball(3cm),0.63,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,28.64,31.23,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,1.79,none,,,,0.0,,0.987,4.39
+2026_08_20/003,c4,v9,beyond_occ,sphere10,14,球M,ball(3cm),0.63,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_20/003,c4,v9,beyond_occ,sphere10,15,球R,ball(3cm),0.63,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,33.36,36.19,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,2.02,none,,,,0.0,,1.0,4.35
+2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,1,球L,ball(3cm),0.92,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,10.78,14.83,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,3.25,none,,,0.0,,0.928,,4.04
+2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,2,球R,ball(3cm),0.9,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,3,球R,ball(3cm),0.9,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,4,球M,ball(3cm),0.68,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,5,球M,ball(3cm),0.68,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,6,球L,ball(3cm),0.92,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,23.51,30.27,1,0,0,0,none,,,,,,,,,,none,0,0,0,0,,none,none,none,,,none,,,,,,,
+2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,7,球R,ball(3cm),0.9,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,8,球L,ball(3cm),0.92,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,32.21,37.98,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,4.71,none,,,0.0,,0.941,,4.13
+2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,9,球L,ball(3cm),0.92,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,42.9,51.87,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,8.18,none,,,0.0,,0.908,,4.16
+2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,10,球M,ball(3cm),0.68,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,86.24,93.75,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,6.72,none,,,,0.0,,0.965,4.18
+2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,11,球L,ball(3cm),0.92,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,hit,1,93.11,107.62,5,5,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,12.89,none,,,0.0,,0.969,,4.18
+2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,12,球M,ball(3cm),0.68,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,107.12,114.75,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,6.66,none,,,,0.0,,0.662,4.2
+2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,13,球R,ball(3cm),0.9,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,14,球M,ball(3cm),0.68,<1.0°,occluded(beyond limit),0,0,lcs_episode,0,miss,1,121.13,127.51,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,5.58,none,,,,0.0,,0.604,4.19
+2026_08_25/c1_1,c4,v9,beyond_occ,sphere10,15,球R,ball(3cm),0.9,<1.0°,occluded(beyond limit),0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_25/c1_2,c4,v9,,sphere10,1,球L,ball(3cm),1.04,1.0–2.5°,clear,0,0,schedule,1,hit,1,17.49,23.05,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,7.53,none,,,0.0,,0.935,,4.23
+2026_08_25/c1_2,c4,v9,,sphere10,2,球R,ball(3cm),0.81,<1.0°,clear,0,0,schedule,1,miss,1,24.21,29.81,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,水瓶,5.69,none,,,,0.0,,1.0,4.27
+2026_08_25/c1_2,c4,v9,,sphere10,3,球R,ball(3cm),0.81,<1.0°,clear,0,0,schedule,1,miss,1,30.97,36.6,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球M,6.39,none,,,,0.0,,0.567,4.29
+2026_08_25/c1_2,c4,v9,,sphere10,4,球M,ball(3cm),0.65,<1.0°,clear,0,0,schedule,1,miss,1,37.76,43.41,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,6.61,none,,,,0.0,,0.603,4.25
+2026_08_25/c1_2,c4,v9,,sphere10,5,球M,ball(3cm),0.65,<1.0°,clear,0,0,schedule,1,miss,1,44.57,50.13,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,6.12,none,,,,0.0,,0.505,4.25
+2026_08_25/c1_2,c4,v9,,sphere10,6,球L,ball(3cm),1.04,1.0–2.5°,clear,0,0,schedule,1,hit,1,51.29,56.89,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,6.39,none,,,0.0,,0.375,,4.24
+2026_08_25/c1_2,c4,v9,,sphere10,7,球R,ball(3cm),0.81,<1.0°,clear,0,0,schedule,1,miss,1,58.05,63.66,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,5.9,none,,,,0.0,,0.497,4.26
+2026_08_25/c1_2,c4,v9,,sphere10,8,球L,ball(3cm),1.04,1.0–2.5°,clear,0,0,schedule,1,hit,1,73.56,79.14,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,6.88,none,,,0.0,,0.939,,4.26
+2026_08_25/c1_2,c4,v9,,sphere10,9,球L,ball(3cm),1.04,1.0–2.5°,clear,0,0,schedule,1,hit,1,80.3,85.88,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,6.5,none,,,0.0,,0.867,,4.26
+2026_08_25/c1_2,c4,v9,,sphere10,10,球M,ball(3cm),0.65,<1.0°,clear,0,0,schedule,1,hit,1,87.04,92.7,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,3.36,none,,,,0.0,,0.799,4.27
+2026_08_25/c1_2,c4,v9,,sphere10,11,球L,ball(3cm),1.04,1.0–2.5°,clear,0,0,schedule,1,hit,1,93.86,99.7,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,5.47,none,,,0.0,,0.517,,4.22
+2026_08_25/c1_2,c4,v9,,sphere10,12,球M,ball(3cm),0.65,<1.0°,clear,0,0,schedule,1,miss,1,100.86,106.66,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,6.23,none,,,,0.0,,0.528,4.25
+2026_08_25/c1_2,c4,v9,,sphere10,13,球R,ball(3cm),0.81,<1.0°,clear,0,0,schedule,1,miss,1,107.82,113.64,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球M,6.45,none,,,,0.0,,0.495,4.26
+2026_08_25/c1_2,c4,v9,,sphere10,14,球M,ball(3cm),0.65,<1.0°,clear,0,0,schedule,1,hit,1,114.8,120.64,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,4.93,none,,,,0.0,,0.572,4.26
+2026_08_25/c1_2,c4,v9,,sphere10,15,球R,ball(3cm),0.81,<1.0°,clear,0,0,schedule,1,miss,1,121.8,127.64,2,2,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,4.66,none,,,,0.0,,0.529,4.26
+2026_08_25/c1_3,c4,v9,,sphere10,1,球L,ball(3cm),1.19,1.0–2.5°,clear,0,0,lcs_episode,0,hit,1,14.34,24.1,9,7,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,7.35,none,,,0.0,,0.885,,3.73
+2026_08_25/c1_3,c4,v9,,sphere10,2,球R,ball(3cm),0.96,<1.0°,clear,0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_25/c1_3,c4,v9,,sphere10,3,球R,ball(3cm),0.96,<1.0°,clear,0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_25/c1_3,c4,v9,,sphere10,4,球M,ball(3cm),0.77,<1.0°,clear,0,0,lcs_episode,0,hit,1,23.56,37.75,6,6,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,12.8,none,,,,0.0,,0.559,3.74
+2026_08_25/c1_3,c4,v9,,sphere10,5,球M,ball(3cm),0.77,<1.0°,clear,0,0,lcs_episode,0,miss,1,23.56,37.75,6,6,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,12.8,none,,,,0.0,,0.559,3.74
+2026_08_25/c1_3,c4,v9,,sphere10,6,球L,ball(3cm),1.19,1.0–2.5°,clear,0,0,lcs_episode,0,hit,1,37.12,42.82,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,4.9,none,,,0.0,,0.395,,3.73
+2026_08_25/c1_3,c4,v9,,sphere10,7,球R,ball(3cm),0.96,<1.0°,clear,0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_25/c1_3,c4,v9,,sphere10,8,球L,ball(3cm),1.19,1.0–2.5°,clear,0,0,none,0,hit,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_25/c1_3,c4,v9,,sphere10,9,球L,ball(3cm),1.19,1.0–2.5°,clear,0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_25/c1_3,c4,v9,,sphere10,10,球M,ball(3cm),0.77,<1.0°,clear,0,0,lcs_episode,0,miss,1,42.07,49.13,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,6.25,none,,,,0.0,,0.535,3.73
+2026_08_25/c1_3,c4,v9,,sphere10,11,球L,ball(3cm),1.19,1.0–2.5°,clear,0,0,lcs_episode,0,hit,1,50.78,57.93,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,6.35,none,,,0.0,,0.36,,3.71
+2026_08_25/c1_3,c4,v9,,sphere10,12,球M,ball(3cm),0.77,<1.0°,clear,0,0,none,0,miss,0,,,,,,,unknown,,,,,,,,,,unknown,,,,,,,,,,,,,,,,,,
+2026_08_25/c1_3,c4,v9,,sphere10,13,球R,ball(3cm),0.96,<1.0°,clear,0,0,lcs_episode,0,miss,1,57.37,63.87,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球M,5.7,none,,,,0.0,,0.505,3.73
+2026_08_25/c1_3,c4,v9,,sphere10,14,球M,ball(3cm),0.77,<1.0°,clear,0,0,lcs_episode,0,miss,1,107.32,114.07,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,水瓶,5.96,none,,,,0.0,,0.358,3.72
+2026_08_25/c1_3,c4,v9,,sphere10,15,球R,ball(3cm),0.96,<1.0°,clear,0,0,lcs_episode,0,miss,1,121.1,125.55,1,1,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球L,3.65,none,,,,0.0,,0.521,3.72
+2026_08_25/u3,u3,v9,walking,sphere10,1,球L,ball(3cm),1.36,1.0–2.5°,clear,1,0,schedule,1,hit,1,17.8,23.36,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,2.45,none,,,0.0,0.0,0.965,0.446,2.8
+2026_08_25/u3,u3,v9,walking,sphere10,2,球M,ball(3cm),1.44,1.0–2.5°,clear,1,0,schedule,1,hit,1,24.52,30.12,4,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,球M,0.7,none,,,0.0,0.0,0.691,0.692,2.77
+2026_08_25/u3,u3,v9,walking,sphere10,3,球R,ball(3cm),1.75,1.0–2.5°,clear,1,0,schedule,1,miss,1,31.28,36.91,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,球M,3.8,none,,,0.0,0.0,0.473,0.487,2.27
+2026_08_25/u3,u3,v9,walking,sphere10,4,球M,ball(3cm),1.44,1.0–2.5°,clear,1,0,schedule,1,hit,1,38.07,43.72,6,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球M,0.85,none,,,0.0,,0.602,,2.81
+2026_08_25/u3,u3,v9,walking,sphere10,5,球R,ball(3cm),1.75,1.0–2.5°,clear,1,0,schedule,1,hit,1,44.88,50.44,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,球R,2.65,none,,,0.0,0.0,0.556,0.484,2.54
+2026_08_25/u3,u3,v9,walking,sphere10,6,球L,ball(3cm),1.36,1.0–2.5°,clear,1,0,schedule,1,hit,1,51.6,57.2,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,1.9,none,,,0.0,0.0,0.947,0.473,2.86
+2026_08_25/u3,u3,v9,walking,sphere10,7,球M,ball(3cm),1.44,1.0–2.5°,clear,1,0,schedule,1,hit,1,58.36,63.96,7,7,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,球M,1.95,none,,,0.0,0.0,0.626,0.586,2.63
+2026_08_25/u3,u3,v9,walking,sphere10,8,球R,ball(3cm),1.75,1.0–2.5°,clear,1,0,schedule,1,hit,1,72.22,77.8,7,7,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,correct,球R,2.65,none,,,0.0,0.0,0.652,0.509,2.49
+2026_08_25/u3,u3,v9,walking,sphere10,9,球L,ball(3cm),1.36,1.0–2.5°,clear,1,0,schedule,1,hit,1,78.96,84.54,7,7,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,苹果粉,2.25,none,,,0.0,0.0,0.978,0.561,2.71
+2026_08_25/u3,u3,v9,walking,sphere10,10,球R,ball(3cm),1.75,1.0–2.5°,clear,1,0,schedule,1,hit,1,85.7,91.35,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球R,2.42,none,,,0.0,0.0,0.74,0.605,2.6
+2026_08_25/u3,u3,v9,walking,sphere10,11,球L,ball(3cm),1.36,1.0–2.5°,clear,1,0,schedule,1,miss,1,92.51,98.36,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,correct,球L,2.65,none,,,0.0,0.0,0.792,0.252,2.48
+2026_08_25/u3,u3,v9,walking,sphere10,12,球M,ball(3cm),1.44,1.0–2.5°,clear,1,0,schedule,1,miss,1,99.52,105.31,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,水瓶,3.14,none,,,0.0,0.0,0.492,0.59,2.46
+2026_08_25/u3,u3,v9,walking,sphere10,13,球R,ball(3cm),1.75,1.0–2.5°,clear,1,0,schedule,1,hit,1,106.47,112.29,4,4,0,0,none,,,,,,,,,,none,0,0,0,0,,none,correct,wrong,水瓶,3.08,none,,,0.0,0.0,0.416,0.566,2.71
+2026_08_25/u3,u3,v9,walking,sphere10,14,球L,ball(3cm),1.36,1.0–2.5°,clear,1,0,schedule,1,hit,1,113.45,119.32,3,3,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,苹果粉,3.78,none,,,0.0,0.0,0.367,0.468,3.1
+2026_08_25/u3,u3,v9,walking,sphere10,15,球M,ball(3cm),1.44,1.0–2.5°,clear,1,0,schedule,1,hit,1,120.48,126.33,7,7,0,0,none,,,,,,,,,,none,0,0,0,0,,none,wrong,wrong,水瓶,2.97,none,,,0.0,0.0,0.589,0.563,1.97
