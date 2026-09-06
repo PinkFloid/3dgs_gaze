@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""e4_table.py -- 收割 E4 消融批跑 -> Table II(docs/E1_DATA/table2.csv + markdown)。
+"""e4_table.py -- [已废止 09-06:LCS 口径不再使用,Table II 由 binding_stats.py 按"顺序+最长注视"口径生成 table2.md]
+旧功能:收割 E4 消融批跑 -> LCS 口径表(现写到 table2_lcs_deprecated.*)。
 
     python Eye_Tracker/tools/e4_table.py
 
@@ -67,14 +68,14 @@ def main():
         csv_rows.append((cfg, cells))
     md = "\n".join(lines)
     print(md)
-    (OUT / "table2.md").write_text(md + "\n", encoding="utf-8")
+    (OUT / "table2_lcs_deprecated.md").write_text(md + "\n", encoding="utf-8")
     import csv as _csv
-    with (OUT / "table2.csv").open("w", newline="", encoding="utf-8") as f:
+    with (OUT / "table2_lcs_deprecated.csv").open("w", newline="", encoding="utf-8") as f:
         w = _csv.writer(f)
         w.writerow(["config", "overall"] + [t[0] for t in TIERS] + ["e2_stress", "u3_walking"])
         for cfg, cells in csv_rows:
             w.writerow([cfg] + cells)
-    print(f"\n-> {OUT}/table2.md table2.csv")
+    print(f"\n-> {OUT}/table2_lcs_deprecated.md/.csv(LCS 口径已废止)")
 
 
 if __name__ == "__main__":

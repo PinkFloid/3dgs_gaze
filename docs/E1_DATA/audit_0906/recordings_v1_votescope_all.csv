@@ -1,0 +1,17 @@
+rec,card,era,flags,cfg,duration_s,window_src,reliable,n_items,n_items_with_window,window_cover_s,n_finals,n_obj_finals,n_acc,n_acc_in_window,n_acc_wrong_in_window,n_extra,extra_per_min,extra_objs,extra_dur_s
+2026_08_16/000,e1,v7,,v1_votescope_all,129.8,lcs_ends,1,12,12,68.5,70,70,47,15,8,32,14.8,object#316:7|object#20:5|object#187:3|object#67:3|苹果:3|object#17:3|石榴:2|球M:2|object#35:1|object#94:1|object#34:1|object#59:1,23.2
+2026_08_16/001,e2,v7,stress,v1_votescope_all,104.5,fallback_lcs_windows,0,12,6,31.8,50,50,12,3,3,9,5.17,object#130:4|object#46:2|object#10:2|object#187:1,19.6
+2026_08_16/s1,s1,v7,,v1_votescope_all,128.1,lcs_ends,1,15,15,87.3,52,52,40,23,6,17,7.96,object#20:4|object#187:4|球M:2|球L:2|object#32:1|object#34:1|object#316:1|object#318:1|object#59:1,13.4
+2026_08_16/s2,s2,v7,,v1_votescope_all,128.5,lcs_ends,1,15,15,87.4,73,73,35,17,17,18,8.4,object#316:5|object#32:3|object#20:3|object#318:3|object#187:1|object#17:1|object#11:1|object#23:1,13.4
+2026_08_16/s3,s3,v7,,v1_votescope_all,128.6,lcs_ends,1,15,15,87.4,57,57,14,3,3,11,5.13,object#187:4|object#20:3|object#32:1|object#10:1|object#59:1|object#25:1,7.9
+2026_08_16/s4,s4,v8,,v1_votescope_all,137.7,lcs_ends(B from A + version delta),1,15,15,87.4,67,67,27,17,17,10,4.36,object#17:7|object#93:1|object#11:1|object#25:1,9.9
+2026_08_16/s6,s6,v8,,v1_votescope_all,138.1,lcs_ends(B from A + version delta),1,15,15,87.3,82,82,32,16,16,16,6.95,object#17:14|object#40:1|object#82:1,13.0
+2026_08_18/000,s7,v8,,v1_votescope_all,136.5,lcs_ends,1,15,15,87.3,95,95,35,19,19,16,7.04,object#17:12|object#11:3|object#14:1,7.8
+2026_08_20/000,c1,v9,,v1_votescope_all,115.0,lcs_ends(B from A + version delta),1,12,12,68.2,94,94,31,13,4,18,9.39,水瓶:5|球L:3|object#36:3|苹果粉:2|object#14:2|object#26:1|object#164:1|object#34:1,13.8
+2026_08_20/001,c2,v9,,v1_votescope_all,134.9,fallback_lcs_windows,0,15,12,52.1,115,115,20,5,4,15,6.67,object#17:3|object#26:2|object#37:2|object#14:2|object#36:1|object#60:1|水瓶:1|object#35:1|object#34:1|object#88:1,7.2
+2026_08_20/002,c4,v9,beyond_occ,v1_votescope_all,134.7,fallback_lcs_windows,0,15,10,68.2,68,68,33,14,14,19,8.46,object#35:11|object#24:3|object#26:3|object#14:1|object#88:1,20.0
+2026_08_20/003,c4,v9,beyond_occ,v1_votescope_all,135.2,fallback_lcs_windows,0,15,7,26.8,76,76,63,9,9,54,23.96,object#35:51|object#26:1|object#79:1|object#14:1,74.4
+2026_08_25/c1_1,c4,v9,beyond_occ,v1_votescope_all,133.9,fallback_lcs_windows,0,15,8,61.6,41,41,26,9,9,17,7.62,object#35:10|object#14:3|object#24:2|object#26:2,33.8
+2026_08_25/c1_2,c4,v9,,v1_votescope_all,133.0,lcs_ends,1,15,15,85.2,44,44,27,7,7,20,9.02,object#26:10|object#24:3|object#14:3|object#35:2|object#23:1|object#36:1,15.7
+2026_08_25/c1_3,c4,v9,,v1_votescope_all,130.9,fallback_lcs_windows,0,15,9,75.8,56,56,33,11,11,22,10.09,object#26:13|object#35:5|object#15:2|object#34:1|object#14:1,25.3
+2026_08_25/u3,u3,v9,walking,v1_votescope_all,131.8,lcs_ends,1,15,15,85.2,103,103,36,15,12,21,9.56,object#26:13|object#37:3|object#24:2|object#14:1|object#60:1|object#65:1,11.0

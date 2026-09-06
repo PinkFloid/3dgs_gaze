@@ -34,11 +34,22 @@ R = Path("/home/liuchy/recordings")
 CFGS = {"v1": "intents.jsonl", "ours": "intents_e4_v2s10.jsonl", "noocc": "intents_e4_v2noocc10.jsonl", "vis": "intents_e4_v2vis10.jsonl",
         "noocc_ng": "intents_e4_v2noocc10ng.jsonl", "mass10": "intents_e4_v2mass10.jsonl",
         "v2s15": "intents_e4_v2.jsonl", "mass15": "intents_e4_v2mass.jsonl", "noocc15": "intents_e4_v2noocc.jsonl",
-        "sphere10": "intents_e4_v2sphere10.jsonl", "naive": "intents_e4_naive.jsonl"}
-CSV_OF = {"v1": None, "ours": "e4_v2s10_score.csv", "noocc": "e4_v2noocc10_score.csv", "vis": "e4_v2vis10_score.csv",
-          "noocc_ng": "e4_v2noocc10ng_score.csv", "mass10": "e4_v2mass10_score.csv", "v2s15": "e4_v2_score.csv",
-          "mass15": "e4_v2mass_score.csv", "noocc15": "e4_v2noocc_score.csv", "sphere10": "e4_v2sphere10_score.csv",
-          "naive": "e4_naive_score.csv"}
+        "sphere10": "intents_e4_v2sphere10.jsonl", "naive": "intents_e4_naive.jsonl",
+        # 其余 E4 配置(Table II 全表)
+        "sphere15": "intents_e4_v2sphere.jsonl", "table10": "intents_e4_v2table10.jsonl", "table15": "intents_e4_v2table.jsonl",
+        "cluster010": "intents_e4_v2cluster010.jsonl", "cluster015": "intents_e4_v2cluster0.jsonl",
+        "s02": "intents_e4_v2s02.jsonl", "s05": "intents_e4_v2s05.jsonl", "s25": "intents_e4_v2s25.jsonl", "s40": "intents_e4_v2s40.jsonl",
+        "selfcal": "intents_e4_v2selfcal.jsonl", "selfcal2": "intents_e4_v2selfcal2.jsonl", "selfcal3": "intents_e4_v2selfcal3.jsonl",
+        "tag15": "intents_e4_v2tag.jsonl", "v1_votescope_all": "intents_e4_votescope_all.jsonl", "v1_priors_off": "intents_e4_priors_off.jsonl",
+        "v1_cluster0": "intents_e4_cluster0.jsonl"}
+DESC = {"v1": "v1 冻结(σ1.5,v1 投票)", "ours": "ours:v2 σ=1° capture 排序", "vis": "可见性=z 检验,无最近高斯认领", "noocc": "忽略遮挡(逐实例渲染)",
+        "noocc_ng": "忽略遮挡,无距离闸", "mass10": "σ=1° 质量份额排序(无面积归一)", "v2s15": "v2 σ=1.5°", "mass15": "σ=1.5° 质量份额排序",
+        "noocc15": "忽略遮挡 σ=1.5°", "sphere10": "球投票 σ=1°(mode≠cone,过不了闸)", "sphere15": "球投票 σ=1.5°", "naive": "最近质心 0.35m",
+        "table10": "桌子当目标 σ=1°", "table15": "桌子当目标 σ=1.5°", "cluster010": "米制聚类 σ=1°", "cluster015": "米制聚类 σ=1.5°",
+        "s02": "σ=0.2°(≈单射线)", "s05": "σ=0.5°", "s25": "σ=2.5°", "s40": "σ=4°", "selfcal": "对象自校准", "selfcal2": "自校准门 0.2/2 物",
+        "selfcal3": "自校准会话连续", "tag15": "书签戳直接用", "v1_votescope_all": "v1 去词表过滤", "v1_priors_off": "v1 去物品台先验", "v1_cluster0": "v1 米制聚类"}
+CSV_OF = {c: (None if c == "v1" else "e4_" + f.replace("intents_e4_", "").replace(".jsonl", "") + "_score.csv") for c, f in CFGS.items()}
+# 注意:LCS(eval_e1 卡序对齐)口径 09-06 已废止,只保留在 trials CSV 的 lcs 列作历史对照,不进任何表
 GATES = {"live": dict(min_vote=0.45, margin=1.4, min_capture=0.2), "e2": dict(min_vote=0.5, margin=0.0, min_capture=0.2)}
 TIERS = [("≥2.5°", 2.5, 99.0), ("1.0–2.5°", 1.0, 2.5), ("<1.0°", 0.0, 1.0)]
 PAIRS = [("ours", "noocc"), ("ours", "vis"), ("vis", "noocc"), ("ours", "mass10"), ("v2s15", "mass15"), ("ours", "noocc_ng"), ("ours", "v1")]
@@ -333,10 +344,10 @@ def main():
         return (f"{s['n']} | {s['with_window']} | {s['first_correct']} ({s['first_correct']/hw:.0%}) | "
                 f"{s['first_wrong']} ({s['first_wrong']/hw:.0%}) | {s['none']} ({s['none']/hw:.0%}) | "
                 f"{s['any_correct']} ({s['any_correct']/hw:.0%}) | {s['flip_w2c']} | {s['ungated_first_correct']} ({s['ungated_first_correct']/hw:.0%}) | "
-                f"{s['lat_med']} / {s['lat_stare_med']} | {s['lcs']}")
+                f"{s['lat_med']} / {s['lat_stare_med']}")
 
-    hdr = ("| 配置 | 子集 | trial | 有时段 | 首个接受=正确 | 首个接受=错误 | 无接受 | 任一接受正确 | 先错后对 | 未过闸首判正确 | 正确首判时延中位 s(自报名起 / 自盯看起) | LCS 命中 |\n"
-           "|---|---|---|---|---|---|---|---|---|---|---|---|")
+    hdr = ("| 配置 | 子集 | trial | 有时段 | 首个接受=正确 | 首个接受=错误 | 无接受 | 任一接受正确 | 先错后对 | 未过闸首判正确 | 正确首判时延中位 s(自报名起 / 自盯看起) |\n"
+           "|---|---|---|---|---|---|---|---|---|---|---|")
     md.append("## 1. 逐 trial 绑定结果(接受闸=brain 现行默认 0.45/1.4/0.2;时段=口播时刻表或回退卡序)\n")
     md.append(hdr)
     for cfg in cfgs:
@@ -367,7 +378,7 @@ def main():
                       f"{g.get('correct',0)} ({g.get('correct',0)/len(hw):.0%}) | {g.get('wrong',0)} | {g.get('none',0)} |")
     md.append("\n最长注视法的两个诚实口径:(a) 仅口播时刻表可靠的 10 条录像(129 trial,时段与识别无关);"
               "(b) 主集全部 204 trial,回退录像里没有时段的项按'无'计(回退窗来自卡序对齐的命中段,其窗内多数判定必然正确,单看有窗项会高估)。\n")
-    md.append("| 配置 | (a) 可靠 129:不设闸 正确/错误/无 | (a) 设闸 正确/错误/无 | (b) 204:不设闸 正确/错误/无 | (b) 设闸 正确/错误/无 | 论文 LCS 204 |\n|---|---|---|---|---|---|")
+    md.append("| 配置 | (a) 可靠 129:不设闸 正确/错误/无 | (a) 设闸 正确/错误/无 | (b) 204:不设闸 正确/错误/无 | (b) 设闸 正确/错误/无 |\n|---|---|---|---|---|")
     for cfg in cfgs:
         trs = subset(all_trials.get(cfg, []), "main")
         if not trs:
@@ -379,8 +390,7 @@ def main():
         md.append(f"| {cfg} | {cnt(rel,'ungated_majority',len(rel))} ({Counter(t.get('ungated_majority') for t in rel).get('correct',0)/max(len(rel),1):.0%}) | "
                   f"{cnt(rel,'gated_majority',len(rel))} ({Counter(t.get('gated_majority') for t in rel).get('correct',0)/max(len(rel),1):.0%}) | "
                   f"{cnt(trs,'ungated_majority',len(trs))} ({Counter(t.get('ungated_majority') for t in trs).get('correct',0)/len(trs):.0%}) | "
-                  f"{cnt(trs,'gated_majority',len(trs))} ({Counter(t.get('gated_majority') for t in trs).get('correct',0)/len(trs):.0%}) | "
-                  f"{sum(t['lcs']=='hit' for t in trs)}/{len(trs)} |")
+                  f"{cnt(trs,'gated_majority',len(trs))} ({Counter(t.get('gated_majority') for t in trs).get('correct',0)/len(trs):.0%}) |")
     md.append("\n按 θ 档 / 遮挡(主集,最长注视法):\n")
     md.append("| 配置 | 分组 | trial | 不设闸:正确/错误/无 | 设闸:正确/错误/无 |\n|---|---|---|---|---|")
     for cfg in ("v1", "ours", "vis", "noocc", "mass10"):
@@ -402,7 +412,7 @@ def main():
             md.append(f"| {cfg} | {c.get('correct',0)} ({c.get('correct',0)/len(hw):.0%}) | {c.get('wrong',0)} ({c.get('wrong',0)/len(hw):.0%}) | {c.get('none',0)} ({c.get('none',0)/len(hw):.0%}) |")
     # 分档
     md.append("\n## 2. 主集按 θ 档 / 遮挡(首个接受判定)\n")
-    md.append("| 配置 | 分组 | trial | 首个正确 | 首个错误 | 无接受 | 任一正确 | LCS |\n|---|---|---|---|---|---|---|---|")
+    md.append("| 配置 | 分组 | trial | 首个正确 | 首个错误 | 无接受 | 任一正确 |\n|---|---|---|---|---|---|---|")
     for cfg in ("v1", "ours", "vis", "noocc", "mass10", "noocc_ng"):
         trs = subset(all_trials.get(cfg, []), "main")
         if not trs:
@@ -418,7 +428,7 @@ def main():
             s = summ(g)
             hw = s["with_window"] or 1
             md.append(f"| {cfg} | {gname} | {s['n']} | {s['first_correct']} ({s['first_correct']/hw:.0%}) | {s['first_wrong']} ({s['first_wrong']/hw:.0%}) | "
-                      f"{s['none']} ({s['none']/hw:.0%}) | {s['any_correct']} ({s['any_correct']/hw:.0%}) | {s['lcs']} |")
+                      f"{s['none']} ({s['none']/hw:.0%}) | {s['any_correct']} ({s['any_correct']/hw:.0%}) |")
     # 额外绑定
     md.append("\n## 3. 逐录像:额外绑定(接受但不在任何目标时段内)与录制时长\n")
     md.append("| 配置 | 录像 | 卡 | 时长 s | 时段来源 | finals | 接受 | 时段内接受 | 时段内错误 | 额外 | 额外/分钟 | 额外对象 |\n|---|---|---|---|---|---|---|---|---|---|---|---|")
@@ -548,7 +558,7 @@ def main():
                 hidden[(rec, it["k"])] = (n, nh, names)
     H = {k for k, v in hidden.items() if v[1] >= max(1, v[0] // 2)}
     NH = {k for k, v in hidden.items() if v[1] == 0}
-    md.append("| 配置 | 子集 | trial | 首个正确 | 首个错误 | 无接受 | 首判=隐藏物体 | LCS |\n|---|---|---|---|---|---|---|---|")
+    md.append("| 配置 | 子集 | trial | 首个正确 | 首个错误 | 无接受 | 首判=隐藏物体 | 最长注视 不设闸 正确/错误 | 设闸 正确/错误/无 |\n|---|---|---|---|---|---|---|---|---|")
     for cfg in ("v1", "ours", "vis", "noocc", "mass10"):
         tmap = {(t["rec"], t["k"]): t for t in subset(all_trials.get(cfg, []), "main")}
         for label, keys in (("有隐藏竞争者", H), ("无隐藏竞争者", NH)):
@@ -557,8 +567,10 @@ def main():
                 continue
             c = Counter(r["outcome_first"] for r in rows)
             picked = sum(1 for r in rows if r["outcome_first"] == "wrong" and r.get("first_obj") in hidden[(r["rec"], r["k"])][2])
+            u = Counter(r.get("ungated_majority") for r in rows)
+            g = Counter(r.get("gated_majority") for r in rows)
             md.append(f"| {cfg} | {label} | {len(rows)} | {c.get('correct',0)} | {c.get('wrong',0)} | {c.get('none',0)} | {picked} | "
-                      f"{sum(r['lcs']=='hit' for r in rows)}/{len(rows)} |")
+                      f"{u.get('correct',0)}/{u.get('wrong',0)} | {g.get('correct',0)}/{g.get('wrong',0)}/{g.get('none',0)} |")
     md.append("隐藏竞争者构成:" + ", ".join(f"{n}×{c}" for n, c in Counter(n for k in H for n in hidden[k][2]).most_common(6)))
     # 配置对照
     md.append("\n## 7. 配置对照(逐 trial,主集+压力段+边走;首个接受判定的结果)\n")
@@ -574,7 +586,8 @@ def main():
         md.append(f"| {a_} \\ {b_} | correct | wrong | none |\n|---|---|---|---|")
         for oa in ("correct", "wrong", "none"):
             md.append(f"| {oa} | " + " | ".join(str(cont.get((oa, ob), 0)) for ob in ("correct", "wrong", "none")) + " |")
-        md.append(f"\nLCS 口径 hit/miss 列联:{dict(contl)}")
+        contm = Counter((ta[k].get("ungated_majority"), tb[k].get("ungated_majority")) for k in keys)
+        md.append(f"\n最长注视(不设闸)列联 {a_}×{b_}:" + ", ".join(f"{x}/{y}={n}" for (x, y), n in sorted(contm.items(), key=lambda kv: (str(kv[0][0]), str(kv[0][1])))))
         rows_cmp, cases = [], []
         for k in keys:
             x, y = ta[k], tb[k]
@@ -587,7 +600,8 @@ def main():
                    f"{a_}_best_target_cap": x.get("best_target_capture"), f"{b_}_best_target_cap": y.get("best_target_capture"),
                    f"{a_}_best_wrong_cap": x.get("best_wrong_capture"), f"{b_}_best_wrong_cap": y.get("best_wrong_capture")}
             rows_cmp.append(row)
-            if x["outcome_first"] != y["outcome_first"] or x["lcs"] != y["lcs"]:
+            if x["outcome_first"] != y["outcome_first"] or x.get("ungated_majority") != y.get("ungated_majority") \
+                    or x.get("gated_majority") != y.get("gated_majority"):
                 cases.append(row)
         for name, rows in ((f"compare_{a_}_vs_{b_}", rows_cmp), (f"cases_{a_}_vs_{b_}", cases)):
             if rows:
@@ -599,6 +613,71 @@ def main():
         by = Counter((c["tier"], c["occl"], f"{a_}={c[f'{a_}_first']}/{b_}={c[f'{b_}_first']}") for c in cases if c[f"{a_}_first"] != c[f"{b_}_first"])
         for (tier, occl, what), n in sorted(by.items(), key=lambda kv: -kv[1]):
             md.append(f"- {tier} {occl}: {what} × {n}")
+    # ---------------- Table II(顺序+最长注视口径)与 Fig.4 曲线数据
+    t2 = ["| 配置 | 说明 | 可靠129 不设闸 正确(率)/错 | 可靠129 设闸 正确(率)/错/无 | 全204 不设闸 正确(率)/错/无 | 全204 设闸 正确(率)/错/无 | 204 按档 不设闸 ≥2.5°/1–2.5°/<1° | 204 按档 设闸 | 压力段12 不设闸/设闸 | 边走15 不设闸/设闸 |",
+          "|---|---|---|---|---|---|---|---|---|---|"]
+    t2csv = []
+    tier_n = {}
+    for cfg in cfgs:
+        trs = all_trials.get(cfg, [])
+        if not trs:
+            continue
+        main = subset(trs, "main")
+        rel = [t for t in main if t["reliable"] and t.get("has_window")]
+        def C(rows, key):
+            c = Counter(t.get(key) for t in rows)
+            return c.get("correct", 0), c.get("wrong", 0), len(rows) - c.get("correct", 0) - c.get("wrong", 0)
+        ru, rg, mu, mg = C(rel, "ungated_majority"), C(rel, "gated_majority"), C(main, "ungated_majority"), C(main, "gated_majority")
+        tiers_u, tiers_g = [], []
+        for name, lo, hi in TIERS:
+            g = [t for t in main if t["tier"] == name]
+            tier_n[name] = len(g)
+            cu, cg = C(g, "ungated_majority"), C(g, "gated_majority")
+            tiers_u.append(f"{cu[0]}/{len(g)}")
+            tiers_g.append(f"{cg[0]}/{len(g)}")
+        st = subset(trs, "stress")
+        wk = subset(trs, "walking")
+        su, sg, wu, wg = C(st, "ungated_majority"), C(st, "gated_majority"), C(wk, "ungated_majority"), C(wk, "gated_majority")
+        t2.append(f"| {cfg} | {DESC.get(cfg, '')} | {ru[0]} ({ru[0]/max(len(rel),1):.0%})/{ru[1]} | {rg[0]} ({rg[0]/max(len(rel),1):.0%})/{rg[1]}/{rg[2]} | "
+                  f"{mu[0]} ({mu[0]/max(len(main),1):.0%})/{mu[1]}/{mu[2]} | {mg[0]} ({mg[0]/max(len(main),1):.0%})/{mg[1]}/{mg[2]} | "
+                  f"{' '.join(tiers_u)} | {' '.join(tiers_g)} | {su[0]}/{len(st)} · {sg[0]}/{len(st)} | {wu[0]}/{len(wk)} · {wg[0]}/{len(wk)} |")
+        t2csv.append({"config": cfg, "desc": DESC.get(cfg, ""), "rel129_ungated_correct": ru[0], "rel129_ungated_wrong": ru[1], "rel_n": len(rel),
+                      "rel129_gated_correct": rg[0], "rel129_gated_wrong": rg[1], "rel129_gated_none": rg[2],
+                      "all204_ungated_correct": mu[0], "all204_ungated_wrong": mu[1], "all204_ungated_none": mu[2],
+                      "all204_gated_correct": mg[0], "all204_gated_wrong": mg[1], "all204_gated_none": mg[2],
+                      "tier_ungated": " ".join(tiers_u), "tier_gated": " ".join(tiers_g),
+                      "stress_ungated": su[0], "stress_gated": sg[0], "stress_n": len(st), "walking_ungated": wu[0], "walking_gated": wg[0], "walking_n": len(wk)})
+    head = ("# Table II(顺序 + 时段内最长注视口径;LCS 口径已废止 09-06)\n\n"
+            "一项按卡序取其时段内累计注视最长的对象为答案;不设闸=全部判定,设闸=只算通过接受闸(0.45/1.4/0.2)的判定。"
+            "可靠129 = 口播时刻表可靠的 10 条录像;全204 = 主集全部,回退录像里没有时段的 29 项计'无'(回退窗来自卡序对齐命中段,单看有窗项会高估)。"
+            f"按档 n:{tier_n}。球投票 mode≠cone 过不了接受闸,设闸列为 0。\n\n")
+    (ROOT / "docs/E1_DATA/table2.md").write_text(head + "\n".join(t2) + "\n", encoding="utf-8")
+    with (ROOT / "docs/E1_DATA/table2.csv").open("w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=list(t2csv[0]))
+        w.writeheader()
+        w.writerows(t2csv)
+    # Fig.4 数据:ours 主集,按 θ_unit 分箱(与 collect_e1.BINS 相同),不设闸/设闸各一份
+    BINS = [0.5, 0.75, 1.0, 1.5, 2.5, 4.0, 6.0, 20.0]
+    for key, fname in (("ungated_majority", "curve_dwell.csv"), ("gated_majority", "curve_dwell_gated.csv")):
+        main = [t for t in subset(all_trials.get("ours", []), "main") if t["theta_unit"] is not None]
+        with (ROOT / "docs/E1_DATA" / fname).open("w", newline="", encoding="utf-8") as f:
+            w = csv.writer(f)
+            w.writerow(["theta_lo", "theta_hi", "n", "hits", "acc"])
+            for lo, hi in zip(BINS, BINS[1:]):
+                g = [t for t in main if lo <= float(t["theta_unit"]) < hi]
+                if g:
+                    h = sum(t.get(key) == "correct" for t in g)
+                    w.writerow([lo, hi, len(g), h, round(h / len(g), 3)])
+    with (ROOT / "docs/E1_DATA/trials_dwell.csv").open("w", newline="", encoding="utf-8") as f:
+        rows = [{"rec": t["rec"], "card": t["card"], "map": t["era"], "tags": t["flags"], "target": t["target"], "k": t["k"],
+                 "theta_deg": t["theta_unit"], "reliable": t["reliable"], "has_window": t.get("has_window", 0),
+                 "outcome_ungated": t.get("ungated_majority", "unknown"), "answer_ungated": t.get("ungated_majority_obj", ""),
+                 "outcome_gated": t.get("gated_majority", "unknown"), "answer_gated": t.get("gated_majority_obj", "")}
+                for t in all_trials.get("ours", [])]
+        w = csv.DictWriter(f, fieldnames=list(rows[0]))
+        w.writeheader()
+        w.writerows(rows)
+    md.append("\n(Table II 已写到 docs/E1_DATA/table2.md;Fig.4 数据 curve_dwell.csv / curve_dwell_gated.csv / trials_dwell.csv)")
     (out / "summary.md").write_text("\n".join(md) + "\n", encoding="utf-8")
     print("\n".join(md[:60]))
     print(f"-> {out}/summary.md")

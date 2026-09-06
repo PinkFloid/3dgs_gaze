@@ -1,0 +1,17 @@
+rec,card,era,flags,cfg,duration_s,window_src,reliable,n_items,n_items_with_window,window_cover_s,n_finals,n_obj_finals,n_acc,n_acc_in_window,n_acc_wrong_in_window,n_extra,extra_per_min,extra_objs,extra_dur_s
+2026_08_16/000,e1,v7,,v1_priors_off,129.8,lcs_ends,1,12,12,68.5,56,56,55,34,4,21,9.71,石榴:5|香蕉:5|苹果:4|球L:4|球M:3,20.8
+2026_08_16/001,e2,v7,stress,v1_priors_off,104.5,fallback_lcs_windows,0,12,6,31.8,49,49,45,17,1,28,16.08,球L:14|球M:8|球R:6,40.9
+2026_08_16/s1,s1,v7,,v1_priors_off,128.1,lcs_ends,1,15,15,87.3,42,42,42,33,1,9,4.22,球M:3|球L:3|石榴:1|球R:1|香蕉:1,9.5
+2026_08_16/s2,s2,v7,,v1_priors_off,128.5,lcs_ends,1,15,15,87.4,65,65,62,42,4,20,9.34,球M:11|球L:4|球R:3|香蕉:2,20.1
+2026_08_16/s3,s3,v7,,v1_priors_off,128.6,lcs_ends,1,15,15,87.4,47,47,45,33,2,12,5.6,球M:6|球L:5|球R:1,14.4
+2026_08_16/s4,s4,v8,,v1_priors_off,137.7,lcs_ends(B from A + version delta),1,15,15,87.4,64,64,64,46,13,18,7.84,球M:7|球R:6|球L:5,15.1
+2026_08_16/s6,s6,v8,,v1_priors_off,138.1,lcs_ends(B from A + version delta),1,15,15,87.3,81,81,79,42,9,37,16.07,球M:19|球L:10|球R:8,33.8
+2026_08_18/000,s7,v8,,v1_priors_off,136.5,lcs_ends,1,15,15,87.3,92,92,91,61,18,30,13.19,球M:21|球R:5|球L:3|纸箱子:1,18.2
+2026_08_20/000,c1,v9,,v1_priors_off,115.0,lcs_ends(B from A + version delta),1,12,12,68.2,86,86,63,39,34,24,12.52,物品台:19|水瓶:5,17.5
+2026_08_20/001,c2,v9,,v1_priors_off,134.9,fallback_lcs_windows,0,15,12,52.1,104,104,100,34,34,66,29.36,物品台:65|纸箱子:1,46.2
+2026_08_20/002,c4,v9,beyond_occ,v1_priors_off,134.7,fallback_lcs_windows,0,15,10,68.2,63,63,55,22,22,33,14.7,物品台:33,48.9
+2026_08_20/003,c4,v9,beyond_occ,v1_priors_off,135.2,fallback_lcs_windows,0,15,7,26.8,74,74,72,12,12,60,26.62,物品台:59|纸箱子:1,79.2
+2026_08_25/c1_1,c4,v9,beyond_occ,v1_priors_off,133.9,fallback_lcs_windows,0,15,8,61.6,36,36,35,14,14,21,9.41,物品台:21,52.1
+2026_08_25/c1_2,c4,v9,,v1_priors_off,133.0,lcs_ends,1,15,15,85.2,30,30,30,18,18,12,5.41,物品台:12,15.1
+2026_08_25/c1_3,c4,v9,,v1_priors_off,130.9,fallback_lcs_windows,0,15,9,75.8,38,38,36,20,20,16,7.34,物品台:16,45.3
+2026_08_25/u3,u3,v9,walking,v1_priors_off,131.8,lcs_ends,1,15,15,85.2,87,87,85,71,71,14,6.37,物品台:14,9.0

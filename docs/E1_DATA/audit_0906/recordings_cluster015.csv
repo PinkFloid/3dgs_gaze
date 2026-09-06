@@ -1,0 +1,17 @@
+rec,card,era,flags,cfg,duration_s,window_src,reliable,n_items,n_items_with_window,window_cover_s,n_finals,n_obj_finals,n_acc,n_acc_in_window,n_acc_wrong_in_window,n_extra,extra_per_min,extra_objs,extra_dur_s
+2026_08_16/000,e1,v7,,cluster015,129.8,lcs_ends,1,12,12,68.5,56,40,35,22,1,13,6.01,石榴:6|球L:3|香蕉:2|球M:1|苹果:1,19.6
+2026_08_16/001,e2,v7,stress,cluster015,104.5,fallback_lcs_windows,0,12,6,31.8,49,40,29,14,1,15,8.61,球M:9|球L:6,18.7
+2026_08_16/s1,s1,v7,,cluster015,128.1,lcs_ends,1,15,15,87.3,40,26,24,19,0,5,2.34,球M:4|球R:1,4.5
+2026_08_16/s2,s2,v7,,cluster015,128.5,lcs_ends,1,15,15,87.4,45,29,27,19,2,8,3.73,球M:4|球L:3|球R:1,17.4
+2026_08_16/s3,s3,v7,,cluster015,128.6,lcs_ends,1,15,15,87.4,47,37,36,27,1,9,4.2,球M:8|球R:1,8.4
+2026_08_16/s4,s4,v8,,cluster015,137.7,lcs_ends(B from A + version delta),1,15,15,87.4,57,55,45,35,9,10,4.36,球M:5|球L:3|球R:2,10.8
+2026_08_16/s6,s6,v8,,cluster015,138.1,lcs_ends(B from A + version delta),1,15,15,87.3,62,60,58,31,4,27,11.73,球M:12|球L:8|球R:6|石榴:1,25.6
+2026_08_18/000,s7,v8,,cluster015,136.5,lcs_ends,1,15,15,87.3,70,61,60,38,8,22,9.67,球M:17|球L:3|球R:2,18.9
+2026_08_20/000,c1,v9,,cluster015,115.0,lcs_ends(B from A + version delta),1,12,12,68.2,55,37,25,15,5,10,5.22,球L:4|球M:3|白杯1:1|水瓶:1|苹果粉:1,10.1
+2026_08_20/001,c2,v9,,cluster015,134.9,fallback_lcs_windows,0,15,12,52.1,76,58,15,5,0,10,4.45,球M:3|球R:3|球L:3|白杯2:1,8.8
+2026_08_20/002,c4,v9,beyond_occ,cluster015,134.7,fallback_lcs_windows,0,15,10,68.2,44,29,2,1,0,1,0.45,球R:1,0.4
+2026_08_20/003,c4,v9,beyond_occ,cluster015,135.2,fallback_lcs_windows,0,15,7,26.8,47,41,2,0,0,2,0.89,苹果粉:2,0.7
+2026_08_25/c1_1,c4,v9,beyond_occ,cluster015,133.9,fallback_lcs_windows,0,15,8,61.6,37,27,9,5,0,4,1.79,球L:4,14.7
+2026_08_25/c1_2,c4,v9,,cluster015,133.0,lcs_ends,1,15,15,85.2,34,23,1,1,0,0,0.0,,0
+2026_08_25/c1_3,c4,v9,,cluster015,130.9,fallback_lcs_windows,0,15,9,75.8,44,28,5,5,1,0,0.0,,0
+2026_08_25/u3,u3,v9,walking,cluster015,131.8,lcs_ends,1,15,15,85.2,71,52,39,29,4,10,4.55,球L:5|球R:3|球M:2,7.2
