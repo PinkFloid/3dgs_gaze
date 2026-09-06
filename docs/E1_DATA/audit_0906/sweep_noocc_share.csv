@@ -1,0 +1,11 @@
+cfg,score,thr,n,coverage,correct,wrong,acc_covered
+noocc,share,0.2,175,0.874,129,24,0.843
+noocc,share,0.3,175,0.766,112,22,0.836
+noocc,share,0.35,175,0.737,108,21,0.837
+noocc,share,0.4,175,0.697,102,20,0.836
+noocc,share,0.45,175,0.691,101,20,0.835
+noocc,share,0.5,175,0.686,99,21,0.825
+noocc,share,0.6,175,0.646,95,18,0.841
+noocc,share,0.7,175,0.64,93,19,0.83
+noocc,share,0.8,175,0.617,91,17,0.843
+noocc,share,0.9,175,0.509,77,12,0.865

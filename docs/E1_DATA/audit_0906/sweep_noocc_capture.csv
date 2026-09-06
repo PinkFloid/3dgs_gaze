@@ -1,0 +1,11 @@
+cfg,score,thr,n,coverage,correct,wrong,acc_covered
+noocc,capture,0.05,175,0.943,145,20,0.879
+noocc,capture,0.1,175,0.92,142,19,0.882
+noocc,capture,0.15,175,0.903,139,19,0.88
+noocc,capture,0.2,175,0.869,133,19,0.875
+noocc,capture,0.3,175,0.851,130,19,0.872
+noocc,capture,0.4,175,0.84,128,19,0.871
+noocc,capture,0.5,175,0.8,121,19,0.864
+noocc,capture,0.6,175,0.674,102,16,0.864
+noocc,capture,0.8,175,0.606,91,15,0.858
+noocc,capture,1.0,175,0.411,65,7,0.903

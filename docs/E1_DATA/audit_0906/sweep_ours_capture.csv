@@ -1,0 +1,11 @@
+cfg,score,thr,n,coverage,correct,wrong,acc_covered
+ours,capture,0.05,175,0.937,147,17,0.896
+ours,capture,0.1,175,0.909,141,18,0.887
+ours,capture,0.15,175,0.874,135,18,0.882
+ours,capture,0.2,175,0.834,128,18,0.877
+ours,capture,0.3,175,0.783,120,17,0.876
+ours,capture,0.4,175,0.726,112,15,0.882
+ours,capture,0.5,175,0.68,104,15,0.874
+ours,capture,0.6,175,0.594,88,16,0.846
+ours,capture,0.8,175,0.423,65,9,0.878
+ours,capture,1.0,175,0.24,37,5,0.881

@@ -1,0 +1,18 @@
+rec,k,target,tier,occl,flags,theta_unit,dist_m,reliable,v2s15_first,v2s15_obj,v2s15_cap,v2s15_share,v2s15_A,v2s15_any,v2s15_lcs,mass15_first,mass15_obj,mass15_cap,mass15_share,mass15_A,mass15_any,mass15_lcs,v2s15_best_target_cap,mass15_best_target_cap,v2s15_best_wrong_cap,mass15_best_wrong_cap
+2026_08_16/001,2,球R,1.0–2.5°,occluded(front-capture),stress,1.56,3.31,0,wrong,球L,0.661,0.433,0.443,mixed,hit,correct,球R,0.996,0.643,0.364,correct_only,hit,0.996,0.996,0.661,0.661
+2026_08_16/001,6,香蕉,1.0–2.5°,occluded(front-capture),stress,1.38,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,hit,,,,
+2026_08_16/001,9,香蕉,1.0–2.5°,occluded(front-capture),stress,1.38,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,hit,,,,
+2026_08_16/s2,14,球L,≥2.5°,clear,,2.85,2.47,1,correct,球L,0.728,0.447,0.359,correct_only,hit,wrong,香蕉,0.238,0.67,1.076,mixed,hit,0.77,0.77,0.256,0.238
+2026_08_18/000,8,球R,1.0–2.5°,clear,,2.19,3.08,1,wrong,球M,0.818,0.648,0.523,wrong_only,hit,wrong,球M,0.818,0.648,0.523,wrong_only,miss,,,0.974,0.974
+2026_08_18/000,9,球R,1.0–2.5°,clear,,2.19,3.26,1,correct,球R,0.697,0.469,0.895,mixed,miss,wrong,球M,0.624,0.524,1.117,wrong_only,miss,0.697,,0.482,0.624
+2026_08_20/000,5,白杯1,1.0–2.5°,clear,,1.84,2.3,1,correct,白杯1,0.663,0.375,0.842,correct_only,miss,correct,白杯1,0.734,0.398,1.173,correct_only,hit,0.663,0.734,0.863,0.567
+2026_08_20/000,6,水瓶,<1.0°,clear,,0.41,2.3,1,wrong,球M,1.205,0.615,0.079,wrong_only,miss,wrong,白杯1,0.785,0.398,1.232,mixed,hit,,0.563,1.205,1.205
+2026_08_20/001,7,球M,<1.0°,clear,,0.89,3.27,0,none,,,,,none,hit,none,,,,,none,miss,1.598,1.598,,0.265
+2026_08_20/001,12,白杯2,,clear,,,3.27,0,none,,,,,none,miss,correct,白杯2,0.929,0.374,1.322,correct_only,hit,,0.929,1.228,
+2026_08_20/001,13,白杯2,,clear,,,3.27,0,none,,,,,none,miss,correct,白杯2,0.929,0.374,1.322,correct_only,miss,,0.929,1.228,
+2026_08_20/003,15,球R,<1.0°,occluded(beyond limit),beyond_occ,0.63,4.35,0,none,,,,,none,hit,none,,,,,none,miss,0.452,,,0.119
+2026_08_25/c1_1,4,球M,<1.0°,occluded(beyond limit),beyond_occ,0.68,,0,unknown,,,,,unknown,miss,unknown,,,,,unknown,hit,,,,
+2026_08_25/c1_1,6,球L,<1.0°,occluded(beyond limit),beyond_occ,0.92,4.12,0,none,,,,,none,miss,none,,,,,none,hit,0.178,0.178,,
+2026_08_25/c1_1,10,球M,<1.0°,occluded(beyond limit),beyond_occ,0.68,4.18,0,none,,,,,none,hit,none,,,,,none,miss,,,0.344,0.344
+2026_08_25/c1_1,14,球M,<1.0°,occluded(beyond limit),beyond_occ,0.68,4.19,0,none,,,,,none,hit,none,,,,,none,miss,1.012,,,0.205
+2026_08_25/c1_3,14,球M,<1.0°,clear,,0.77,3.72,0,none,,,,,none,hit,none,,,,,none,miss,1.527,,,0.351

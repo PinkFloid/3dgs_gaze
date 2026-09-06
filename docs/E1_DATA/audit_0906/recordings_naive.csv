@@ -1,0 +1,17 @@
+rec,card,era,flags,cfg,duration_s,window_src,reliable,n_items,n_items_with_window,window_cover_s,n_finals,n_obj_finals,n_acc,n_acc_in_window,n_acc_wrong_in_window,n_extra,extra_per_min,extra_objs,extra_dur_s
+2026_08_16/000,e1,v7,,naive,129.8,lcs_ends,1,12,12,68.5,56,56,55,34,4,21,9.71,石榴:5|香蕉:5|苹果:4|球L:4|球M:3,20.8
+2026_08_16/001,e2,v7,stress,naive,104.5,fallback_lcs_windows,0,12,6,31.8,49,49,45,17,5,28,16.08,球L:14|球R:6|香蕉:4|球M:2|background:2,40.9
+2026_08_16/s1,s1,v7,,naive,128.1,lcs_ends,1,15,15,87.3,42,42,42,33,0,9,4.22,球M:4|球L:3|石榴:1|球R:1,9.5
+2026_08_16/s2,s2,v7,,naive,128.5,lcs_ends,1,15,15,87.4,65,65,63,42,3,21,9.8,球M:11|球L:5|球R:3|香蕉:2,21.0
+2026_08_16/s3,s3,v7,,naive,128.6,lcs_ends,1,15,15,87.4,47,47,47,35,7,12,5.6,球L:5|球M:4|background:1|香蕉:1|球R:1,14.4
+2026_08_16/s4,s4,v8,,naive,137.7,lcs_ends(B from A + version delta),1,15,15,87.4,64,64,64,46,14,18,7.84,球M:7|球R:6|球L:5,15.1
+2026_08_16/s6,s6,v8,,naive,138.1,lcs_ends(B from A + version delta),1,15,15,87.3,81,81,80,42,19,38,16.51,球M:16|球R:12|香蕉:8|球L:2,34.2
+2026_08_18/000,s7,v8,,naive,136.5,lcs_ends,1,15,15,87.3,92,92,91,61,34,30,13.19,球L:15|球M:8|球R:6|background:1,18.2
+2026_08_20/000,c1,v9,,naive,115.0,lcs_ends(B from A + version delta),1,12,12,68.2,86,86,82,50,34,32,16.69,球L:10|球R:9|球M:7|水瓶:3|物品台:3,22.9
+2026_08_20/001,c2,v9,,naive,134.9,fallback_lcs_windows,0,15,12,52.1,104,104,102,35,18,67,29.8,球L:20|球R:19|球M:14|物品台:12|白杯2:1|background:1,46.5
+2026_08_20/002,c4,v9,beyond_occ,naive,134.7,fallback_lcs_windows,0,15,10,68.2,63,63,55,22,5,33,14.7,球L:28|物品台:5,48.9
+2026_08_20/003,c4,v9,beyond_occ,naive,135.2,fallback_lcs_windows,0,15,7,26.8,74,74,72,12,2,60,26.62,球L:59|background:1,79.2
+2026_08_25/c1_1,c4,v9,beyond_occ,naive,133.9,fallback_lcs_windows,0,15,8,61.6,36,36,35,14,8,21,9.41,球L:16|物品台:5,52.1
+2026_08_25/c1_2,c4,v9,,naive,133.0,lcs_ends,1,15,15,85.2,30,30,30,18,15,12,5.41,物品台:8|球L:3|background:1,15.1
+2026_08_25/c1_3,c4,v9,,naive,130.9,fallback_lcs_windows,0,15,9,75.8,38,38,38,21,11,17,7.79,球L:14|物品台:3,46.0
+2026_08_25/u3,u3,v9,walking,naive,131.8,lcs_ends,1,15,15,85.2,87,87,85,71,34,14,6.37,物品台:6|球R:5|球M:2|球L:1,9.0

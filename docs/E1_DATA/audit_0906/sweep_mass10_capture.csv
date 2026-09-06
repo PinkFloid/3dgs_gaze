@@ -1,0 +1,11 @@
+cfg,score,thr,n,coverage,correct,wrong,acc_covered
+mass10,capture,0.05,175,0.937,147,17,0.896
+mass10,capture,0.1,175,0.909,141,18,0.887
+mass10,capture,0.15,175,0.874,135,18,0.882
+mass10,capture,0.2,175,0.834,128,18,0.877
+mass10,capture,0.3,175,0.777,120,16,0.882
+mass10,capture,0.4,175,0.72,111,15,0.881
+mass10,capture,0.5,175,0.674,104,14,0.881
+mass10,capture,0.6,175,0.589,87,16,0.845
+mass10,capture,0.8,175,0.417,64,9,0.877
+mass10,capture,1.0,175,0.234,36,5,0.878
