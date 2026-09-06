@@ -39,3 +39,5 @@ __MACOSX/
 
 # 原始照片(建图输入,源头另有备份,不进库)
 imgs/
+lab_result/archive_map_v9/segmentation_sam/thumbs/
+lab_result/archive_map_v9/segmentation_sam/preview/
