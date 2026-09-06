@@ -450,13 +450,13 @@ v2_near,v2,新房,v10,1.26m α+23°,,网球L,hit,7.76,unit,1.0,6.7,1.39
 v2_near,v2,新房,v10,1.26m α+23°,,网球M,hit,5.91,unit,0.86,6.9,1.37
 v2_near,v2,新房,v10,1.26m α+23°,,网球L,hit,7.76,unit,1.0,7.9,1.39
 v2_near_p2,v2,新房,v10,1.05m α-25°,p2,网球M,hit,5.56,unit,1.0,1.0,0.98
-v2_near_p2,v2,新房,v10,1.05m α-25°,p2,网球R,miss,5.16,unit,,,
-v2_near_p2,v2,新房,v10,1.05m α-25°,p2,网球L,miss,6.29,unit,,,
+v2_near_p2,v2,新房,v10,1.05m α-25°,exec_error|p2,网球R,miss,5.16,unit,,,
+v2_near_p2,v2,新房,v10,1.05m α-25°,exec_error|p2,网球L,miss,6.29,unit,,,
 v2_near_p2,v2,新房,v10,1.05m α-25°,p2,网球M,extra,5.56,unit,1.0,6.5,1.01
 v2_near_p2,v2,新房,v10,1.05m α-25°,p2,网球R,hit,5.16,unit,1.0,6.4,1.1
 v2_near_p2,v2,新房,v10,1.05m α-25°,p2,网球L,hit,6.29,unit,1.0,10.8,0.95
 v2_near_p2,v2,新房,v10,1.05m α-25°,p2,网球M,hit,5.56,unit,1.0,6.8,0.99
-v2_near_p2,v2,新房,v10,1.05m α-25°,p2,网球R,miss,5.16,unit,,,
+v2_near_p2,v2,新房,v10,1.05m α-25°,exec_error|p2,网球R,miss,5.16,unit,,,
 v2_near_p2,v2,新房,v10,1.05m α-25°,p2,网球L,extra,6.29,unit,1.0,6.0,0.9
 v2_near_p2,v2,新房,v10,1.05m α-25°,p2,网球M,hit,5.555,station,1.0,7.4,1.0
 v2_near_p2,v2,新房,v10,1.05m α-25°,p2,网球M,hit,5.555,station,1.0,7.4,1.0

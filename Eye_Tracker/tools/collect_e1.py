@@ -23,6 +23,7 @@ R = Path("/home/liuchy/recordings")
 
 # (csv 路径, 卡, 房间, 地图, 站位描述, 标签集)
 # 标签:stress=前排俘获压力段(不进主曲线);beyond_occ=超物理遮挡极限(进曲线,单独标记)
+# drop=2|3|7 = 按展开后的 trial 序号打 exec_error(参与者执行错,不进主曲线);
 # occ=甲|乙 = 目标级遮挡:该录像里目标为甲/乙的 trial 打 beyond_occ(其余目标不打),用于同一站位只有第二排被挡的情形
 RECS = [
     (R/"2026_08_16/000/e1_score.csv", "e1", "老房", "v7", "1.4-1.7m 正对", set()),
@@ -52,7 +53,8 @@ RECS = [
     (R/"2026_09_07/p1_v4/v4_score.csv",        "v4", "新房", "v10", "2.2m 边走", {"walking", "p1"}),
     (R/"2026_09_07/v1_near/v1_score.csv",      "v1", "新房", "v10", "1.34m α-17°", set()),
     (R/"2026_09_07/v2_near/v2_score.csv",      "v2", "新房", "v10", "1.26m α+23°", set()),
-    (R/"2026_09_07/v2_near_p2/v2_score.csv",   "v2", "新房", "v10", "1.05m α-25°", {"p2"}),
+    # p2 第 2/3/7 项盯错球(系统以票面 1.0 绑到实际注视的球):参与者执行错,标 exec_error 不进主曲线(09-07 用户裁定)
+    (R/"2026_09_07/v2_near_p2/v2_score.csv",   "v2", "新房", "v10", "1.05m α-25°", {"p2", "drop=2|3|7"}),
     # 目标级遮挡标签(09-07):正对 2.99 m 时第二排目标按"可见高度比 <50%"判遮挡(v10 地图几何,眼高 1.55 m:
     # 香蕉在苹果红后 0%、橘子在白杯1后 18%、白杯2在网球R后 45%;苹果粉在网球L后 100% 不标);v6_mid 1.80 m 全部 ≥65% 不标
     (R/"2026_09_07/v6_far/v6_score.csv",       "v6", "新房", "v10", "2.99m 正对", {"occ=香蕉|橘子|白杯2"}),
@@ -76,7 +78,12 @@ def unit_rows(csv_path, card, room, mapv, station, tags):
     for t in tags:
         if t.startswith("occ="):
             occ_targets |= set(t[4:].split("|"))
-    base_tags = {t for t in tags if not t.startswith("occ=")}
+    drop_idx = set()
+    for t in tags:
+        if t.startswith("drop="):
+            drop_idx |= {int(x) for x in t[5:].split("|")}
+    base_tags = {t for t in tags if not t.startswith(("occ=", "drop="))}
+    idx = 0
     for r in csv.DictReader(csv_path.open(encoding="utf-8")):
         v = r["verdict"]
         m = re.match(r"^(.*?)(?:×(\d+))?$", r["want"])
@@ -97,6 +104,9 @@ def unit_rows(csv_path, card, room, mapv, station, tags):
         th = r["theta_min_deg"]
         for i in range(k):
             hit = i < credit
+            idx += 1
+            if idx in drop_idx:
+                base = dict(base, tags="|".join(sorted(row_tags | {"exec_error"})))
             if tu:  # 结果盲:同一(录像,目标)单元的 trial 共用 θ_unit,与命中无关
                 rows.append(dict(base, outcome="hit" if hit else "miss", theta_deg=tu, theta_src="unit"))
             else:   # 旧 CSV 兜底:命中行用注视 θ,漏掉的用录像中位(横轴与结果挂钩,勿用于终稿)
@@ -122,7 +132,7 @@ def main():
         w.writerows(all_rows)
 
     trials = [r for r in all_rows if r["outcome"] in ("hit", "miss")
-              and not ({"stress", "walking"} & set(r["tags"].split("|")))
+              and not ({"stress", "walking", "exec_error"} & set(r["tags"].split("|")))
               and r["theta_deg"] != ""]
     th = np.array([float(r["theta_deg"]) for r in trials])
     ok = np.array([r["outcome"] == "hit" for r in trials])

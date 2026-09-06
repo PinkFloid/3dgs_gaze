@@ -40,7 +40,7 @@ def wilson(hits: int, n: int) -> tuple[float, float]:
 def load_bins():
     trials = [r for r in csv.DictReader((DATA / "trials.csv").open(encoding="utf-8"))
               if r["outcome"] in ("hit", "miss")
-              and not ({"stress", "walking"} & set(r["tags"].split("|")))   # 主集口径,与 collect_e1 一致
+              and not ({"stress", "walking", "exec_error"} & set(r["tags"].split("|")))   # 主集口径,与 collect_e1 一致
               and r["theta_deg"]]
     th = np.array([float(r["theta_deg"]) for r in trials])
     ok = np.array([r["outcome"] == "hit" for r in trials])
@@ -127,7 +127,7 @@ def main():
     print(f"total {n} trials, {h} hits ({h/n:.1%})")
     # 正文 TBD{E1-far} 的清晰/遮挡拆分(beyond_occ 逐 trial 标签;θ<1° 含首箱以下的 trial)
     main = [r for r in csv.DictReader((DATA / "trials.csv").open(encoding="utf-8"))
-            if r["outcome"] in ("hit", "miss") and not ({"stress", "walking"} & set(r["tags"].split("|"))) and r["theta_deg"]]
+            if r["outcome"] in ("hit", "miss") and not ({"stress", "walking", "exec_error"} & set(r["tags"].split("|"))) and r["theta_deg"]]
     below = [r for r in main if float(r["theta_deg"]) < BINS[0]]
     print(f"main set {len(main)} trials; {len(below)} below first bin ({BINS[0]}°), not drawn: "
           + ", ".join(f"{r['rec']}/{r['target']}/{r['outcome']}" for r in below))
