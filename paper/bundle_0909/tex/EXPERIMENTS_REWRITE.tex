@@ -1,0 +1,153 @@
+% EXPERIMENTS — lean version 2026-09-07 (results -> conclusion; no explanatory prose).
+% Numbers: E1/E2/E3 = 327-trial main set (docs/E1_RESULTS.md, curve.csv);
+% E4 = 204-trial frozen subset (docs/E1_DATA/table2.md). \TBD{} = still pending.
+\section{Experiments}
+\label{sec:experiments}
+
+E1 measures gaze-to-instance binding accuracy against angular
+separation; E4 switches off each mechanism of
+Sec.~\ref{sec:method} in bit-exact replay; E2/E3 run the full loop
+on the robot, in and out of view of the target.
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=0.96\textwidth]{Figures/fig_story.pdf}
+    \caption{End-to-end interactions. (a) ``Pick this up'' / ``Hand it
+    to me.'' (b) ``Pick up this apple and put it here,'' destination
+    given by a second fixation. Yellow crosses: measured gaze; green
+    boxes: bound instances; orange: placement destination.}
+    \label{fig:story}
+\end{figure*}
+
+\subsection{Setup}
+\label{sec:experimental_setup}
+
+\textbf{Platform.} Pupil Core eye tracker; Unitree B2 quadruped with
+an arm; iPhone 16 Pro Max for mapping; RTX 4090 workstation.
+Speech: faster-whisper (word timestamps) and GPT-5 mini slot parsing.
+
+\textbf{Maps.} One room, four independently arranged and mapped
+layouts (78--144 photos; the two latest maps hold 259 and 64
+instances, 13 and 11 named), including three identical tennis balls,
+two identical white cups, and other everyday items a few centimeters
+apart. No object carries a marker.
+
+\textbf{Wearers.} Three; recalibration after every donning
+(accuracy $0.8$--$1.1^\circ$). $\sigma=1^\circ$ throughout; E4
+sweeps it.
+
+\textbf{Protocol.} Pre-registered cards of 12--15 named targets,
+each fixated 2--3\,s from a fixed station (\TBD{n-stations} stations,
+$1.0$--$4.6$\,m). $\theta$ = minimum angular separation between the
+target and any other named instance, computed from the median head
+pose and the map, independent of outcome
+($0.1$--$24^\circ$). Four recordings while walking laterally.
+
+\textbf{Scoring.} Frozen resolver, offline replay; same-instance
+outputs within $1.2$\,s merged, segments under $1.0$\,s dropped; the
+longest-fixated instance in a target's slot is the prediction and
+must match in sequence.
+
+\textbf{Data hygiene.} All 330 static trials are reported except
+three in which the wearer fixated the wrong ball (the system bound
+the fixated ball). Two earlier recordings (30 trials) were dropped
+for instrumentation faults before scoring (localization dead zone;
+cart displaced $5.8$\,cm). Two pre-registered settings changed before
+the final runs and are reported as run (table prior set to zero;
+re-layout batch replaced by the four maps). The first author
+performed 90\% of gaze trials; 39 robot trials, 20 with full logs.
+
+\subsection{E1: Accuracy versus Angular Separation}
+\label{sec:disambiguation_results}
+
+Fig.~\ref{fig:theta}: $\theta\ge2.5^\circ$, 151/154 ($98.1\%$);
+$1^\circ\le\theta<2.5^\circ$, 77/88 ($87.5\%$); $\theta<1^\circ$
+with a clear sightline, 26/37 ($70.3\%$, CI $[54, 83]$); $\theta<1^\circ$
+with the target physically occluded, 16/48 ($33.3\%$, CI $[22, 48]$;
+chance $33\%$). Walking: 56/57 over four recordings. Second and
+third wearers: 15/15 and 12/12.
+
+Accuracy is governed by $\theta$ relative to the calibrated $\sigma$,
+with the knee at $1$--$2.5^\circ$; below $\sigma$ the collapse to
+chance occurs only when the target is occluded, so it is a
+visibility limit of the scene, not a precision limit of the gaze
+channel.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{Figures/fig_theta.pdf}
+    \caption{Top-1 binding accuracy vs.\ $\theta$ (327 static trials,
+    Wilson 95\% CIs, bin sizes annotated). Dash-dotted: calibrated
+    $\sigma\approx1^\circ$; shaded: target physically occluded from
+    the station; dotted: three-candidate chance.}
+    \label{fig:theta}
+\end{figure}
+
+\subsection{E2, E3: End-to-End Retrieval}
+\label{sec:end_to_end_results}
+
+36/39 trials succeeded ($92\%$): gaze-resolved deictic references
+28/30, category names 8/9, placements 2/2; both identical-cup
+trials correct. Failures: wearer fixated a neighboring instance
+(2), no binding above threshold, robot refused (1). Target-matched
+pairs: 7/8 with the target in the robot's view, 7/8 starting outside
+the room. Timing: accepted order to delivery $5.4$\,s median
+($n{=}14$, IQR $5.3$--$7.4$); speech end to dispatch $2.2$\,s
+(cached parse) / $5.0$\,s (cold LLM); emergency stop \TBD{sys-estop}.
+
+Resolution is complete in the map before the robot moves; whether
+the robot can see the target does not change the outcome.
+
+\subsection{E4: Replay Ablations}
+\label{sec:ablation_results}
+
+Table~\ref{tab:ablations} (204-trial frozen subset; bins
+$n=58/66/78$, walking $n=15$): removing directional uncertainty
+(near-single ray) drops 166$\to$102 and walking 14$\to$3; removing
+visible-surface voting (sphere) drops the sub-$\sigma$ bin 50$\to$15;
+admitting places or all instances as candidates drops to 144 and 39
+and walking to 2/15 and 2/15. Angular clustering ($+7$ sub-$\sigma$),
+area normalization ($-1$ hit, fewer extra bindings) and the
+interactability prior (hard bin and walking only) are refinements.
+
+Fig.~\ref{fig:sigma}, $\sigma$ sweep: $1$--$2.5^\circ$ bin
+29/42/58/58/47/26 of 66 and sub-$\sigma$ bin 23/34/50/38/27/15 of 78
+for $\sigma=0.2/0.5/1/1.5/2.5/4^\circ$. The optimum is the calibrated
+width.
+
+\begin{table}[t]
+    \centering
+    \caption{Replay ablations, 204-trial frozen subset: correct
+    bindings / trials. Each row restores the design the mechanism
+    replaced; $\sigma=1^\circ$ unless stated. Last two rows on the v1
+    resolver (full v1: 144, 58/66, 29/78, 11/15).}
+    \label{tab:ablations}
+    \scriptsize
+    \setlength{\tabcolsep}{3pt}
+    \renewcommand{\arraystretch}{1.15}
+    \begin{tabular}{llcccc}
+        \hline
+        Variant & Mechanism removed & All & $1$--$2.5^\circ$ & $<1^\circ$ & Walk \\
+        \hline
+        \textbf{Full method} & --- & \textbf{166}/204 & \textbf{58}/66 & \textbf{50}/78 & \textbf{14}/15 \\
+        Near-single ray ($\sigma{=}0.2^\circ$) & directional uncertainty & 102 & 29 & 23 & 3 \\
+        Sphere voting & visible-surface voting & 120 & 49 & 15 & 9 \\
+        Nearest centroid ($0.35$\,m) & the map query itself & 117 & 46 & 15 & 9 \\
+        Places as candidates & named-only candidate set & 144 & 50 & 36 & 2 \\
+        Metric-radius clustering & angular fixation clustering & 160 & 58 & 43 & 14 \\
+        Mass ranking & area-normalized posterior & 165 & 59 & 48 & 12 \\
+        \hline
+        All instances bindable (v1) & vocabulary filter & 39 & 9 & 3 & 2 \\
+        Prior off (v1) & interactability prior & 100 & 39 & 6 & 0 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{Figures/fig_sigma_tiers.pdf}
+    \caption{Cone width $\sigma$ swept with all else fixed (204-trial
+    frozen subset), per $\theta$ tier; dashed: fraction of fixation
+    events with a verdict.}
+    \label{fig:sigma}
+\end{figure}

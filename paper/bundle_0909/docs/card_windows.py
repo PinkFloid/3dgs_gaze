@@ -40,10 +40,7 @@ R = Path("/home/liuchy/recordings")
 AUDIO = ROOT / "docs/e1_audio"
 CALIB = ROOT / "SceneRebuild/Calibration_result/world_camera_calibration.npz"
 ENV = {"v7": ROOT / "SceneRebuild/archive_envs/v7", "v8": ROOT / "SceneRebuild/archive_envs/v8",
-       "v9": ROOT / "SceneRebuild/archive_envs/v9_rec",
-       "v10": ROOT / "SceneRebuild/lab_result/archive_map_v10/segmentation_sam",  # 09-07 v11 上线后 v10 归档
-       "v11": ROOT / "SceneRebuild/lab_result/segmentation_sam"}
-LOG_OF_ERA = {"v10": "intents.jsonl", "v11": "intents.jsonl"}  # v10/v11 录像直接用现行 v2 管线的回放日志
+       "v9": ROOT / "SceneRebuild/archive_envs/v9_rec"}
 # rec, card, era, flags(与 collect_e1.RECS / run_e4.sh 同源;u1 为剔除条,一并标注但标 excluded)
 OLD_AUDIO = {"2026_08_16/000", "2026_08_16/001", "2026_08_16/s1", "2026_08_16/s2", "2026_08_16/s3"}  # 17:55 前旧版口播(无校准块)
 RECS = [("2026_08_16/000", "e1", "v7", ""), ("2026_08_16/001", "e2", "v7", "stress"),
@@ -53,14 +50,7 @@ RECS = [("2026_08_16/000", "e1", "v7", ""), ("2026_08_16/001", "e2", "v7", "stre
         ("2026_08_20/002", "c4", "v9", "beyond_occ"), ("2026_08_20/003", "c4", "v9", "beyond_occ"),
         ("2026_08_25/c1_1", "c4", "v9", "beyond_occ"), ("2026_08_25/c1_2", "c4", "v9", ""),
         ("2026_08_25/c1_3", "c4", "v9", ""), ("2026_08_25/u3", "u3", "v9", "walking"),
-        ("2026_08_25/u1", "u1", "v9", "excluded"),
-        # 09-06/07 v10 补录(口播 v1–v6.wav 新版结构,含校准块)
-        ("2026_09_06/v1", "v1", "v10", ""), ("2026_09_06/v2", "v2", "v10", ""),
-        ("2026_09_07/p1_v1", "v1", "v10", "p1"), ("2026_09_07/v4", "v4", "v10", "walking"),
-        ("2026_09_07/p1_v4", "v4", "v10", "walking|p1"), ("2026_09_07/v1_near", "v1", "v10", ""),
-        ("2026_09_07/v2_near", "v2", "v10", ""), ("2026_09_07/v2_near_p2", "v2", "v10", "p2"),
-        ("2026_09_07/v6_far", "v6", "v10", ""), ("2026_09_07/v6_mid", "v6", "v10", ""),
-        ("2026_09_07/v6_near", "v6", "v10", ""), ("2026_09_07/v6_move", "v6", "v10", "walking")]
+        ("2026_08_25/u1", "u1", "v9", "excluded")]
 STARE, GAP, BEEP = 2.8, 1.5, 0.16
 POST = 0.5   # 叮后宽限(眼比耳慢半拍)
 OPEN_STARE, CAL_STARE, END_STARE = 5.2, 3.4, 3.2
@@ -229,7 +219,6 @@ def main():
         if a.only and rec not in a.only.split(","):
             continue
         rd = R / rec
-        log = LOG_OF_ERA.get(era, a.log)
         info = json.loads((rd / "info.player.json").read_text())
         t_rec0 = float(info["start_time_synced_s"])
         items, marks, b = schedule(card)
@@ -237,7 +226,7 @@ def main():
         L_calib = marks["calib_beep"] - items[mid - 1]["beep"] - 0.5   # 校准块时长(旧版音频无此块)
         old_audio = rec in OLD_AUDIO
         d_version = -L_calib if old_audio else 0.0
-        ends = lcs_episode_ends(rd, log, card, era, items) if (rd / log).exists() else {}
+        ends = lcs_episode_ends(rd, a.log, card, era, items) if (rd / a.log).exists() else {}
         tauA, nA, madA, resA = fit_half(items, ends, "A")
         tauB, nB, madB, resB = fit_half(items, ends, "B")
         okA = tauA is not None and nA >= 4 and madA <= 0.8
@@ -253,10 +242,10 @@ def main():
         sA = cA = sB = cB = 0.0
         # 校验:Pupil 自带注视 / 本管线 final 流
         pf = []  # Pupil 自带 fixations.pldata 全是固定 304ms 段,无校验价值
-        fin = E.finals(rd / log) if (rd / log).exists() else []
+        fin = E.finals(rd / a.log) if (rd / a.log).exists() else []
         fin_any = []
-        if (rd / log).exists():
-            for ln in (rd / log).open(encoding="utf-8"):
+        if (rd / a.log).exists():
+            for ln in (rd / a.log).open(encoding="utf-8"):
                 try:
                     e = json.loads(ln)
                 except Exception:
