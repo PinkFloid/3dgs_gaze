@@ -300,7 +300,8 @@ class VoiceReader:
             en_vocab = sorted({gloss(v) for v in vocab[:40]})
             prompt = ("Robot commands. Vocabulary: " + ", ".join(en_vocab)
                       + "; bring me this, grab this, pick this up, go there, put it here, "
-                      "put it on the table, give it to me, come here, come back, stop.")
+                      "put it on the table, put it in the box, give it to me, bring it to me, take it to me, "
+                      "hand it to me, bring it here, come here, come back, stop.")
         else:
             prompt = ("机器人指令。词表:" + "、".join(vocab[:40])
                       + "、拿一下这个、把这个拿来、抓这个、去这里拿、"

@@ -80,12 +80,25 @@ _ASR_HEAD = (("麻衣下", "拿一下"), ("那一下", "拿一下"), ("麻一下
 # 句中同音错字(head 表只管句首):实测「把这个网球拿给我」→"往球",LLM 直接懵。
 # 只收指令域内无歧义的替换,实测一个加一个。
 _ASR_SUBS = (("往球", "网球"), ("王球", "网球"))
+# 英文听岔(whisper small,09-07 实测):"take it to me" -> "take care to me"
+_ASR_SUBS_EN = (("take care to me", "take it to me"), ("take care of me", "take it to me"),
+                ("bring me to me", "bring it to me"), ("hand me to me", "hand it to me"),
+                # "ball" 被听成 "table"(09-08 实测 "Grab this table."):拿类动词后面的 this table 没有意义,改回 ball
+                ("grab this table", "grab this ball"), ("bring me this table", "bring me this ball"),
+                ("take this table", "take this ball"), ("get this table", "get this ball"),
+                ("pick up this table", "pick up this ball"), ("fetch this table", "fetch this ball"),
+                ("grab the table", "grab the ball"), ("bring me the table", "bring me the ball"),
+                # "on the table" 被听成 "in the table"(09-08 实测两次)
+                ("put it in the table", "put it on the table"), ("put it into the table", "put it on the table"))
 
 
 def norm_cmd(text: str) -> str:
     t = text.strip(_STRIP).lower()
     for bad, good in _ASR_SUBS:
         t = t.replace(bad, good)
+    if t.isascii():
+        for bad, good in _ASR_SUBS_EN:
+            t = t.replace(bad, good)
     for bad, good in _ASR_HEAD:
         if t.startswith(bad):
             t = good + t[len(bad):]
@@ -209,9 +222,37 @@ class CommandParser:
             "'put it here/there', 'put it down here', 'put it on the table' = placement (the\n"
             "dog already holds something): object_* empty, dest_deictic=true or\n"
             "dest_query=table name; 'give it to me / hand it over / bring it here' with no\n"
-            "object = action=goto, to_user=true; 'come here / come back / come to me' =\n"
+            "object = action=goto, to_user=true (also 'bring it to me', 'take it to me', 'bring it here');\n"
+            "'come here / come back / come to me' =\n"
             "goto, to_user=true; 'go there / go over there' = goto, place_deictic=true;\n"
             "'stop' = stop.\n")
+
+    _sess = None
+
+    def _session(self):
+        """进程级长连接(requests.Session,读 env 代理);没有 requests 时返回 None 走 urllib。"""
+        if CommandParser._sess is None:
+            try:
+                import requests
+                CommandParser._sess = requests.Session()
+            except Exception:
+                CommandParser._sess = False
+        return CommandParser._sess or None
+
+    def warm(self):
+        """启动时后台把隧道先握好手,第一句冷调用不再付握手;失败无害。"""
+        if self.mode != "on" or not self.key:
+            return
+        import threading
+
+        def _w():
+            try:
+                sess = self._session()
+                if sess is not None:
+                    sess.get("https://api.openai.com/v1/models", headers={"Authorization": f"Bearer {self.key}"}, timeout=15)
+            except Exception:
+                pass
+        threading.Thread(target=_w, daemon=True).start()
 
     def _call_api(self, text, key):
         t0 = time.time()
@@ -224,13 +265,21 @@ class CommandParser:
                                 "json_schema": {"name": "robot_command", "strict": True,
                                                 "schema": PARSE_SCHEMA}},
         }).encode()
-        req = urllib.request.Request(
-            "https://api.openai.com/v1/chat/completions", data=body,
-            headers={"Content-Type": "application/json",
-                     "Authorization": f"Bearer {self.key}"})
+        headers = {"Content-Type": "application/json", "Authorization": f"Bearer {self.key}"}
         try:
-            with urllib.request.urlopen(req, timeout=20) as r:
-                resp = json.loads(r.read())
+            # 复用同一条 TLS 连接(经代理的 CONNECT 隧道也保活):手机热点+代理实测握手 1.5–5 s,
+            # 每次新建连接就白付一次;requests.Session 保活后第二次起省掉这段(09-07 实测 3.4→1.7 s)
+            sess = self._session()
+            if sess is not None:
+                r = sess.post("https://api.openai.com/v1/chat/completions", data=body, headers=headers, timeout=20)
+                if r.status_code != 200:
+                    self.say(f"[LLM] API {r.status_code}: {r.text[:160]}")
+                    return None
+                resp = r.json()
+            else:
+                req = urllib.request.Request("https://api.openai.com/v1/chat/completions", data=body, headers=headers)
+                with urllib.request.urlopen(req, timeout=20) as r:
+                    resp = json.loads(r.read())
             data = json.loads(resp["choices"][0]["message"]["content"])
         except urllib.error.HTTPError as e:
             self.say(f"[LLM] API {e.code}: {e.read().decode(errors='ignore')[:160]}")
@@ -259,13 +308,25 @@ class CommandParser:
         self._unsaved.discard(key)
         keep = {k: v for k, v in self.cache.items() if k not in self._unsaved}
         try:
-            self.cache_path.write_text(json.dumps(keep, ensure_ascii=False, indent=1),
+            # 先读盘再合并:多个 brain 进程(现场会话 + 预热回放)交错写同一文件时,整文件覆写会把
+            # 别的进程刚确认的条目抹掉(09-08 实测 hand it to me / bring it here 被现场会话覆掉)
+            try:
+                disk = json.loads(self.cache_path.read_text(encoding="utf-8"))
+            except Exception:
+                disk = {}
+            merged = {norm_cmd(k): v for k, v in disk.items()}
+            merged.update(keep)
+            self.cache_path.write_text(json.dumps(merged, ensure_ascii=False, indent=1),
                                        encoding="utf-8")
         except Exception:
             pass
 
     def parse(self, text):
         """返回槽位 dict(kind: stop/fetch/goto/help + 各槽位)或 None(不可解析)。"""
+        if text.isascii():  # 英文听岔纠正也要喂给 LLM(中文的 _ASR_SUBS 只改缓存键,这里是整句同音错)
+            for bad, good in _ASR_SUBS_EN:
+                if bad in text.lower():
+                    text = re.sub(re.escape(bad), good, text, flags=re.IGNORECASE)
         key = norm_cmd(text)
         if not key:
             return None  # 纯标点/空白 = 转写噪声

@@ -252,14 +252,36 @@ class PlaceBuffer:
         dur = float(e.get("duration_s", 0.0))
         if e.get("provisional"):
             if dur >= self.min_dwell:
-                self.open = {"t_start": t0, "t_end": t1, "point": list(p), "object": obj}
+                self.open = {"t_start": t0, "t_end": t1, "point": list(p), "object": obj, "dur": dur}
         else:
             if self.open and abs(self.open["t_start"] - t0) < 1e-9:
                 self.open = None
-            if dur >= self.min_dwell:
-                self.recent.append({"t_start": t0, "t_end": t1,
-                                    "point": list(p), "object": obj})
-                self.recent = self.recent[-50:]
+            # 短注视也入账(09-08:看纸箱子被角聚类切成两段 0.3 s,0.4 s 门槛一段都没记,落点通道空窗);
+            # latest() 仍按 min_dwell 过滤(旧规则不变),majority() 按驻留累加,碎段合起来一样算数
+            self.recent.append({"t_start": t0, "t_end": t1, "point": list(p), "object": obj, "dur": dur})
+            self.recent = self.recent[-120:]
+
+    def majority(self, t_word, lookback, exclude_obj=None, fwd=0.6, back=0.5):
+        """dest/place 槽的落点(09-08 用户裁定改口径):在 [t_word-back, t_word+fwd] 里按落点所在
+        物体/表面累计驻留时长,取最多的那个,落点用该表面最晚一条记录(眼睛最后停的点)。
+        旧规则 latest() 取"词出口那一瞬正盯着的"——实测说 here 时眼睛还在桌上、1 s 后才看向纸箱子,
+        桌面赢了。窗内一条落点都没有时退回 latest()(说完就看别处、或看的是地板)。"""
+        w0, w1 = t_word - back, t_word + fwd
+        acc, last = {}, {}
+        for r in self.recent + ([self.open] if self.open else []):
+            if exclude_obj is not None and r.get("object") == exclude_obj:
+                continue
+            t0 = r.get("t_start", r["t_end"])
+            ov = max(0.0, min(r["t_end"], w1) - max(t0, w0))
+            if ov <= 0:
+                continue
+            k = r.get("object")
+            acc[k] = acc.get(k, 0.0) + ov
+            if k not in last or r["t_end"] >= last[k]["t_end"]:
+                last[k] = r
+        if not acc:
+            return self.latest(t_word, lookback, exclude_obj, fwd)
+        return last[max(acc, key=acc.get)]
 
     def latest(self, t_word, lookback, exclude_obj=None, fwd=0.6):
         """说指代词时刻的落点:那一刻正盯着的最优(距离 0),其余取与 t_word
@@ -274,6 +296,8 @@ class PlaceBuffer:
         for r in self.recent + ([self.open] if self.open else []):
             if exclude_obj is not None and r.get("object") == exclude_obj:
                 continue
+            if r.get("dur", self.min_dwell) < self.min_dwell:
+                continue  # 旧规则:短注视不算落点
             t0 = r.get("t_start", r["t_end"])
             if t0 - 1e-9 <= t_word <= r["t_end"] + 1e-9:
                 d = 0.0

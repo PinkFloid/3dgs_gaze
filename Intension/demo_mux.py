@@ -24,6 +24,10 @@ ap.add_argument("session", help="brain 会话目录(logs/2026...)")
 ap.add_argument("--out", default=None, help="输出 mp4(默认 <录像>/demo_voice_gaze.mp4)")
 ap.add_argument("--crf", type=int, default=19)
 ap.add_argument("--lang", choices=["zh", "en"], default="zh", help="字幕语言(英文演示用 en:系统行英文、物名用英文对照)")
+ap.add_argument("--relabel", action="append", default=[], help="系统行字幕文本替换 old=new(剪辑用,可重复;只改字幕不改日志)")
+ap.add_argument("--stop-text", default=None, help="急停字样(默认 ⏹ Stopped / ⏹ 已急停)")
+ap.add_argument("--mute", default="", help="静音区间(视频秒)a-b,c-d:区间内人声与提示音清零、起点落在区间内的语音字幕不出;时长不变,便于事后对齐")
+ap.add_argument("--drop-sys", default="", help="同上格式;起点落在区间内的系统行字幕(派发/done)也去掉——用于整段作废的尾巴")
 A = ap.parse_args()
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from core.en_names import gloss  # noqa: E402
@@ -55,7 +59,7 @@ def w2v(wall):
     idx = float(np.interp(pupil, world_ts, np.arange(n_frames)))
     return idx / fps
 
-asr, res, dones = [], [], []
+asr, res, dones, stop_times = [], [], [], []
 for ln in (SESS / "events.jsonl").open(encoding="utf-8"):
     e = json.loads(ln)
     tp = e.get("topic")
@@ -64,7 +68,14 @@ for ln in (SESS / "events.jsonl").open(encoding="utf-8"):
     elif tp == "resolution":
         res.append((p2w(e["t"]), e.get("object"), e.get("mode"), e.get("goto")))
     elif tp == "skill.status" and e.get("state") in ("done", "failed", "stopped"):
-        dones.append((e.get("timestamp"), e.get("state"), e.get("req_id")))
+        st = e.get("state")
+        msg = str(e.get("message") or "").lower()
+        # 急停打断的在飞单,狗端报的是 failed(message 含 interrupt/cancel):字幕按急停显示,不打"失败"
+        if st == "failed" and any(w in msg for w in ("interrupt", "cancel", "stop")):
+            st = "stopped"
+        dones.append((e.get("timestamp"), st, e.get("req_id")))
+    elif tp == "skill.req" and e.get("skill") == "stop":
+        stop_times.append(e.get("sent_at"))
 
 # ---- 音轨:人声(按 utt 文件名 t_end 回放)+ 还原当时响过的提示音 ----
 n_total = int((vid_dur + 1.0) * SR)
@@ -117,6 +128,9 @@ for t_end, _ in asr:
 for t_wall, _, _, _ in res:
     put(voice, t_wall + 0.35, "ok", 0.18)       # 派单成功音
 
+MUTES = [tuple(float(x) for x in r.split("-")) for r in A.mute.split(",") if r.strip()]
+for a_m, b_m in MUTES:
+    voice[max(int(a_m * SR), 0):min(int(b_m * SR), len(voice))] = 0.0
 mix = np.clip(voice, -32767, 32767).astype(np.int16)
 with wave.open(str(OUT / "demo_audio.wav"), "wb") as f:
     f.setnchannels(1); f.setsampwidth(2); f.setframerate(SR)
@@ -175,7 +189,7 @@ for t_wall, obj, mode, goto in res:
     a = w2v(t_wall) + 0.3
     if EN:
         who = {"你这里": "you", None: ""}.get(obj, obj)
-        modes = {"视线": "gaze", "名字": "by name", "主动": "proactive", "导航": "navigate", "放置": "place"}
+        modes = {"视线": "gaze", "名字": "by name", "主动": "proactive", "导航": "navigate", "放置": "place", "就近": "gaze, nearest"}
         if goto or mode == "导航":
             txt = f"→ {name(who) if who != 'you' else 'to you'} · navigation dispatched"
         elif mode == "放置":
@@ -193,12 +207,22 @@ for t_wall, obj, mode, goto in res:
 for t_wall, state, rid in dones:
     if not (0 <= (t_wall or 0) - vid_start_wall <= vid_dur):
         continue
+    if state == "failed" and any(0 <= (t_wall or 0) - ts <= 4.0 for ts in stop_times):
+        state = "stopped"
     a = w2v(t_wall)
-    txt = ({"done": "✓ Task done", "failed": "✗ Failed", "stopped": "⏹ Stopped"} if EN
-           else {"done": "✓ 任务完成", "failed": "✗ 失败", "stopped": "⏹ 已急停"})[state]
+    txt = ({"done": "✓ Task done", "failed": "✗ Failed", "stopped": A.stop_text or "⏹ Stopped"} if EN
+           else {"done": "✓ 任务完成", "failed": "✗ 失败", "stopped": A.stop_text or "⏹ 已急停"})[state]
     lines.append((a, f"Dialogue: 0,{ts(a)},{ts(min(a + 2.2, vid_dur))},Sys,"
                      f"{{\\fad(120,200)}}{txt}"))
 lines.sort()
+if MUTES:  # 静音区间里起头的语音字幕去掉;系统行(派发/done)不受噪声段静音影响
+    lines = [(a, l) for a, l in lines if ",Sys," in l or not any(a_m <= a <= b_m for a_m, b_m in MUTES)]
+DROPS = [tuple(float(x) for x in r.split("-")) for r in A.drop_sys.split(",") if r.strip()]
+if DROPS:
+    lines = [(a, l) for a, l in lines if not any(a_m <= a <= b_m for a_m, b_m in DROPS)]
+for spec in A.relabel:  # 剪辑用字幕改写(只动 Sys 行)
+    old_s, new_s = spec.split("=", 1)
+    lines = [(a, (l.replace(old_s, new_s) if ",Sys," in l else l)) for a, l in lines]
 (OUT / "subs.ass").write_text(hdr + "\n".join(l for _, l in lines) + "\n", encoding="utf-8")
 
 print(f"视频墙钟起点 {vid_start_wall:.3f},时长 {vid_dur:.2f}s")

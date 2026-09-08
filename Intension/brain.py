@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import numpy as np
 import math
 import queue
 import re
@@ -41,7 +42,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from agent import CommandParser, load_openai_key, norm_cmd  # noqa: E402
 from core.attention import (AttentionBuffer, PlaceBuffer,   # noqa: E402
-                            accepted)
+                            accepted, noun_match)
 from core.comms import (Printer, dispatch, gaze_events,     # noqa: E402
                         replay_events, status_listener)
 from core.resolve import load_object_table, resolve_named   # noqa: E402
@@ -185,6 +186,12 @@ def parse_args():
                    help="语音能量闸:低于此 rms 的段当环境底噪丢弃(另有超长段/幻听闸,"
                         "见 voice_input.py 模块注释;默认按 DJI 麦 --meter 校准,换麦必重跑)")
     p.add_argument("--yes", action="store_true", help="自动确认(回归测试用)")
+    p.add_argument("--nearest-fallback", action="store_true",
+                   help="演示用最简规则:指代句没有过闸的注视时,取说话时刻的注视落点,按类别就近选离落点最近的命名物"
+                        "(落点可以在桌面上;09-08 实测视线整体偏低 1.5°,球的注视被判成桌面而'不响应')")
+    p.add_argument("--nearest-max", type=float, default=0.30, help="就近兜底的落点-质心最大距离(m)")
+    p.add_argument("--dest-rule", choices=["majority", "latest"], default="majority",
+                   help="place/dest 落点口径:majority=词前 0.5s 到词后前看窗内驻留最久的表面(默认,09-08);latest=词出口那一瞬正盯着的(旧)")
     p.add_argument("--lang", choices=["zh", "en"], default="zh",
                    help="指令语言:en = 英文演示(whisper 英文、停词 stop、LLM 英文对照、类别词映射)")
     p.add_argument("--log-dir", default=str(Path(__file__).resolve().parent / "logs"))
@@ -285,8 +292,13 @@ def main() -> int:
     if args.llm == "on" and not key:
         P.say("[!] 未配置 OPENAI_API_KEY(环境变量或 Intension/.openai_key),只用解析缓存")
         args.llm = "off"
+    try:  # 场所词表:物品台/桌子等永远不当抓取目标(09-08 实测 "ball"→"table" 听岔后按名字兜底抓了物品台)
+        places = set(json.loads((Path(args.map_dir) / "places.json").read_text(encoding="utf-8")))
+    except Exception:
+        places = {"物品台", "桌子"}
     parser = CommandParser(table, model=args.llm_model, mode=args.llm, key=key,
                            say=P.say, logev=logev, lang=args.lang)
+    parser.warm()  # 先把到 OpenAI 的隧道握好手(后台),临场新句子少付一次握手
 
     # 状态订阅纯粹是显示 + 回放收尾等终态;抢占语义下大脑不做任何忙闲记账
     status_seen = None
@@ -536,18 +548,30 @@ def main() -> int:
             return f"位置({p[0]:+.1f},{p[1]:+.1f})"
         return o
 
+    def landing(t_word, fwd=0.6, exclude_obj=None):
+        """落点通道查询,按 --dest-rule 走多数驻留或旧的瞬时规则。"""
+        if args.dest_rule == "majority":
+            return place_buf.majority(t_word, args.lookback, exclude_obj=exclude_obj, fwd=fwd)
+        return place_buf.latest(t_word, args.lookback, exclude_obj=exclude_obj, fwd=fwd)
+
     def slot_point(deictic, query, t_word, role, fwd=0.6):
         """place/dest 槽公共消解。指代词在场 = 视线优先(说"这里"时看哪就是哪),
         名字只做兜底;纯名字则只按名字。fwd=词后前看窗(dest 槽给 DEST_FWD:
         说完才看过去是常态)。
         返回 (状态, 落点, 标签):状态 ok=拿到 / fail=给了但消解不了 / none=没给。"""
         if deictic:
-            r = place_buf.latest(t_word, args.lookback, fwd=fwd)
+            r = landing(t_word, fwd=fwd)
             if r:
                 return "ok", r["point"], place_label(r)
         if query:
             name, top = resolve_named(query, table)
             if name:
+                # 指名的是场所(物品台/纸箱子)且这段时间眼睛就停在它上面:用盯的那一点,不用它的质心
+                # ("put it on the table" 看着桌子哪块就放哪块;没看它才退回质心)
+                if name in places:
+                    r = landing(t_word, fwd=fwd)
+                    if r and r.get("object") == name:
+                        return "ok", r["point"], name
                 return "ok", table[name], name
             P.say(f"[×] {role}「{query}」没有唯一命中,最像的:"
                   + " / ".join(f"{n}({s:.2f})" for s, n in top))
@@ -646,7 +670,8 @@ def main() -> int:
                 # 从最近注视处那一侧接近:站到用户视野里,yaw 朝向用户。
                 # 这同时是控制权:回车前盯稳(≥0.5s)哪一侧,狗就停哪一侧
                 r = place_buf.latest(t_word, 30.0)
-                carry = any(w in key for w in ("拿", "带", "端", "送", "给", "递"))
+                carry = any(w in key for w in ("拿", "带", "端", "送", "给", "递")) \
+                    or any(re.search(rf"\b{w}\b", key) for w in ("give", "bring", "take", "hand", "carry", "deliver", "pass"))  # 英文:give/bring it to me = 携物
                 # 拿过来/给我/递过来=携物:光杆「给我」实测走了纯导航(无 deliver_to),
                 # 狗端少了携物语义;抓完手里有东西时喊人过来默认都是送东西
                 propose("你这里", user_pos["xyz"], "导航", t_word, goto=True,
@@ -716,8 +741,7 @@ def main() -> int:
             你在哪就不带送回"的降级模式)。"""
             d = dest
             if dest_defer:
-                r = place_buf.latest(t_dest, args.lookback, exclude_obj=obj,
-                                     fwd=DEST_FWD)
+                r = landing(t_dest, fwd=DEST_FWD, exclude_obj=obj)
                 if r:
                     d = (r["point"], place_label(r))
                 else:
@@ -729,7 +753,7 @@ def main() -> int:
             # 裸放置:「放到纸箱子」「放到那边」——不带物体,狗手里有什么放什么
             # (grasp/place 是狗端两个独立方法,单发 place 就是"把手里的放下")
             if dest is None and dest_defer:
-                r = place_buf.latest(t_dest, args.lookback, fwd=DEST_FWD)
+                r = landing(t_dest, fwd=DEST_FWD)
                 if r:
                     dest = (r["point"], place_label(r))
             if dest is None:
@@ -774,8 +798,28 @@ def main() -> int:
                                  "视线", via=place[1] if place else None,
                                  obj_point=c["target_world"])
                 return
+            if args.nearest_fallback:  # 最简规则:看哪拿哪,按落点就近
+                lp = landing(t_obj, fwd=0.6)  # 同 dest 口径:词前 0.5 s 到词后 0.6 s 内驻留最久的落点
+                if lp:
+                    pt = np.asarray(lp["point"], float)
+                    pool = [n for n in table if n not in places and (not cmd["noun"] or noun_match(cmd["noun"], n))]
+                    if pool:
+                        best = min(pool, key=lambda n: float(np.hypot(table[n][0] - pt[0], table[n][1] - pt[1])))
+                        d = float(np.hypot(table[best][0] - pt[0], table[best][1] - pt[1]))
+                        if d <= args.nearest_max:
+                            P.say(f"[·] 无过闸注视,按落点就近 -> {best}(落点在「{lp.get('object')}」上,离质心 {d*100:.0f} cm)")
+                            logev({"topic": "binding", "t_word": t_obj, "noun": cmd["noun"], "fallback": "nearest",
+                                   "candidates": [{"object": best, "t_start": lp.get("t_start"), "t_end": lp["t_end"],
+                                                   "dwell_s": None, "vote": None, "target_world": list(table[best]),
+                                                   "gap": None, "dist_m": round(d, 3), "landed_on": lp.get("object")}]})
+                            dispatch_or_wait(best, place[0] if place else table[best], "就近",
+                                             via=place[1] if place else None, obj_point=table[best])
+                            return
             if cmd["noun"]:
                 name, top = resolve_named(cmd["noun"], table)
+                if name in places:
+                    P.say(f"[×] 「{name}」是场所,不当抓取目标——看一眼要拿的东西再说")
+                    return
                 if name:  # 地点槽已解出时仍去注视处检测:LLM 错标 deictic 也能落对地方
                     P.say(f"[·] 近期没注视「{cmd['noun']}」,按名字兜底 -> {name}"
                           + (f"(仍去注视处「{place[1]}」检测)" if place else ""))
@@ -798,6 +842,9 @@ def main() -> int:
                         t_word, dest=dest, via=place[1])
                 return
             name, top = resolve_named(cmd["object"], table)
+            if name in places and cmd["kind"] in ("fetch", "grab"):
+                P.say(f"[×] 「{name}」是场所,不当抓取目标")
+                return
             if name is None:
                 P.say(f"[×] 「{cmd['object']}」没有唯一命中,最像的:"
                       + " / ".join(f"{n}({s:.2f})" for s, n in top))

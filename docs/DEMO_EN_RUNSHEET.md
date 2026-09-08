@@ -1,4 +1,4 @@
-# 英文实时演示流程(2026-09-07,v10 地图,与 8-27 中文 demo 同一拍法)
+# 英文实时演示流程(2026-09-07 晚更新为 v11 地图,与 8-27 中文 demo 同一拍法)
 
 管线已支持 `--lang en`:whisper 英文转写 + 英文热词、停词 `stop`、LLM 提示词带中英物名对照、
 英文类别词(cup/ball/apple)映射到中文类过滤、demo_mux 英文字幕。地图名仍是中文,英文说法对照:
@@ -10,6 +10,7 @@
 | 香蕉 / 橘子 | banana / orange |
 | 白杯1 / 白杯2 | white cup 1 / white cup 2(指代时说 "this cup") |
 | 物品台 | table |
+| 纸箱子 | box(v11 新增,在走廊左前方地上;"Put it in the box." 走名字送达)|
 
 ## 1. 开机顺序(四个终端)
 
@@ -18,16 +19,25 @@
 # ② 感知
 Eye_Tracker/tools/gaze_live.sh --publish 5581
 # ③ 狗端二选一
-#    真狗:同学的 server(5583 命令 / 5584 状态),brain 用它的地址
+#    真狗:同学的 server(5583 命令 / 5584 状态),brain 用它的地址;**狗端要先换 v11 的 tags_world.json 与 frame board/v11**
 #    假狗(没狗也能出片,✓ Task done 字幕照出):
 conda run --no-capture-output -n nerfstudio python Intension/dog_link.py --fake
 # ④ 大脑(英文 + 语音 + 免确认)
-conda run --no-capture-output -n nerfstudio python Intension/brain.py --lang en --voice --yes \
-    --skill-endpoint tcp://127.0.0.1:5583          # 真狗换成 tcp://<狗机IP>:5583
+conda run --no-capture-output -n nerfstudio python Intension/brain.py --lang en --voice --yes --min-capture 0 --nearest-fallback \
+    --skill-endpoint tcp://192.168.123.164:5583    # 假狗换成 tcp://127.0.0.1:5583
+# 最简规则(09-08):--min-capture 0 不再按锥体命中率拦注视;--nearest-fallback 在没有过闸注视时,
+# 取说话时刻的注视落点(落在桌面上也行),按类别就近选离落点最近的物体——看哪拿哪
+# 落点口径(09-08 改):place/dest 取"词前 0.5 s 到词后 3 s 内眼睛停得最久的表面",不再是词出口那一瞬正在看的;
+# 说 "Put it here." 之后一秒内看向箱子也算数,不必先盯箱子
 ```
 
 brain 终端要有代理变量(`https_proxy=http://127.0.0.1:10808`),台词没进缓存的那句才走 LLM(约 2 s);
 下面台词已全部预热进 `parse_cache_v2.json`,现场 0 ms。DJI 无线麦要插好(`--voice-device Rx` 缺省)。
+
+## 1.5 每一幕开口前:先盯地上的大 tag 76 一秒
+
+gaze_live 会用 tag 戳重估视线偏置(在线标定)。09-08 实测头位不动时落点整体偏低 1.5°,重标定后仍会漂;
+每幕说指示句之前先盯脚前的 76 号一秒,再把目光移到物体上盯 1 秒,再开口。这一步比换任何参数都管用。
 
 ## 2. 录前三查(各 30 秒)
 
@@ -72,7 +82,7 @@ conda run --no-capture-output -n nerfstudio python Intension/demo_mux.py ~/recor
 
 ## 5. 已知边界
 
-- 视线判定用的是 v10 地图;桌上东西一毫米别挪。
+- 视线判定用的是 v11 地图(球距 16.6/25.5 cm,墙上有 78/81/82 三张大 tag);桌上东西和纸箱子一毫米别挪。
 - 英文 "grab" 与 "bring me" 都派 grasp,区别只在送不送到你身边;"put it …" 一律当手里有东西的放置。
 - 停词只认 stop(连喊、"stop it" 都算);置信闸照旧,狗行走噪声下的幻听会被丢弃并打印原因。
 - 回归:`./Intension/run_regression.sh`(中文 23 项)全绿;英文台词在 v6_near 视线回放上全过(2026-09-07 01:40)。
