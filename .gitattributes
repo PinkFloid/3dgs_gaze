@@ -1,0 +1,2 @@
+# Preserve the generated story PDF as a binary figure asset.
+paper/**/fig_story_pink_apple_icra.pdf binary

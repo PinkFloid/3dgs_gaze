@@ -1,0 +1,32 @@
+{
+  "pdf_pages": 1,
+  "page_inches": [
+    7.16,
+    3.3377777777777777
+  ],
+  "raster_size": [
+    4296,
+    2003
+  ],
+  "fonts": [
+    {
+      "font": "/AAAAAA+LiberationSerif",
+      "embedded": true
+    },
+    {
+      "font": "/AAAAAA+LiberationSerif-Bold",
+      "embedded": true
+    }
+  ],
+  "embedded_images": 9,
+  "source_gaze_samples": 12,
+  "manual_gaze_shift_px": [
+    0,
+    0
+  ],
+  "successful_source_requests": [
+    "20260908-010003-001",
+    "20260908-010003-002"
+  ],
+  "visual_review": "Rendered PDF inspected: full eye camera, actual gaze, apple identity, map placement and robot stages; captions and image insets fit."
+}

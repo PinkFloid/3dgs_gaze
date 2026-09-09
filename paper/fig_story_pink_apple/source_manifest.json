@@ -1,0 +1,444 @@
+{
+  "recording": "/home/liuchy/recordings/2026_09_08/008",
+  "session": "/home/liuchy/Project/Intension/logs/20260908-010003",
+  "request_ids": [
+    "20260908-010003-001",
+    "20260908-010003-002"
+  ],
+  "gaze": {
+    "source_recording": "/home/liuchy/recordings/2026_09_08/008",
+    "frame_index": 299,
+    "frame_timestamp": 462749.398495,
+    "frame_time_s": 10.021534999948926,
+    "gaze_samples": 12,
+    "raw_gaze_px": [
+      987.3245075586328,
+      507.0294898226397
+    ],
+    "undistorted_gaze_px": [
+      987.5546063573555,
+      507.0025445653589
+    ],
+    "frame_gaze_method": "Median of confidence >= 0.6 raw gaze samples within +/-24 ms; no manual spatial adjustment.",
+    "logged_fixation": {
+      "t_start": 462749.2455135,
+      "t_end": 462749.5205005,
+      "duration_s": 0.2749869999825023,
+      "centroid_world": [
+        0.6569345922274635,
+        0.8731600301101891,
+        0.8461559347314319
+      ],
+      "spread_m": 0.025885850281445983,
+      "n_samples": 6,
+      "origin_world": [
+        0.8249948735393301,
+        -1.407997547401868,
+        1.6706150997601439
+      ],
+      "distance_m": 2.431,
+      "ang_spread_deg": 0.61,
+      "p_none": 0.462,
+      "rank_by": "capture",
+      "surface": "物品台",
+      "surface_q": 0.168,
+      "object": "苹果粉",
+      "object_label": 66,
+      "vote_share": 0.832,
+      "q": 0.447,
+      "capture": 1.039,
+      "miss_deg": 0.0,
+      "object_centroid_world": [
+        0.637,
+        1.008,
+        0.804
+      ],
+      "candidates": [
+        {
+          "name": "苹果粉",
+          "share": 0.832,
+          "q": 0.447,
+          "capture": 1.039,
+          "miss_deg": 0.0,
+          "labels": [
+            66
+          ]
+        },
+        {
+          "name": "苹果红",
+          "share": 0.08,
+          "q": 0.043,
+          "capture": 0.1,
+          "miss_deg": 2.14,
+          "labels": [
+            60
+          ]
+        },
+        {
+          "name": "网球L",
+          "share": 0.047,
+          "q": 0.025,
+          "capture": 0.083,
+          "miss_deg": 2.23,
+          "labels": [
+            61
+          ]
+        }
+      ],
+      "sigma_deg": 1.0,
+      "mode": "cone",
+      "provisional": false,
+      "judge_ms": 5.8,
+      "topic": "gaze.intent"
+    },
+    "fixation_log": "/home/liuchy/Project/Intension/logs/20260908-010003/gaze.jsonl",
+    "offline_same_frame_pose": {
+      "T_world_cam": [
+        [
+          0.9848918958746317,
+          0.09350648766933367,
+          -0.14575489770233732,
+          0.8177339515625246
+        ],
+        [
+          0.16931232846382901,
+          -0.34328749928653884,
+          0.9238436167792421,
+          -1.406117753261283
+        ],
+        [
+          0.03634953741976016,
+          -0.9345641923363742,
+          -0.35393287715614963,
+          1.6719352873593332
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "known_tag_ids": [
+        81,
+        76,
+        79,
+        135,
+        134,
+        133,
+        131,
+        132,
+        130,
+        139,
+        140,
+        136,
+        141,
+        137,
+        138
+      ],
+      "n_inlier_corners": 60,
+      "mean_reprojection_normalized": 0.0013894175248446356,
+      "distance_to_logged_origin_m": 0.007615609579100552
+    },
+    "note": "2D marker is frame-local raw gaze; 3D ray is the logged fixation during the spoken deictic phrase, including the online calibration and aggregation. They are different measurement representations, not claimed to be a direct reprojection of one instantaneous sample."
+  },
+  "map_render": {
+    "eye": [
+      3.6,
+      -2.0,
+      3.0
+    ],
+    "look_at": [
+      1.0,
+      0.3,
+      1.05
+    ],
+    "K": [
+      [
+        750.0,
+        0.0,
+        640.0
+      ],
+      [
+        0.0,
+        750.0,
+        360.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "w2c": [
+      [
+        0.6625738822030289,
+        0.7489965624903807,
+        -0.0,
+        -0.8872728509501426
+      ],
+      [
+        0.3668305989760987,
+        -0.32450399140193337,
+        -0.8718557628524632,
+        0.6459691494395677
+      ],
+      [
+        -0.6530169693639235,
+        0.5776688575142399,
+        -0.4897627270229426,
+        4.975486985807432
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "points_world": {
+      "eye_origin": [
+        0.8249948735393301,
+        -1.407997547401868,
+        1.6706150997601439
+      ],
+      "fixation_hit": [
+        0.6569345922274635,
+        0.8731600301101891,
+        0.8461559347314319
+      ],
+      "apple_2": [
+        0.637,
+        1.008,
+        0.804
+      ],
+      "apple_1": [
+        0.748,
+        0.93,
+        0.802
+      ]
+    },
+    "projected": {
+      "eye_origin": [
+        266.9669465197277,
+        346.35598694478443
+      ],
+      "fixation_hit": [
+        672.6738298952482,
+        338.3051466883912
+      ],
+      "apple_2": [
+        685.77291079666,
+        336.5537038490115
+      ],
+      "apple_1": [
+        689.3740178659082,
+        346.9385069985932
+      ],
+      "frustum": [
+        [
+          306.6579081692385,
+          318.8828779123347
+        ],
+        [
+          342.3081671185298,
+          335.30912195500895
+        ],
+        [
+          337.9461448875951,
+          371.5363792185111
+        ],
+        [
+          302.840319253702,
+          353.53695768812173
+        ]
+      ]
+    }
+  },
+  "map_instance": 66,
+  "instance_label": "apple 2 (pink apple)",
+  "other_apple_instance": 60,
+  "other_apple_label": "apple 1 (red apple)",
+  "frame_times_s": [
+    10.021535,
+    10.021535,
+    null,
+    28.0,
+    36.0,
+    51.5
+  ],
+  "robot_insets": {
+    "panel_d": 15.6,
+    "panel_e": 36.0,
+    "panel_f": 51.5
+  },
+  "robot_source": "/home/liuchy/文档/ChatGPT/3dgs/outputs/robot_demo/008_苹果_RGB_aligned.mp4",
+  "robot_alignment": "robot webm time = displayed world-video time - 15.4 s; the first segment is uncut.",
+  "inset_note": "Panel d combines a later approach overview with the first available robot RGB, explicitly labeled early. Panel e and f pair observations at matching nominal times.",
+  "map_camera_glyph": "Logged fixation origin, with orientation recovered from same-frame ArUco/PnP. Glyph size is illustrative, not the full camera field of view.",
+  "boxes": "Image boxes are manual instance annotations; map boxes project recorded 3D instance bounds. Gaze coordinates are never moved.",
+  "events": [
+    {
+      "topic": "binding",
+      "t_word": 462749.6561664343,
+      "noun": "苹果",
+      "candidates": [
+        {
+          "object": "苹果粉",
+          "t_start": 462748.4872175,
+          "t_end": 462749.899648,
+          "dwell_s": 0.87,
+          "vote": 1.0,
+          "target_world": [
+            0.637,
+            1.008,
+            0.804
+          ],
+          "gap": 0.0
+        },
+        {
+          "object": "苹果粉",
+          "t_start": 462746.916461,
+          "t_end": 462747.349773,
+          "dwell_s": 0.7,
+          "vote": 0.973,
+          "target_world": [
+            0.637,
+            1.008,
+            0.804
+          ],
+          "gap": 2.306
+        }
+      ]
+    },
+    {
+      "topic": "skill.req",
+      "v": 1,
+      "type": "skill.request",
+      "skill": "grasp",
+      "params": {
+        "object_name": "apple",
+        "target_world": [
+          0.637,
+          1.008,
+          1.634
+        ],
+        "object_hint": [
+          0.637,
+          1.008,
+          0.804
+        ]
+      },
+      "req_id": "20260908-010003-001",
+      "frame": "board/v11",
+      "sent_at": 1788800424.2781422,
+      "t_stream": 462751.026,
+      "intent_summary": "指令(视线)消解为 苹果粉",
+      "rep": {
+        "v": 1,
+        "req_id": "20260908-010003-001",
+        "accepted": true,
+        "reason": "",
+        "task": [
+          {
+            "Move": [
+              0.885,
+              0.582,
+              1.463
+            ]
+          },
+          {
+            "Pick": "apple"
+          },
+          {
+            "Ref_pos": [
+              0.6016061374962935,
+              1.1631542923032676,
+              1.5
+            ]
+          }
+        ],
+        "task_text": "[{\"Move\":[0.885,0.582,1.463]},{\"Pick\":\"apple\"},{\"Ref_pos\":[0.6016061374962935,1.1631542923032676,1.5]}]",
+        "status_endpoint": "tcp://*:5584",
+        "status_topic": "skill.status"
+      }
+    },
+    {
+      "topic": "skill.status",
+      "v": 1,
+      "type": "skill.status",
+      "req_id": "20260908-010003-001",
+      "skill": "grasp",
+      "state": "done",
+      "progress": 1.0,
+      "message": "All tasks finished successfully.",
+      "sequence": 38,
+      "timestamp": 1788800446.093463
+    },
+    {
+      "topic": "skill.req",
+      "v": 1,
+      "type": "skill.request",
+      "skill": "place",
+      "params": {
+        "target_world": [
+          -0.019,
+          -1.515,
+          -1.825
+        ],
+        "object_name": "storage box"
+      },
+      "req_id": "20260908-010003-002",
+      "frame": "board/v11",
+      "sent_at": 1788800450.725674,
+      "t_stream": 462777.899,
+      "intent_summary": "裸放置 -> 纸箱子",
+      "rep": {
+        "v": 1,
+        "req_id": "20260908-010003-002",
+        "accepted": true,
+        "reason": "",
+        "task": [
+          {
+            "Move": [
+              0.2,
+              -1.18,
+              -3.1
+            ]
+          },
+          {
+            "Ref_pos": [
+              -0.4832202903674063,
+              -1.2058901486503255,
+              1.5
+            ]
+          },
+          {
+            "Place": "storage box"
+          }
+        ],
+        "task_text": "[{\"Move\":[0.2,-1.18,-3.1]},{\"Ref_pos\":[-0.4832202903674063,-1.2058901486503255,1.5]},{\"Place\":\"storage box\"}]",
+        "status_endpoint": "tcp://*:5584",
+        "status_topic": "skill.status"
+      }
+    },
+    {
+      "topic": "skill.status",
+      "v": 1,
+      "type": "skill.status",
+      "req_id": "20260908-010003-002",
+      "skill": "place",
+      "state": "done",
+      "progress": 1.0,
+      "message": "All tasks finished successfully.",
+      "sequence": 36,
+      "timestamp": 1788800463.15405
+    }
+  ],
+  "dimensions_in": [
+    7.16,
+    3.3377777777777777
+  ],
+  "caption_font_pt": 7.5,
+  "source_selection": "Frame at 10.02 s lies during the spoken deictic phrase and inside the logged fixation 462749.2455135–462749.5205005. It was chosen for readable source footage; no new trial or metric is added."
+}

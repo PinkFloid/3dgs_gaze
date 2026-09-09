@@ -10,7 +10,7 @@ E4 = 204 trial 冻结子集(`data/table2.md`,09-06 审计口径:顺序 + 时段�
 
 - `tex/EXPERIMENTS_0909.tex` — 实验章定稿(在 09-07 精简稿上填完 TBD:22 站位、急停时延;时延段换成审计口径;补打字输入披露);`tex/EXPERIMENTS_REWRITE.tex` = 改前稿,可 diff。
 - `Figures/fig_theta.pdf|png` — Fig.4(= docs/E1_DATA/fig4,327 trial,Wilson CI,遮挡阴影);`fig_sigma_tiers.pdf|png` — σ 扫描分档;`fig_sigma_clear` — 清晰子集版;
-  `fig_story*.pdf|png` — Fig.5 叙事条带;`fig_pipeline.pdf` / `fig_storyboard.pdf`;`fig2_system_v7.pdf` — Fig.2;`fig_scene_map.pdf` — 场景/地图对照;`fig5_assets/` — Fig.5 原帧。
+  `fig_story_pink_apple_icra.pdf|png|svg` — 当前 Fig.5 粉苹果单案例(09-08 录像 008，含实测 gaze、地图定位及机器人 RGB；当前实验稿已同步)。`fig_story.pdf|png` 与 hand/box 拆分图保留为历史版本;`fig_pipeline.pdf` / `fig_storyboard.pdf`;`fig2_system_v7.pdf` — Fig.2;`fig_scene_map.pdf` — 场景/地图对照;`fig5_assets/` — Fig.5 原帧。
 - `data/trials.csv`(逐 trial 主表,tags 含 stress/walking/beyond_occ/occ/exec_error/p1/p2)、`curve.csv`(分箱 [0,0.75) 0.75–1 1–1.5 1.5–2.5 2.5–4 4–6 6–20)、
   `sigma_curve.json` / `theta_bins.json`(fig_sigma 数据)、`table2.csv|md`(E4 全 26 配置)、`curve_dwell*.csv` / `trials_dwell.csv`(09-06 审计口径的对照曲线)、
   `audit_0906_REPORT.md`(绑定审计、真机 32 单、时延分解、急停)。
